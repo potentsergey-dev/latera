@@ -38,27 +38,35 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _init() async {
-    await _root.notifications.init();
-    await _coordinator.start();
+    try {
+      await _root.notifications.init();
+      await _coordinator.start();
 
-    _sub = _coordinator.fileAddedEvents.listen((event) {
-      _log.i('File added: ${event.fileName}');
-      if (!mounted) return;
-      setState(() {
-        _lastFileName = event.fileName;
-        _status = 'Получено событие добавления файла';
+      _sub = _coordinator.fileAddedEvents.listen((event) {
+        _log.i('File added: ${event.fileName}');
+        if (!mounted) return;
+        setState(() {
+          _lastFileName = event.fileName;
+          _status = 'Получено событие добавления файла';
+        });
+
+        // Foreground UX: быстрый in-app pop-up.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Новый файл: ${event.fileName}')),
+        );
       });
 
-      // Foreground UX: быстрый in-app pop-up.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Новый файл: ${event.fileName}')),
-      );
-    });
-
-    if (!mounted) return;
-    setState(() {
-      _status = 'Готово. Ожидаю события…';
-    });
+      if (!mounted) return;
+      setState(() {
+        _status = 'Готово. Ожидаю события…';
+      });
+    } catch (e, st) {
+      _log.e('Init failed', error: e, stackTrace: st);
+      if (!mounted) return;
+      setState(() {
+        _status = 'Ошибка инициализации: $e';
+      });
+    }
   }
 
   @override

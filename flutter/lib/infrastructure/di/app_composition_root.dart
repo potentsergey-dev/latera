@@ -3,7 +3,7 @@ import 'package:logger/logger.dart';
 import '../../application/file_events_coordinator.dart';
 import '../../domain/file_watcher.dart';
 import '../notifications/local_notifications_service.dart';
-import '../rust/rust_file_watcher_stub.dart';
+import '../rust/rust_file_watcher_frb.dart';
 
 /// Composition Root (точка сборки зависимостей).
 class AppCompositionRoot {
@@ -19,7 +19,7 @@ class AppCompositionRoot {
 
   static AppCompositionRoot create({required Logger logger}) {
     final notifications = LocalNotificationsService(logger: logger);
-    final watcher = RustFileWatcherStub(logger: logger);
+    final watcher = RustFileWatcherFrb(logger: logger);
 
     final coordinator = FileEventsCoordinator(
       logger: logger,

@@ -1,0 +1,18 @@
+# Rust
+rust/target/
+**/*.rs.bk
+
+# Flutter
+flutter/build/
+flutter/.dart_tool/
+flutter/.pub-cache/
+flutter/android/.gradle/
+flutter/ios/.symlinks/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
