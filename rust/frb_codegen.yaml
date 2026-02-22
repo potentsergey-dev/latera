@@ -1,0 +1,22 @@
+# FRB Codegen Configuration
+# 
+# NOTE: On Windows, codegen may fail with "prefix not found" error.
+# This is a known bug in flutter_rust_bridge v2.11.1.
+# Workaround: Run codegen from WSL2 or macOS/Linux.
+#
+# Usage (from rust directory):
+#   flutter_rust_bridge_codegen generate --config-file frb_codegen.yaml
+#
+# Or use project scripts:
+#   Windows: .\scripts\codegen.ps1
+#   Unix:    ./scripts/codegen.sh
+
+rust_input: "crate::api"
+rust_root: "."
+dart_output: "../flutter/lib/infrastructure/rust/generated"
+rust_output: "src/frb_generated.rs"
+dart_entrypoint_class_name: "RustCore"
+no_add_mod_to_lib: true
+no_web: true
+default_dart_async: true
+type_64bit_int: true

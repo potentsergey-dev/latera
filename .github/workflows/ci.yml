@@ -1,0 +1,272 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  FLUTTER_VERSION: '3.24.0'
+  RUST_VERSION: '1.75'
+
+jobs:
+  # ===========================================
+  # Lint & Format Checks
+  # ===========================================
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Rust Setup ---
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      # --- Flutter Setup ---
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            flutter/.pub-cache
+            flutter/.flutter-plugins
+            flutter/.flutter-plugins-dependencies
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('flutter/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
+
+      # --- Rust Checks ---
+      - name: Check Rust formatting (rustfmt)
+        working-directory: rust
+        run: cargo fmt --all -- --check
+
+      - name: Run Rust linter (clippy)
+        working-directory: rust
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      # --- Flutter Checks ---
+      - name: Get Flutter dependencies
+        working-directory: flutter
+        run: flutter pub get
+
+      - name: Check Dart formatting
+        working-directory: flutter
+        run: dart format --set-exit-if-changed --output=none .
+
+      - name: Run Dart analyzer
+        working-directory: flutter
+        run: dart analyze --fatal-infos
+
+  # ===========================================
+  # Rust Tests
+  # ===========================================
+  rust-tests:
+    name: Rust Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Run Rust tests
+        working-directory: rust
+        run: cargo test --all-features
+
+  # ===========================================
+  # Flutter Tests
+  # ===========================================
+  flutter-tests:
+    name: Flutter Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            flutter/.pub-cache
+            flutter/.flutter-plugins
+            flutter/.flutter-plugins-dependencies
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('flutter/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
+
+      - name: Get Flutter dependencies
+        working-directory: flutter
+        run: flutter pub get
+
+      - name: Run Flutter tests
+        working-directory: flutter
+        run: flutter test --reporter=expanded
+
+  # ===========================================
+  # Windows Build
+  # ===========================================
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    needs: [lint, rust-tests, flutter-tests]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            flutter/.pub-cache
+            flutter/.flutter-plugins
+            flutter/.flutter-plugins-dependencies
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('flutter/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
+
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Get Flutter dependencies
+        working-directory: flutter
+        run: flutter pub get
+
+      - name: Run FRB codegen
+        run: |
+          cd rust
+          flutter_rust_bridge_codegen generate
+
+      - name: Build Rust library
+        working-directory: rust
+        run: cargo build --release
+
+      - name: Build Flutter Windows app
+        working-directory: flutter
+        run: flutter build windows --release
+
+      - name: Upload Windows build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latera-windows
+          path: flutter/build/windows/x64/runner/Release/
+          retention-days: 7
+
+  # ===========================================
+  # macOS Build (placeholder for future)
+  # ===========================================
+  # build-macos:
+  #   name: Build macOS
+  #   runs-on: macos-latest
+  #   needs: [lint, rust-tests, flutter-tests]
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install Rust toolchain
+  #       uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         targets: aarch64-apple-darwin, x86_64-apple-darwin
+  #
+  #     - name: Cache Rust dependencies
+  #       uses: Swatinem/rust-cache@v2
+  #       with:
+  #         workspaces: rust
+  #
+  #     - name: Install Flutter
+  #       uses: subosito/flutter-action@v2
+  #       with:
+  #         flutter-version: ${{ env.FLUTTER_VERSION }}
+  #         channel: 'stable'
+  #         cache: true
+  #
+  #     - name: Cache Flutter dependencies
+  #       uses: actions/cache@v4
+  #       with:
+  #         path: |
+  #           flutter/.pub-cache
+  #           flutter/.flutter-plugins
+  #           flutter/.flutter-plugins-dependencies
+  #         key: ${{ runner.os }}-flutter-pub-${{ hashFiles('flutter/pubspec.lock') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-flutter-pub-
+  #
+  #     - name: Install flutter_rust_bridge_codegen
+  #       run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+  #
+  #     - name: Get Flutter dependencies
+  #       working-directory: flutter
+  #       run: flutter pub get
+  #
+  #     - name: Run FRB codegen
+  #       run: |
+  #         cd rust
+  #         flutter_rust_bridge_codegen generate
+  #
+  #     - name: Build Rust library (Universal)
+  #       working-directory: rust
+  #       run: |
+  #         cargo build --release --target aarch64-apple-darwin
+  #         cargo build --release --target x86_64-apple-darwin
+  #         # Create universal binary
+  #         mkdir -p target/universal
+  #         lipo -create \
+  #           target/aarch64-apple-darwin/release/liblatera_rust.dylib \
+  #           target/x86_64-apple-darwin/release/liblatera_rust.dylib \
+  #           -output target/universal/liblatera_rust.dylib
+  #
+  #     - name: Build Flutter macOS app
+  #       working-directory: flutter
+  #       run: flutter build macos --release
+  #
+  #     - name: Upload macOS build artifact
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: latera-macos
+  #         path: flutter/build/macos/Build/Products/Release/latera.app
+  #         retention-days: 7

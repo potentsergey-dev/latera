@@ -15,5 +15,4 @@ pub mod logging;
 pub mod api;
 
 pub use api::*;
-
-
+pub use logging::{init_logging, LogContext};

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
 
 import '../application/file_events_coordinator.dart';
 import '../infrastructure/di/app_composition_root.dart';
@@ -19,7 +18,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  late final Logger _log;
   late final AppCompositionRoot _root;
   late final FileEventsCoordinator _coordinator;
 
@@ -30,8 +28,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _log = Logger();
-    _root = AppCompositionRoot.create(logger: _log);
+    _root = AppCompositionRoot.create();
     _coordinator = _root.fileEventsCoordinator;
 
     unawaited(_init());
@@ -40,10 +37,20 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _init() async {
     try {
       await _root.notifications.init();
-      await _coordinator.start();
+      final startResult = await _coordinator.start();
+
+      // Обрабатываем результат запуска координатора
+      if (startResult is CoordinatorStartFailure) {
+        _root.logger.e('Coordinator start failed', error: startResult.error);
+        if (!mounted) return;
+        setState(() {
+          _status = 'Ошибка запуска: ${startResult.error.message}';
+        });
+        return;
+      }
 
       _sub = _coordinator.fileAddedEvents.listen((event) {
-        _log.i('File added: ${event.fileName}');
+        _root.logger.i('File added: ${event.fileName}');
         if (!mounted) return;
         setState(() {
           _lastFileName = event.fileName;
@@ -51,6 +58,8 @@ class _MainScreenState extends State<MainScreen> {
         });
 
         // Foreground UX: быстрый in-app pop-up.
+        // Проверяем mounted повторно перед использованием context
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Новый файл: ${event.fileName}')),
         );
@@ -61,7 +70,7 @@ class _MainScreenState extends State<MainScreen> {
         _status = 'Готово. Ожидаю события…';
       });
     } catch (e, st) {
-      _log.e('Init failed', error: e, stackTrace: st);
+      _root.logger.e('Init failed', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
         _status = 'Ошибка инициализации: $e';
@@ -71,8 +80,20 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
-    unawaited(_sub?.cancel());
-    unawaited(_coordinator.stop());
+    // Синхронно отменяем подписку (неблокирующая операция)
+    _sub?.cancel();
+    _sub = null;
+
+    // Останавливаем coordinator асинхронно с логированием ошибок
+    // Используем unawaited + then вместо ignore() для обработки ошибок
+    unawaited(
+      _coordinator.stop().then((error) {
+        if (error != null) {
+          _root.logger.w('Error during coordinator stop: $error');
+        }
+      }),
+    );
+
     super.dispose();
   }
 
@@ -110,4 +131,3 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 }
-

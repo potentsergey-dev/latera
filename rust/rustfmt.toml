@@ -1,0 +1,14 @@
+# Rust formatting configuration (stable only)
+# See: https://rust-lang.github.io/rustfmt/
+
+edition = "2021"
+max_width = 100
+tab_spaces = 4
+use_small_heuristics = "Default"
+
+# Reorder imports
+reorder_imports = true
+
+# Use field init shorthand
+use_field_init_shorthand = true
+use_try_shorthand = true

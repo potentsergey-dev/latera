@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
 flutter_rust_bridge = "=2.11.1"
@@ -14,4 +14,39 @@ log = "0.4.22"
 env_logger = "0.11.6"
 once_cell = "1.19.0"
 thiserror = "1.0.69"
+
+[dev-dependencies]
+tempfile = "3.10.0"
+
+# Clippy lints configuration
+[lints.clippy]
+# Pedantic lints for better code quality
+pedantic = { level = "warn", priority = -1 }
+# Allow some overly pedantic lints
+module_name_repetitions = "allow"
+too_many_lines = "allow"
+similar_names = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+# Allow lints that trigger on generated code
+unreadable_literal = "allow"
+redundant_else = "allow"
+wildcard_imports = "allow"
+semicolon_if_nothing_returned = "allow"
+uninlined_format_args = "allow"
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_lossless = "allow"
+not_unsafe_ptr_arg_deref = "allow"
+# Allow doc markdown for Russian text
+doc_markdown = "allow"
+# Allow match_same_arms for readability
+match_same_arms = "allow"
+# Allow trivially_copy_pass_by_ref for API consistency
+trivially_copy_pass_by_ref = "allow"
+# Allow return_self_not_must_use
+return_self_not_must_use = "allow"
+# Allow non_std_lazy_statics (once_cell::Lazy is fine)
+non_std_lazy_statics = "allow"
 
