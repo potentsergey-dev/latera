@@ -39,6 +39,8 @@ class AppCompositionRoot {
   // === Infrastructure ===
   final Logger logger;
 
+  bool _isDisposed = false;
+
   AppCompositionRoot._({
     required this.notifications,
     required this.fileWatcher,
@@ -109,11 +111,16 @@ class AppCompositionRoot {
   }
 
   /// Освободить ресурсы.
+  ///
+  /// Безопасен для многократного вызова — последующие вызовы игнорируются.
   Future<void> dispose() async {
+    if (_isDisposed) return;
+    _isDisposed = true;
+
     logger.i('Disposing AppCompositionRoot');
 
-    // Останавливаем coordinator первым (останавливает watcher и закрывает streams)
-    await fileEventsCoordinator.stop();
+    // Dispose coordinator (останавливает watcher и закрывает streams)
+    await fileEventsCoordinator.dispose();
 
     // Dispose stub services
     if (licenseService is StubLicenseService) {

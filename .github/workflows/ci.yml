@@ -178,9 +178,8 @@ jobs:
         run: flutter pub get
 
       - name: Run FRB codegen
-        run: |
-          cd rust
-          flutter_rust_bridge_codegen generate
+        working-directory: rust
+        run: flutter_rust_bridge_codegen generate --config-file frb_codegen.yaml
 
       - name: Build Rust library
         working-directory: rust

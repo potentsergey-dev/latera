@@ -36,9 +36,17 @@ const RATE_LIMIT_PER_SECOND: u32 = 200;
 /// При превышении очищаются устаревшие записи.
 const DEDUP_MAP_MAX_SIZE: usize = 1000;
 
+/// Timeout для ожидания завершения watcher-потока.
+/// Защищает от "вечного ожидания" при зависании потока.
+const STOP_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Интервал проверки существования watched-директории.
+const DIR_CHECK_INTERVAL: Duration = Duration::from_secs(1);
+
 /// Handle запущенного watcher'а.
 pub struct WatcherHandle {
     stop_tx: mpsc::Sender<()>,
+    done_rx: Option<mpsc::Receiver<()>>,
     join: Option<thread::JoinHandle<()>>,
     watch_dir: PathBuf,
 }
@@ -56,7 +64,28 @@ impl WatcherHandle {
             // Не возвращаем ошибку — поток уже не работает
         }
 
-        // Ждём завершения потока. Если поток паниковал — логируем, но не падаем.
+        // Ждём завершения потока с timeout.
+        // Сначала пробуем дождаться сигнала через done_rx.
+        if let Some(done_rx) = self.done_rx.take() {
+            match done_rx.recv_timeout(STOP_TIMEOUT) {
+                Ok(()) => {
+                    log::debug!("Watcher thread signaled completion");
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    log::error!(
+                        "Watcher thread did not stop within {:?}, proceeding with forced shutdown",
+                        STOP_TIMEOUT
+                    );
+                    // Поток может продолжать работать, но мы не будем ждать вечно
+                }
+                Err(mpsc::RecvTimeoutError::Disconnected) => {
+                    log::debug!("Watcher thread already terminated (channel disconnected)");
+                }
+            }
+        }
+
+        // Всё равно вызываем join, чтобы освободить ресурсы потока.
+        // Если поток уже завершился — join вернётся сразу.
         if let Some(join) = self.join.take() {
             match join.join() {
                 Ok(()) => {}
@@ -110,6 +139,7 @@ pub fn start_watcher(
     info!("Starting watcher for: {}", watch_dir.display());
 
     let (stop_tx, stop_rx) = mpsc::channel::<()>();
+    let (done_tx, done_rx) = mpsc::channel::<()>();
     let (event_tx, event_rx) = mpsc::channel::<Result<notify::Event, notify::Error>>();
 
     let watch_dir_clone = watch_dir.clone();
@@ -125,6 +155,8 @@ pub fn start_watcher(
             Ok(w) => w,
             Err(e) => {
                 error!("Failed to create watcher: {e}");
+                // Сигнализируем о завершении даже при ошибке
+                let _ = done_tx.send(());
                 return;
             }
         };
@@ -134,6 +166,8 @@ pub fn start_watcher(
                 "Failed to watch directory {}: {e}",
                 watch_dir_clone.display()
             );
+            // Сигнализируем о завершении даже при ошибке
+            let _ = done_tx.send(());
             return;
         }
 
@@ -143,6 +177,9 @@ pub fn start_watcher(
         let mut second_event_count: u32 = 0;
         let mut cleanup_counter: u32 = 0;
 
+        // Таймер для периодической проверки существования директории
+        let mut last_dir_check = Instant::now();
+
         loop {
             // 1) graceful shutdown
             if stop_rx.try_recv().is_ok() {
@@ -150,7 +187,20 @@ pub fn start_watcher(
                 break;
             }
 
-            // 2) обработка событий notify
+            // 2) проверка существования watched-директории
+            if last_dir_check.elapsed() >= DIR_CHECK_INTERVAL {
+                last_dir_check = Instant::now();
+                if !watch_dir_clone.exists() {
+                    warn!(
+                        "Watch directory no longer exists: {}",
+                        watch_dir_clone.display()
+                    );
+                    // Директория удалена или переименована — завершаем работу
+                    break;
+                }
+            }
+
+            // 3) обработка событий notify
             match event_rx.recv_timeout(Duration::from_millis(50)) {
                 Ok(Ok(event)) => {
                     debug!("notify event: {:?}", event.kind);
@@ -165,7 +215,7 @@ pub fn start_watcher(
 
                         match make_internal_file_event(&path) {
                             Ok(e) => {
-                                // 2.1) дедуп по полному пути (окно 300мс)
+                                // 3.1) дедуп по полному пути (окно 300мс)
                                 let key = e.full_path.to_string_lossy().to_string();
                                 let now = Instant::now();
                                 if let Some(prev) = last_seen.get(&key) {
@@ -179,7 +229,7 @@ pub fn start_watcher(
                                 }
                                 last_seen.insert(key, now);
 
-                                // 2.1.1) Периодическая очистка устаревших записей
+                                // 3.1.1) Периодическая очистка устаревших записей
                                 // Выполняется каждые 100 событий или при превышении лимита
                                 cleanup_counter = cleanup_counter.saturating_add(1);
                                 if last_seen.len() > DEDUP_MAP_MAX_SIZE
@@ -199,7 +249,7 @@ pub fn start_watcher(
                                     cleanup_counter = 0;
                                 }
 
-                                // 2.2) rate-limit: не более 200 событий/сек
+                                // 3.2) rate-limit: не более 200 событий/сек
                                 if second_window_started_at.elapsed() >= Duration::from_secs(1) {
                                     second_window_started_at = Instant::now();
                                     second_event_count = 0;
@@ -236,10 +286,13 @@ pub fn start_watcher(
         }
 
         info!("Watcher thread finished");
+        // Сигнализируем о завершении потока
+        let _ = done_tx.send(());
     });
 
     Ok(WatcherHandle {
         stop_tx,
+        done_rx: Some(done_rx),
         join: Some(join),
         watch_dir,
     })
