@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latera/application/file_events_coordinator.dart';
+import 'package:latera/domain/app_config.dart';
 import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_added_event.dart';
 import 'package:latera/domain/file_watcher.dart';
@@ -21,6 +22,9 @@ class MockFileWatcher implements FileWatcher {
   int startWatchingCallCount = 0;
   int stopWatchingCallCount = 0;
   bool _isWatching = false;
+
+  /// Хук для тестов: вызывается при каждом [startWatching].
+  void Function(int callCount, String? overridePath)? onStartWatching;
 
   @override
   Stream<FileAddedEvent> get fileAddedEvents => _controller.stream;
@@ -46,6 +50,7 @@ class MockFileWatcher implements FileWatcher {
     startWatchingCallCount++;
     lastOverridePath = overridePath;
     _isWatching = true;
+    onStartWatching?.call(startWatchingCallCount, overridePath);
     return const WatchSuccess('/mock/watch/dir');
   }
 
@@ -85,20 +90,102 @@ class MockNotificationsService implements NotificationsService {
   Future<void> init() async {}
 }
 
+/// Мок для [ConfigService].
+///
+/// Позволяет контролировать конфигурацию.
+class MockConfigService implements ConfigService {
+  AppConfig _currentConfig = const AppConfig();
+  final StreamController<AppConfig> _configController =
+      StreamController<AppConfig>.broadcast();
+  bool _onboardingCompleted = false;
+
+  @override
+  AppConfig get currentConfig => _currentConfig;
+
+  @override
+  Stream<AppConfig> get configChanges => _configController.stream;
+
+  @override
+  bool get isOnboardingCompleted => _onboardingCompleted;
+
+  void setConfig(AppConfig config) {
+    _currentConfig = config;
+    _configController.add(config);
+  }
+
+  @override
+  Future<AppConfig> load() async => _currentConfig;
+
+  @override
+  Future<void> save(AppConfig config) async {
+    _currentConfig = config;
+    _configController.add(config);
+  }
+
+  @override
+  Future<void> reset() async {
+    _currentConfig = const AppConfig();
+    _configController.add(_currentConfig);
+  }
+
+  @override
+  Future<void> updateValue({
+    String? watchPath,
+    int? watchIntervalMs,
+    bool? notificationsEnabled,
+    bool? loggingEnabled,
+    String? logLevel,
+    String? theme,
+    String? language,
+    bool clearWatchPath = false,
+    bool clearLanguage = false,
+  }) async {
+    // ВАЖНО: copyWith() не умеет устанавливать null.
+    // Создаём AppConfig напрямую с явными значениями.
+    _currentConfig = AppConfig(
+      watchPath: clearWatchPath ? null : (watchPath ?? _currentConfig.watchPath),
+      watchIntervalMs: watchIntervalMs ?? _currentConfig.watchIntervalMs,
+      notificationsEnabled: notificationsEnabled ?? _currentConfig.notificationsEnabled,
+      loggingEnabled: loggingEnabled ?? _currentConfig.loggingEnabled,
+      logLevel: logLevel ?? _currentConfig.logLevel,
+      theme: theme ?? _currentConfig.theme,
+      language: clearLanguage ? null : (language ?? _currentConfig.language),
+    );
+    _configController.add(_currentConfig);
+  }
+
+  @override
+  Future<void> completeOnboarding() async {
+    _onboardingCompleted = true;
+  }
+
+  @override
+  Future<void> resetOnboarding() async {
+    _onboardingCompleted = false;
+  }
+
+  Future<void> dispose() async {
+    await _configController.close();
+  }
+}
+
 void main() {
   group('FileEventsCoordinator', () {
     late MockFileWatcher mockWatcher;
     late MockNotificationsService mockNotifications;
+    late MockConfigService mockConfigService;
     late Logger logger;
 
     setUp(() {
       mockWatcher = MockFileWatcher();
       mockNotifications = MockNotificationsService();
+      mockConfigService = MockConfigService();
       logger = Logger(printer: PrettyPrinter(methodCount: 0));
     });
 
     tearDown(() async {
       await mockWatcher.dispose();
+      await mockConfigService.dispose();
     });
 
     group('start', () {
@@ -107,6 +194,7 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         final result = await coordinator.start();
@@ -117,13 +205,30 @@ void main() {
         expect((result as CoordinatorStartSuccess).watchDir, '/mock/watch/dir');
       });
 
-      test('should pass override path to watcher if provided', () async {
-        // Note: текущая реализация coordinator не принимает overridePath,
-        // но тест демонстрирует как это можно проверить в будущем
+      test('should pass watch path from config to watcher', () async {
+        // Устанавливаем путь в конфигурации
+        mockConfigService.setConfig(const AppConfig(
+          watchPath: '/custom/watch/path',
+        ));
+
         final coordinator = FileEventsCoordinator(
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
+        );
+
+        await coordinator.start();
+
+        expect(mockWatcher.lastOverridePath, '/custom/watch/path');
+      });
+
+      test('should pass null to watcher when config has no watch path', () async {
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
@@ -138,6 +243,7 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
@@ -152,6 +258,7 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
@@ -166,6 +273,7 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         // Первый цикл
@@ -192,6 +300,7 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
@@ -210,6 +319,7 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
@@ -226,12 +336,14 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
 
-        final events = <FileAddedUiEvent>[];
-        final subscription = coordinator.fileAddedEvents.listen(events.add);
+        // Важно: broadcast stream не буферизует, поэтому подписываемся до эмиссии.
+        final eventFuture = coordinator.fileAddedEvents.first
+            .timeout(const Duration(seconds: 1));
 
         // Эмулируем событие от watcher
         final testEvent = FileAddedEvent(
@@ -241,14 +353,12 @@ void main() {
         );
         mockWatcher.addFileEvent(testEvent);
 
-        // Ждём обработки события
-        await Future.delayed(const Duration(milliseconds: 100));
+        final event = await eventFuture;
+        // Дожидаемся завершения async-обработки (уведомление в unawaited handler).
+        await pumpEventQueue();
 
-        expect(events.length, 1);
-        expect(events.first.fileName, 'test.txt');
-        expect(events.first.fullPath, '/path/to/test.txt');
-
-        await subscription.cancel();
+        expect(event.fileName, 'test.txt');
+        expect(event.fullPath, '/path/to/test.txt');
         await coordinator.stop();
       });
 
@@ -257,9 +367,13 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
+
+        final uiEventFuture = coordinator.fileAddedEvents.first
+            .timeout(const Duration(seconds: 1));
 
         // Эмулируем событие от watcher
         mockWatcher.addFileEvent(FileAddedEvent(
@@ -268,8 +382,8 @@ void main() {
           occurredAt: DateTime.now(),
         ));
 
-        // Ждём обработки события
-        await Future.delayed(const Duration(milliseconds: 100));
+        await uiEventFuture;
+        await pumpEventQueue();
 
         expect(mockNotifications.showFileAddedCallCount, 1);
         expect(mockNotifications.shownFileNames, contains('document.pdf'));
@@ -282,12 +396,15 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
 
-        final events = <FileAddedUiEvent>[];
-        final subscription = coordinator.fileAddedEvents.listen(events.add);
+        final eventsFuture = coordinator.fileAddedEvents
+            .take(3)
+            .toList()
+            .timeout(const Duration(seconds: 1));
 
         // Эмулируем несколько событий
         mockWatcher.addFileEvents([
@@ -305,16 +422,15 @@ void main() {
           ),
         ]);
 
-        // Ждём обработки событий
-        await Future.delayed(const Duration(milliseconds: 200));
+        final events = await eventsFuture;
+        await pumpEventQueue();
 
-        expect(events.length, 3);
+        expect(events, hasLength(3));
         expect(mockNotifications.showFileAddedCallCount, 3);
 
         final fileNames = events.map((e) => e.fileName).toList();
         expect(fileNames, containsAll(['file1.txt', 'file2.txt', 'file3.txt']));
 
-        await subscription.cancel();
         await coordinator.stop();
       });
 
@@ -325,12 +441,13 @@ void main() {
           logger: logger,
           watcher: mockWatcher,
           notifications: mockNotifications,
+          configService: mockConfigService,
         );
 
         await coordinator.start();
 
-        final events = <FileAddedUiEvent>[];
-        final subscription = coordinator.fileAddedEvents.listen(events.add);
+        final eventFuture = coordinator.fileAddedEvents.first
+            .timeout(const Duration(seconds: 1));
 
         // Эмулируем событие (без ошибки в уведомлении)
         mockWatcher.addFileEvent(FileAddedEvent(
@@ -338,14 +455,46 @@ void main() {
           occurredAt: DateTime.now(),
         ));
 
-        // Ждём обработки
-        await Future.delayed(const Duration(milliseconds: 100));
+        await eventFuture;
+        await pumpEventQueue();
 
         // Событие должно быть обработано
-        expect(events.length, 1);
         expect(mockNotifications.showFileAddedCallCount, 1);
+        await coordinator.stop();
+      });
+    });
 
-        await subscription.cancel();
+    group('config changes', () {
+      test('should restart watcher when watch path changes', () async {
+        final restarted = Completer<void>();
+        mockWatcher.onStartWatching = (callCount, overridePath) {
+          if (callCount >= 2 && !restarted.isCompleted) {
+            restarted.complete();
+          }
+        };
+
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+        );
+
+        await coordinator.start();
+        expect(mockWatcher.startWatchingCallCount, 1);
+
+        // Изменяем путь в конфигурации
+        mockConfigService.setConfig(const AppConfig(
+          watchPath: '/new/watch/path',
+        ));
+
+        // Детерминированно ждём рестарта.
+        await restarted.future.timeout(const Duration(seconds: 1));
+
+        // Watcher должен быть перезапущен
+        expect(mockWatcher.startWatchingCallCount, 2);
+        expect(mockWatcher.lastOverridePath, '/new/watch/path');
+
         await coordinator.stop();
       });
     });

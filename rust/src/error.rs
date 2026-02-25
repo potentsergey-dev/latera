@@ -9,6 +9,9 @@ pub enum LateraError {
     #[error("LateraError::DesktopDirNotFound: Desktop directory is not available on this OS/user")]
     DesktopDirNotFound,
 
+    #[error("LateraError::DataLocalDirNotFound: Local application data directory is not available on this OS/user")]
+    DataLocalDirNotFound,
+
     #[error("LateraError::InvalidPath: {0}")]
     InvalidPath(String),
 
@@ -39,6 +42,7 @@ impl LateraError {
     pub fn code(&self) -> &'static str {
         match self {
             LateraError::DesktopDirNotFound => "DESKTOP_DIR_NOT_FOUND",
+            LateraError::DataLocalDirNotFound => "DATA_LOCAL_DIR_NOT_FOUND",
             LateraError::InvalidPath(_) => "INVALID_PATH",
             LateraError::WatcherAlreadyRunning => "WATCHER_ALREADY_RUNNING",
             LateraError::WatcherNotRunning => "WATCHER_NOT_RUNNING",
@@ -57,6 +61,7 @@ impl LateraError {
             | LateraError::WatcherNotRunning
             | LateraError::StreamClosed => true,
             LateraError::DesktopDirNotFound
+            | LateraError::DataLocalDirNotFound
             | LateraError::InvalidPath(_)
             | LateraError::Io(_)
             | LateraError::Notify(_)

@@ -14,6 +14,7 @@ class StubConfigService implements ConfigService {
   AppConfig _currentConfig = AppConfig.defaultConfig;
   final StreamController<AppConfig> _configController =
       StreamController<AppConfig>.broadcast();
+  bool _onboardingCompleted = false;
 
   StubConfigService({required Logger logger}) : _logger = logger;
 
@@ -57,18 +58,39 @@ class StubConfigService implements ConfigService {
     String? logLevel,
     String? theme,
     String? language,
+    bool clearWatchPath = false,
+    bool clearLanguage = false,
   }) async {
     _logger.d('StubConfigService: updateValue');
-    _currentConfig = _currentConfig.copyWith(
-      watchPath: watchPath,
-      watchIntervalMs: watchIntervalMs,
-      notificationsEnabled: notificationsEnabled,
-      loggingEnabled: loggingEnabled,
-      logLevel: logLevel,
-      theme: theme,
-      language: language,
+    // ВАЖНО: copyWith() не умеет устанавливать null (паттерн newValue ?? oldValue).
+    // Поэтому создаём AppConfig напрямую с явными значениями для всех полей.
+    _currentConfig = AppConfig(
+      watchPath: clearWatchPath ? null : (watchPath ?? _currentConfig.watchPath),
+      watchIntervalMs: watchIntervalMs ?? _currentConfig.watchIntervalMs,
+      notificationsEnabled: notificationsEnabled ?? _currentConfig.notificationsEnabled,
+      loggingEnabled: loggingEnabled ?? _currentConfig.loggingEnabled,
+      logLevel: logLevel ?? _currentConfig.logLevel,
+      theme: theme ?? _currentConfig.theme,
+      language: clearLanguage ? null : (language ?? _currentConfig.language),
     );
     _configController.add(_currentConfig);
+  }
+
+  // === Onboarding ===
+
+  @override
+  bool get isOnboardingCompleted => _onboardingCompleted;
+
+  @override
+  Future<void> completeOnboarding() async {
+    _logger.d('StubConfigService: completeOnboarding');
+    _onboardingCompleted = true;
+  }
+
+  @override
+  Future<void> resetOnboarding() async {
+    _logger.d('StubConfigService: resetOnboarding');
+    _onboardingCompleted = false;
   }
 
   /// Освободить ресурсы.

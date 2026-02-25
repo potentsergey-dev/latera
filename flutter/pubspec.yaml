@@ -37,6 +37,14 @@ dependencies:
   flutter_rust_bridge: ^2.11.1
   flutter_local_notifications: ^20.1.0
   logger: ^2.6.2
+  path: ^1.9.0
+  
+  # Configuration persistence
+  shared_preferences: ^2.5.3
+  
+  # File system access
+  file_picker: ^10.0.0
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -48,6 +56,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+  # MSIX packaging for Windows Store / sideloading
+  msix: ^3.16.8
 
 # NOTE:
 # flutter_rust_bridge codegen is a Rust CLI (`flutter_rust_bridge_codegen`),
@@ -75,7 +86,7 @@ flutter:
   # https://flutter.dev/to/resolution-aware-images
 
   # For details regarding adding assets from package dependencies, see
-  # https://flutter.dev/to/asset-from-package
+  # https://dart.dev/to/asset-from-package
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
@@ -95,4 +106,33 @@ flutter:
   #         weight: 700
   #
   # For details regarding fonts from package dependencies,
-  # see https://flutter.dev/to/font-from-package
+  # see https://dart.dev/to/font-from-package
+
+# MSIX packaging configuration
+# Run: flutter pub run msix:create
+#
+# === SIGNING CONFIGURATION ===
+# For local development: Use scripts/create-test-cert.ps1 to create a test certificate
+# For CI/CD: Certificate is provided via GitHub Secrets (BASE64_CERT, CERT_PASSWORD)
+# For Store: Update publisher with Store certificate after Partner Center reservation
+#
+msix:
+  display_name: Latera
+  publisher_display_name: Latera Team
+  identity_name: com.latera.latera
+  publisher: CN=LateraTeam, O=Latera, C=BY
+  version: 1.0.0.0
+  install_certificate: false
+  build_windows: false  # Build is controlled by build.ps1
+  logo_path: windows/runner/resources/app_icon.ico
+  # NOTE: broadFileSystemAccess is required for the file watcher/indexer functionality.
+  # This capability allows the app to access the file system without per-file picker prompts.
+  # Windows Store may require justification for this capability during submission.
+  capabilities: broadFileSystemAccess, picturesLibrary
+  languages: en-us, ru-ru
+  # === Signing (optional for local dev, required for distribution) ===
+  # For local testing with a test certificate:
+  #   certificate_path: ../certs/latera-test.pfx
+  #   certificate_password: ""  # Or use environment variable
+  # For CI/CD, certificate is installed to the certificate store automatically
+  # The msix package will use the certificate matching the publisher subject

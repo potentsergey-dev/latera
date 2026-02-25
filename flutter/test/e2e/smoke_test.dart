@@ -7,6 +7,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latera/domain/app_config.dart';
 import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_watcher.dart';
 import 'package:latera/domain/notifications_service.dart';
@@ -69,20 +70,100 @@ class E2EMockNotificationsService implements NotificationsService {
   Future<void> init() async {}
 }
 
+/// Мок для ConfigService.
+class E2EMockConfigService implements ConfigService {
+  AppConfig _currentConfig = const AppConfig();
+  final StreamController<AppConfig> _configController =
+      StreamController<AppConfig>.broadcast();
+  bool _onboardingCompleted = false;
+
+  @override
+  AppConfig get currentConfig => _currentConfig;
+
+  @override
+  Stream<AppConfig> get configChanges => _configController.stream;
+
+  @override
+  bool get isOnboardingCompleted => _onboardingCompleted;
+
+  void setConfig(AppConfig config) {
+    _currentConfig = config;
+    _configController.add(config);
+  }
+
+  @override
+  Future<AppConfig> load() async => _currentConfig;
+
+  @override
+  Future<void> save(AppConfig config) async {
+    _currentConfig = config;
+    _configController.add(config);
+  }
+
+  @override
+  Future<void> reset() async {
+    _currentConfig = const AppConfig();
+    _configController.add(_currentConfig);
+  }
+
+  @override
+  Future<void> updateValue({
+    String? watchPath,
+    int? watchIntervalMs,
+    bool? notificationsEnabled,
+    bool? loggingEnabled,
+    String? logLevel,
+    String? theme,
+    String? language,
+    bool clearWatchPath = false,
+    bool clearLanguage = false,
+  }) async {
+    // ВАЖНО: copyWith() не умеет устанавливать null.
+    // Создаём AppConfig напрямую с явными значениями.
+    _currentConfig = AppConfig(
+      watchPath: clearWatchPath ? null : (watchPath ?? _currentConfig.watchPath),
+      watchIntervalMs: watchIntervalMs ?? _currentConfig.watchIntervalMs,
+      notificationsEnabled: notificationsEnabled ?? _currentConfig.notificationsEnabled,
+      loggingEnabled: loggingEnabled ?? _currentConfig.loggingEnabled,
+      logLevel: logLevel ?? _currentConfig.logLevel,
+      theme: theme ?? _currentConfig.theme,
+      language: clearLanguage ? null : (language ?? _currentConfig.language),
+    );
+    _configController.add(_currentConfig);
+  }
+
+  @override
+  Future<void> completeOnboarding() async {
+    _onboardingCompleted = true;
+  }
+
+  @override
+  Future<void> resetOnboarding() async {
+    _onboardingCompleted = false;
+  }
+
+  void dispose() {
+    _configController.close();
+  }
+}
+
 void main() {
   group('E2E Smoke Tests', () {
     late E2EMockFileWatcher watcher;
     late E2EMockNotificationsService notifications;
+    late E2EMockConfigService configService;
     late Logger logger;
 
     setUp(() {
       watcher = E2EMockFileWatcher();
       notifications = E2EMockNotificationsService();
+      configService = E2EMockConfigService();
       logger = Logger(printer: PrettyPrinter(methodCount: 0));
     });
 
     tearDown(() {
       watcher.dispose();
+      configService.dispose();
     });
 
     group('FileEventsCoordinator E2E', () {
@@ -91,6 +172,7 @@ void main() {
           logger: logger,
           watcher: watcher,
           notifications: notifications,
+          configService: configService,
         );
 
         await coordinator.start();
@@ -105,6 +187,7 @@ void main() {
           logger: logger,
           watcher: watcher,
           notifications: notifications,
+          configService: configService,
         );
 
         final uiEvents = <FileAddedUiEvent>[];
@@ -139,6 +222,7 @@ void main() {
           logger: logger,
           watcher: watcher,
           notifications: notifications,
+          configService: configService,
         );
 
         final uiEvents = <FileAddedUiEvent>[];
@@ -165,17 +249,24 @@ void main() {
         await coordinator.stop();
       });
 
-      test('should handle startWatching with override path', () async {
+      test('should handle startWatching with override path from config', () async {
+        // Устанавливаем путь в конфигурации
+        configService.setConfig(const AppConfig(
+          watchPath: '/custom/watch/path',
+        ));
+
         final coordinator = FileEventsCoordinator(
           logger: logger,
           watcher: watcher,
           notifications: notifications,
+          configService: configService,
         );
 
         await coordinator.start();
 
-        // Coordinator вызывает startWatching без параметров
+        // Coordinator должен передать путь из конфигурации
         expect(watcher.isStarted, true);
+        expect(watcher.watchPath, '/custom/watch/path');
 
         await coordinator.stop();
       });
@@ -273,6 +364,7 @@ void main() {
           logger: logger,
           watcher: watcher,
           notifications: notifications,
+          configService: configService,
         );
 
         await coordinator.start();

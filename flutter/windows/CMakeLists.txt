@@ -87,6 +87,68 @@ if(PLUGIN_BUNDLED_LIBRARIES)
     COMPONENT Runtime)
 endif()
 
+# === Rust DLL (flutter_rust_bridge) ===
+# Copy Rust native library for flutter_rust_bridge.
+# The DLL is built by cargo and needs to be next to the executable for FFI to work.
+# This is critical for MSIX packaging where the DLL must be in the package.
+#
+# NOTE: We use install(CODE) with runtime EXISTS check instead of configure-time check.
+# This ensures the DLL is installed even if it was built after CMake configure ran.
+set(RUST_DLL_NAME "latera_rust.dll")
+
+# Define paths for both debug and release builds
+set(RUST_DLL_PATH_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/debug/${RUST_DLL_NAME}")
+set(RUST_DLL_PATH_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/release/${RUST_DLL_NAME}")
+
+# For single-config generators (Ninja, Make), use CMAKE_BUILD_TYPE
+# For multi-config generators (Visual Studio), use generator expressions
+if(IS_MULTICONFIG)
+  # Multi-config: copy the appropriate DLL based on build configuration
+  # Use install(CODE) to check existence at install-time, not configure-time
+  install(CODE "
+    if(CMAKE_INSTALL_CONFIG_NAME STREQUAL \"Debug\")
+      set(RUST_DLL_PATH \"${RUST_DLL_PATH_DEBUG}\")
+    else()
+      set(RUST_DLL_PATH \"${RUST_DLL_PATH_RELEASE}\")
+    endif()
+    if(EXISTS \"\${RUST_DLL_PATH}\")
+      message(STATUS \"Installing Rust DLL: \${RUST_DLL_PATH}\")
+      file(INSTALL \"\${RUST_DLL_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
+    else()
+      message(WARNING \"Rust DLL not found at \${RUST_DLL_PATH}. Build Rust first: cargo build --release\")
+    endif()
+  " COMPONENT Runtime)
+  message(STATUS "Rust DLL install rules configured for multi-config generator")
+else()
+  # Single-config: determine build type from CMAKE_BUILD_TYPE
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "")
+    set(RUST_BUILD_TYPE "debug")
+    set(RUST_ALT_BUILD_TYPE "release")
+  else()
+    set(RUST_BUILD_TYPE "release")
+    set(RUST_ALT_BUILD_TYPE "debug")
+  endif()
+  
+  set(RUST_DLL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_BUILD_TYPE}/${RUST_DLL_NAME}")
+  set(RUST_DLL_ALT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_ALT_BUILD_TYPE}/${RUST_DLL_NAME}")
+  
+  # Use install(CODE) to check existence at install-time, not configure-time
+  install(CODE "
+    set(RUST_DLL_PATH \"${RUST_DLL_PATH}\")
+    set(RUST_DLL_ALT_PATH \"${RUST_DLL_ALT_PATH}\")
+    if(EXISTS \"\${RUST_DLL_PATH}\")
+      message(STATUS \"Installing Rust DLL: \${RUST_DLL_PATH}\")
+      file(INSTALL \"\${RUST_DLL_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
+    elseif(EXISTS \"\${RUST_DLL_ALT_PATH}\")
+      message(STATUS \"Installing Rust DLL (alt): \${RUST_DLL_ALT_PATH}\")
+      file(INSTALL \"\${RUST_DLL_ALT_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
+    else()
+      message(WARNING \"Rust DLL not found. Build Rust first: cargo build --release\")
+    endif()
+  " COMPONENT Runtime)
+  message(STATUS "Rust DLL install rules configured for ${RUST_BUILD_TYPE} build")
+endif()
+
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"

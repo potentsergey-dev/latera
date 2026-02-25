@@ -114,6 +114,9 @@ abstract interface class ConfigService {
   Future<void> reset();
 
   /// Обновить отдельное поле конфигурации.
+  /// 
+  /// Для очистки nullable полей (watchPath, language) используйте
+  /// соответствующие флаги clearWatchPath и clearLanguage.
   Future<void> updateValue({
     String? watchPath,
     int? watchIntervalMs,
@@ -122,5 +125,18 @@ abstract interface class ConfigService {
     String? logLevel,
     String? theme,
     String? language,
+    bool clearWatchPath = false,
+    bool clearLanguage = false,
   });
+
+  // === Onboarding ===
+
+  /// Проверяет, пройден ли онбординг.
+  bool get isOnboardingCompleted;
+
+  /// Отмечает онбординг как пройденный.
+  Future<void> completeOnboarding();
+
+  /// Сбрасывает флаг онбординга (для тестирования).
+  Future<void> resetOnboarding();
 }

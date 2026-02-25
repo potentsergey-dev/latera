@@ -25,6 +25,15 @@ use crate::error::LateraError;
 /// Десктоп-папка для наблюдения по умолчанию (внутри Desktop).
 pub const DEFAULT_WATCH_FOLDER_NAME: &str = "Latera";
 
+/// Получить дефолтную директорию наблюдения: `Desktop/Latera` (preview).
+///
+/// Важно: **НЕ** создаёт директорию на диске.
+/// Используется в UI на первом запуске, до явного согласия пользователя.
+pub fn default_watch_dir_preview() -> Result<PathBuf, LateraError> {
+    let desktop = dirs::desktop_dir().ok_or(LateraError::DesktopDirNotFound)?;
+    Ok(desktop.join(DEFAULT_WATCH_FOLDER_NAME))
+}
+
 /// Политика сглаживания и backpressure.
 ///
 /// Значения подобраны под desktop сценарий: достаточно отзывчиво для UI,
@@ -66,6 +75,10 @@ impl WatcherHandle {
 
         // Ждём завершения потока с timeout.
         // Сначала пробуем дождаться сигнала через done_rx.
+        //
+        // Важно: если timeout истёк, НЕ делаем blocking-join, иначе "защита"
+        // перестаёт работать (join может повиснуть навсегда).
+        let mut can_join = true;
         if let Some(done_rx) = self.done_rx.take() {
             match done_rx.recv_timeout(STOP_TIMEOUT) {
                 Ok(()) => {
@@ -76,7 +89,9 @@ impl WatcherHandle {
                         "Watcher thread did not stop within {:?}, proceeding with forced shutdown",
                         STOP_TIMEOUT
                     );
-                    // Поток может продолжать работать, но мы не будем ждать вечно
+                    // Поток может продолжать работать, но мы не будем ждать вечно.
+                    // Не делаем join() в текущем потоке.
+                    can_join = false;
                 }
                 Err(mpsc::RecvTimeoutError::Disconnected) => {
                     log::debug!("Watcher thread already terminated (channel disconnected)");
@@ -84,17 +99,23 @@ impl WatcherHandle {
             }
         }
 
-        // Всё равно вызываем join, чтобы освободить ресурсы потока.
-        // Если поток уже завершился — join вернётся сразу.
-        if let Some(join) = self.join.take() {
-            match join.join() {
-                Ok(()) => {}
-                Err(panic_payload) => {
-                    log::error!("Watcher thread panicked: {:?}", panic_payload);
-                    // Восстанавливаемся после паники, не возвращаем ошибку
-                    // так как остановка всё равно произошла
+        // Делаем join только если поток гарантированно завершился (или канал
+        // уже разорван). Иначе join может повиснуть.
+        if can_join {
+            if let Some(join) = self.join.take() {
+                match join.join() {
+                    Ok(()) => {}
+                    Err(panic_payload) => {
+                        log::error!("Watcher thread panicked: {:?}", panic_payload);
+                        // Восстанавливаемся после паники, не возвращаем ошибку
+                        // так как остановка всё равно произошла
+                    }
                 }
             }
+        } else {
+            // Не блокируем вызывающий поток. JoinHandle будет дропнут без join.
+            // Это сознательный trade-off: избегаем зависаний при проблемах notify/FS.
+            self.join.take();
         }
         Ok(())
     }

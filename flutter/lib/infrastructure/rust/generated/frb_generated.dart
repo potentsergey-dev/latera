@@ -85,6 +85,12 @@ abstract class RustCoreApi extends BaseApi {
 
   Future<void> crateApiStopWatching();
 
+  Future<String> crateApiGetDefaultWatchPath();
+
+  Future<String> crateApiGetDefaultWatchPathPreview();
+
+  Future<String> crateApiGetIndexPath();
+
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LateraError;
 
@@ -219,6 +225,92 @@ class RustCoreApiImpl extends RustCoreApiImplPlatform implements RustCoreApi {
 
   TaskConstMeta get kCrateApiStopWatchingConstMeta =>
       const TaskConstMeta(debugName: "stop_watching", argNames: []);
+
+  @override
+  Future<String> crateApiGetDefaultWatchPath() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLateraError,
+        ),
+        constMeta: kCrateApiGetDefaultWatchPathConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetDefaultWatchPathConstMeta =>
+      const TaskConstMeta(debugName: "get_default_watch_path", argNames: []);
+
+  @override
+  Future<String> crateApiGetDefaultWatchPathPreview() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLateraError,
+        ),
+        constMeta: kCrateApiGetDefaultWatchPathPreviewConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetDefaultWatchPathPreviewConstMeta => const TaskConstMeta(
+    debugName: "get_default_watch_path_preview",
+    argNames: [],
+  );
+
+  @override
+  Future<String> crateApiGetIndexPath() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLateraError,
+        ),
+        constMeta: kCrateApiGetIndexPathConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetIndexPathConstMeta =>
+      const TaskConstMeta(debugName: "get_index_path", argNames: []);
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LateraError => wire

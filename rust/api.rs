@@ -118,6 +118,48 @@ pub fn start_watching(override_path: Option<String>) -> Result<String, LateraErr
     Ok(watch_dir)
 }
 
+/// Получить дефолтный путь наблюдения (Desktop/Latera).
+///
+/// Создаёт директорию, если она не существует.
+/// Не запускает watcher — только возвращает путь.
+///
+/// Используется для:
+/// - Показа пути в UI до запуска watcher'а
+/// - Сохранения пути при первом запуске (onboarding)
+pub fn get_default_watch_path() -> Result<String, LateraError> {
+    logging::init_logging();
+    
+    let watch_dir = file_watcher::ensure_default_watch_dir()?;
+    Ok(watch_dir.to_string_lossy().to_string())
+}
+
+/// Получить дефолтный путь наблюдения (Desktop/Latera) **без** создания директории.
+///
+/// Важно: функция не трогает файловую систему и не создаёт папку.
+/// Используется в онбординге для preview до явного согласия пользователя.
+pub fn get_default_watch_path_preview() -> Result<String, LateraError> {
+    logging::init_logging();
+
+    let watch_dir = file_watcher::default_watch_dir_preview()?;
+    Ok(watch_dir.to_string_lossy().to_string())
+}
+
+/// Получить путь, где будет храниться индекс (локально на устройстве).
+///
+/// Важно: функция **не** создаёт директорию.
+/// Нужна, чтобы прозрачно показать пользователю, где лежат служебные данные.
+///
+/// Путь вычисляется через OS-provided local app data directory (MSIX/sandbox safe).
+pub fn get_index_path() -> Result<String, LateraError> {
+    logging::init_logging();
+
+    let local_data = dirs::data_local_dir().ok_or(LateraError::DataLocalDirNotFound)?;
+    let index_dir = local_data
+        .join(file_watcher::DEFAULT_WATCH_FOLDER_NAME)
+        .join("index");
+    Ok(index_dir.to_string_lossy().to_string())
+}
+
 /// Остановить мониторинг (graceful shutdown).
 pub fn stop_watching() -> Result<(), LateraError> {
     logging::init_logging();

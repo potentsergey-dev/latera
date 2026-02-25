@@ -7,7 +7,7 @@ import '../../domain/feature_flags.dart';
 import '../../domain/file_watcher.dart';
 import '../../domain/license_service.dart';
 import '../../domain/notifications_service.dart';
-import '../config/stub_config_service.dart';
+import '../config/shared_preferences_config_service.dart';
 import '../licensing/stub_feature_flags.dart';
 import '../licensing/stub_license_service.dart';
 import '../logging/app_logger.dart';
@@ -61,10 +61,12 @@ class AppCompositionRoot {
   /// - LicenseService: определяет доступные функции
   /// - FeatureFlags: проверяет доступность по ID
   /// - ConfigService: хранит пользовательские настройки
-  static AppCompositionRoot create({
+  ///
+  /// Асинхронный метод, так как требует инициализации SharedPreferences.
+  static Future<AppCompositionRoot> create({
     AppEnvironment environment = AppEnvironment.development,
     bool enableLogColors = true,
-  }) {
+  }) async {
     final isProduction = environment == AppEnvironment.production;
 
     // === Infrastructure Layer ===
@@ -77,19 +79,24 @@ class AppCompositionRoot {
     final notifications = LocalNotificationsService(logger: logger);
     final watcher = RustFileWatcherFrb(logger: logger);
 
-    // Licensing & Configuration (stub implementations)
+    // Licensing (stub implementations)
     final licenseService = StubLicenseService(logger: logger);
     final featureFlags = StubFeatureFlags(
       logger: logger,
       licenseService: licenseService,
     );
-    final configService = StubConfigService(logger: logger);
+
+    // Configuration (persistent implementation)
+    final configService = SharedPreferencesConfigService(logger: logger);
+    await configService.initialize();
+    await configService.load();
 
     // === Application Layer ===
     final fileEventsCoordinator = FileEventsCoordinator(
       logger: logger,
       watcher: watcher,
       notifications: notifications,
+      configService: configService,
     );
 
     final licenseCoordinator = LicenseCoordinator(
@@ -129,8 +136,9 @@ class AppCompositionRoot {
     if (featureFlags is StubFeatureFlags) {
       (featureFlags as StubFeatureFlags).dispose();
     }
-    if (configService is StubConfigService) {
-      (configService as StubConfigService).dispose();
+    // Dispose config service
+    if (configService is SharedPreferencesConfigService) {
+      (configService as SharedPreferencesConfigService).dispose();
     }
   }
 }

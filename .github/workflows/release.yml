@@ -1,0 +1,273 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  FLUTTER_VERSION: '3.38.0'
+  RUST_VERSION: '1.93'
+
+jobs:
+  # ===========================================
+  # Build & Sign MSIX Package
+  # ===========================================
+  build-msix:
+    name: Build & Sign MSIX
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --- Rust Setup ---
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+
+      # --- Flutter Setup ---
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            flutter/.pub-cache
+            flutter/.flutter-plugins
+            flutter/.flutter-plugins-dependencies
+          key: ${{ runner.os }}-flutter-pub-${{ hashFiles('flutter/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-pub-
+
+      # --- Build Tools ---
+      - name: Install flutter_rust_bridge_codegen
+        run: cargo install flutter_rust_bridge_codegen --version 2.11.1
+
+      - name: Get Flutter dependencies
+        working-directory: flutter
+        run: flutter pub get
+
+      # --- Codegen ---
+      - name: Run FRB codegen
+        working-directory: rust
+        run: flutter_rust_bridge_codegen generate --config-file frb_codegen.yaml
+
+      # --- Build ---
+      - name: Build Rust library (release)
+        working-directory: rust
+        run: cargo build --release
+        env:
+          # Remap paths for reproducible builds
+          RUSTFLAGS: "--remap-path-prefix=${{ github.workspace }}=/build"
+
+      - name: Build Flutter Windows app (release)
+        working-directory: flutter
+        run: flutter build windows --release
+
+      # --- Certificate Setup ---
+      # The certificate is stored as a base64-encoded PFX in GitHub Secrets
+      # Required secrets:
+      # - BASE64_CERT: Base64-encoded PFX certificate
+      # - CERT_PASSWORD: Password for the PFX certificate
+      # - CERT_SHA1: SHA1 thumbprint for signing (optional, for Store certificates)
+      
+      - name: Decode certificate from secrets
+        run: |
+          # Validate secret is set
+          if ([string]::IsNullOrEmpty("${{ secrets.BASE64_CERT }}")) {
+            Write-Host "ERROR: BASE64_CERT secret is not configured"
+            Write-Host "Please add BASE64_CERT to repository secrets"
+            exit 1
+          }
+          $certBytes = [System.Convert]::FromBase64String("${{ secrets.BASE64_CERT }}")
+          [System.IO.File]::WriteAllBytes("cert.pfx", $certBytes)
+          Write-Host "Certificate decoded successfully"
+        shell: pwsh
+
+      - name: Install certificate to CurrentUser\My store
+        run: |
+          $pwd = ConvertTo-SecureString "${{ secrets.CERT_PASSWORD }}" -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath cert.pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pwd
+          Write-Host "Certificate installed: $($cert.Thumbprint)"
+          Write-Host "Subject: $($cert.Subject)"
+          echo "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+        id: import_cert
+
+      # --- MSIX Creation & Signing ---
+      - name: Create MSIX package
+        working-directory: flutter
+        run: |
+          # Create MSIX with signing using the certificate
+          # The msix package will automatically find the certificate in the store
+          flutter pub run msix:create --install-certificate false
+        shell: pwsh
+
+      # --- Cleanup Certificate ---
+      - name: Remove certificate file
+        if: always()
+        run: |
+          Remove-Item cert.pfx -Force -ErrorAction SilentlyContinue
+          Write-Host "Certificate file removed"
+        shell: pwsh
+
+      - name: Remove certificate from store
+        if: always()
+        run: |
+          # IMPORTANT for self-hosted runners: remove ONLY the certificate imported by this workflow.
+          # Do not delete certificates by wildcard subject match.
+          $thumb = "${{ steps.import_cert.outputs.thumbprint }}"
+          if ([string]::IsNullOrEmpty($thumb)) {
+            Write-Host "No thumbprint captured from import step; skipping store cleanup."
+            exit 0
+          }
+
+          $cert = Get-ChildItem Cert:\CurrentUser\My | Where-Object { $_.Thumbprint -eq $thumb }
+          if ($cert) {
+            Remove-Item $cert.PSPath -Force
+            Write-Host "Certificate removed from store: $thumb"
+          } else {
+            Write-Host "Certificate with thumbprint $thumb not found in store"
+          }
+        shell: pwsh
+
+      # --- Windows App Certification Kit ---
+      - name: Run Windows App Certification Kit
+        id: wack
+        run: |
+          $msixPath = "flutter\build\windows\x64\runner\Release\latera.msix"
+          
+          if (-not (Test-Path $msixPath)) {
+            Write-Host "ERROR: MSIX not found at $msixPath"
+            exit 1
+          }
+          
+          Write-Host "Running Windows App Certification Kit..."
+          
+          # Find WACK executable
+          $wackPath = "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe"
+          
+          if (-not (Test-Path $wackPath)) {
+            Write-Host "WARNING: WACK not found at $wackPath"
+            Write-Host "Skipping WACK validation"
+            echo "wack_passed=skipped" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          
+          # Run WACK
+          $reportPath = "wack-report.xml"
+          & $wackPath test -appx $msixPath -reportoutputpath $reportPath
+          
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "WACK validation PASSED!"
+            echo "wack_passed=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "WACK validation FAILED!"
+            Write-Host "Check the report artifact for details"
+            echo "wack_passed=false" >> $env:GITHUB_OUTPUT
+            
+            # Fail the build for release tags (no suffix like -beta, -rc)
+            # Pre-release versions can have WACK failures for testing purposes
+            $tagName = "${{ github.ref_name }}"
+            if (-not $tagName.Contains('-')) {
+              Write-Host "::error::WACK validation failed for release build. This package cannot be submitted to Windows Store."
+              exit 1
+            }
+            Write-Host "::warning::WACK validation failed. Review the report before Store submission."
+          }
+        shell: pwsh
+
+      - name: Upload WACK report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wack-report
+          path: wack-report.xml
+          retention-days: 30
+
+      # --- Upload Artifacts ---
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latera-msix
+          path: flutter/build/windows/x64/runner/Release/latera.msix
+          retention-days: 90
+
+      - name: Upload Windows build (unsigned)
+        uses: actions/upload-artifact@v4
+        with:
+          name: latera-windows-unsigned
+          path: flutter/build/windows/x64/runner/Release/
+          retention-days: 7
+
+      # --- GitHub Release ---
+      - name: Get version from tag
+        id: version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          # Remove 'v' prefix if present
+          $version = $tag -replace '^v', ''
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Latera v${{ steps.version.outputs.version }}
+          body: |
+            ## Latera ${{ steps.version.outputs.version }}
+            
+            ### Downloads
+            - **latera.msix** - Windows MSIX package (signed)
+            
+            ### Installation
+            1. Download `latera.msix`
+            2. Double-click to install
+            3. If prompted, accept the certificate
+            
+            ### WACK Status
+            ${{ steps.wack.outputs.wack_passed == 'true' && 'Passed Windows App Certification Kit validation' || steps.wack.outputs.wack_passed == 'skipped' && 'WACK validation skipped' || 'WACK validation failed - review report before Store submission' }}
+            
+            ---
+            
+            **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.ref_name }}
+          files: |
+            flutter/build/windows/x64/runner/Release/latera.msix
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ===========================================
+  # Release Summary
+  # ===========================================
+  release-summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: build-msix
+    if: always()
+    
+    steps:
+      - name: Summary
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| MSIX Build | ${{ needs.build-msix.result == 'success' && 'Built & Signed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Release | [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) |" >> $GITHUB_STEP_SUMMARY

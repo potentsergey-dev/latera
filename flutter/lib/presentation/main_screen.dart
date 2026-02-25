@@ -35,7 +35,14 @@ class _MainScreenState extends State<MainScreen> {
 
     // Получаем Composition Root из AppScope
     _coordinator = AppScope.of(context).fileEventsCoordinator;
-    unawaited(_init());
+    unawaited(_init().catchError((Object error, StackTrace st) {
+      debugPrint('Unexpected error in _init(): $error\n$st');
+      if (mounted) {
+        setState(() {
+          _status = 'Unexpected error: $error';
+        });
+      }
+    }));
   }
 
   Future<void> _init() async {
@@ -142,20 +149,69 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final root = AppScope.of(context);
+    final config = root.configService.currentConfig;
     
     return Scaffold(
       appBar: AppBar(
         title: const Text('Latera'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Настройки',
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Статус
             Text(_status, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            
+            // Информация о папке наблюдения
+            Card(
+              elevation: 0,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.folder_outlined,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Папка наблюдения',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Text(
+                            config.watchPath ?? 'Не настроена',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
             const SizedBox(height: 12),
             Text('Последний файл: ${_lastFileName ?? '—'}'),
             const SizedBox(height: 24),
+            
             Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -175,6 +231,13 @@ class _MainScreenState extends State<MainScreen> {
                   },
                   icon: const Icon(Icons.notifications),
                   label: const Text('Тест уведомления'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/settings');
+                  },
+                  icon: const Icon(Icons.settings),
+                  label: const Text('Настройки'),
                 ),
               ],
             ),

@@ -16,3 +16,9 @@ flutter/ios/.symlinks/
 # OS
 .DS_Store
 Thumbs.db
+
+# Test certificates (DO NOT COMMIT REAL CERTIFICATES)
+certs/
+*.pfx
+*.cer
+base64-cert.txt

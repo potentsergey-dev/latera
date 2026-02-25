@@ -8,6 +8,7 @@
 |------|----------|
 | `codegen.ps1` / `codegen.sh` | Генерация FRB биндингов |
 | `build.ps1` / `build.sh` | Полная сборка проекта |
+| `create-test-cert.ps1` | Создание тестового сертификата для MSIX |
 
 ## Использование
 
@@ -44,6 +45,26 @@
 ./scripts/build.sh --release           # Release
 ./scripts/build.sh --skip-codegen      # Пропустить codegen
 ```
+
+### create-test-cert.ps1
+
+Создаёт самоподписанный PFX сертификат для подписи MSIX (только для разработки).
+
+```powershell
+# Windows
+.\scripts\create-test-cert.ps1                    # Авто-генерация пароля
+.\scripts\create-test-cert.ps1 -Password "secret" # Своий пароль
+.\scripts\create-test-cert.ps1 -OutputDir ".\certs" -ValidityYears 5
+```
+
+**Результат:**
+- `certs/latera-test.pfx` - Приватный ключ (для подписи)
+- `certs/latera-test.cer` - Публичный ключ (для установки на целевых машинах)
+- `certs/base64-cert.txt` - Base64-encoded сертификат для GitHub Secrets
+
+**GitHub Secrets:**
+- `BASE64_CERT` - Содержимое `base64-cert.txt`
+- `CERT_PASSWORD` - Пароль сертификата
 
 ## Требования
 

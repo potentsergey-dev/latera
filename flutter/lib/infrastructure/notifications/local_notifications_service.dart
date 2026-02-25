@@ -190,10 +190,23 @@ class LocalNotificationsService implements NotificationsService {
   Future<void> _initializePlugin(LogContext ctx) async {
     // Требования Windows плагина: appName/appUserModelId/guid.
     //
-    // appUserModelId должен соответствовать идентификатору приложения.
-    // В будущем можно вынести в конфигурацию/брендинг.
+    // ## MSIX Package Identity:
+    // - Для packaged apps (MSIX) плагин автоматически использует Package Family Name (PFN)
+    // - Для unpackaged apps используется указанный appUserModelId
+    // - PFN = {IdentityName}_{PublisherHash} вычисляется Windows из манифеста пакета
+    //
+    // ## Identity синхронизация:
+    // - identity_name в pubspec.yaml: com.latera.latera
+    // - appUserModelId ниже: com.latera.latera (для unpackaged режима)
+    // - В MSIX режиме Windows игнорирует appUserModelId и использует PFN
+    //
+    // ## Store публикация:
+    // - При публикации в Store, Partner Center назначит новый Publisher
+    // - PFN изменится, но плагин автоматически это обработает
     const windows = WindowsInitializationSettings(
       appName: 'Latera',
+      // AUMID для unpackaged режима. В MSIX режиме игнорируется.
+      // Должен совпадать с identity_name в pubspec.yaml для консистентности.
       appUserModelId: 'com.latera.latera',
       // Постоянный GUID приложения для уведомлений Windows.
       // Можно сгенерировать один раз (например через PowerShell New-Guid).

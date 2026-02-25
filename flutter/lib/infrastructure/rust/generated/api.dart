@@ -32,6 +32,29 @@ Future<String> startWatching({String? overridePath}) =>
 /// Остановить мониторинг (graceful shutdown).
 Future<void> stopWatching() => RustCore.instance.api.crateApiStopWatching();
 
+/// Получить дефолтный путь наблюдения (Desktop/Latera).
+///
+/// Создаёт директорию, если она не существует.
+/// Не запускает watcher — только возвращает путь.
+///
+/// Используется для:
+/// - Показа пути в UI до запуска watcher'а
+/// - Сохранения пути при первом запуске (onboarding)
+Future<String> getDefaultWatchPath() =>
+    RustCore.instance.api.crateApiGetDefaultWatchPath();
+
+/// Получить дефолтный путь наблюдения (Desktop/Latera) **без** создания директории.
+///
+/// Используется в онбординге для preview до явного согласия пользователя.
+Future<String> getDefaultWatchPathPreview() =>
+    RustCore.instance.api.crateApiGetDefaultWatchPathPreview();
+
+/// Получить путь, где будет храниться индекс (локально на устройстве).
+///
+/// Важно: функция не создаёт директорию, только возвращает путь.
+Future<String> getIndexPath() =>
+    RustCore.instance.api.crateApiGetIndexPath();
+
 /// Событие: добавлен новый файл.
 ///
 /// Поля подобраны так, чтобы их было удобно бриджить во Flutter.
