@@ -7,6 +7,7 @@ import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_added_event.dart';
 import 'package:latera/domain/file_removed_event.dart';
 import 'package:latera/domain/file_watcher.dart';
+import 'package:latera/domain/indexer.dart';
 import 'package:latera/domain/notifications_service.dart';
 import 'package:logger/logger.dart';
 
@@ -176,17 +177,70 @@ class MockConfigService implements ConfigService {
   }
 }
 
+/// Мок для [Indexer].
+///
+/// Позволяет проверять вызовы методов индексатора.
+class MockIndexer implements Indexer {
+  int clearIndexCallCount = 0;
+  int getIndexedCountCallCount = 0;
+  int _indexedCount = 0;
+  final List<String> removedFilePaths = [];
+  final List<String> indexedFilePaths = [];
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> indexFile(
+    String filePath, {
+    required String fileName,
+    required String description,
+  }) async {
+    indexedFilePaths.add(filePath);
+    _indexedCount++;
+    return true;
+  }
+
+  @override
+  Future<void> removeFromIndex(String filePath) async {
+    removedFilePaths.add(filePath);
+    if (_indexedCount > 0) _indexedCount--;
+  }
+
+  @override
+  Future<void> clearIndex() async {
+    clearIndexCallCount++;
+    _indexedCount = 0;
+  }
+
+  @override
+  Future<int> getIndexedCount() async {
+    getIndexedCountCallCount++;
+    return _indexedCount;
+  }
+
+  @override
+  Future<bool> isIndexed(String filePath) async {
+    return indexedFilePaths.contains(filePath);
+  }
+
+  @override
+  void dispose() {}
+}
+
 void main() {
   group('FileEventsCoordinator', () {
     late MockFileWatcher mockWatcher;
     late MockNotificationsService mockNotifications;
     late MockConfigService mockConfigService;
+    late MockIndexer mockIndexer;
     late Logger logger;
 
     setUp(() {
       mockWatcher = MockFileWatcher();
       mockNotifications = MockNotificationsService();
       mockConfigService = MockConfigService();
+      mockIndexer = MockIndexer();
       logger = Logger(printer: PrettyPrinter(methodCount: 0));
     });
 
@@ -202,6 +256,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         final result = await coordinator.start();
@@ -223,6 +278,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -236,6 +292,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -251,6 +308,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -266,6 +324,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -281,6 +340,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         // Первый цикл
@@ -308,6 +368,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -327,6 +388,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -344,6 +406,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -375,6 +438,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -404,6 +468,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -449,6 +514,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -485,6 +551,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -501,6 +568,69 @@ void main() {
         // Watcher должен быть перезапущен
         expect(mockWatcher.startWatchingCallCount, 2);
         expect(mockWatcher.lastOverridePath, '/new/watch/path');
+
+        await coordinator.stop();
+      });
+
+      test('should clear index when watch path changes', () async {
+        final restarted = Completer<void>();
+        mockWatcher.onStartWatching = (callCount, overridePath) {
+          if (callCount >= 2 && !restarted.isCompleted) {
+            restarted.complete();
+          }
+        };
+
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+          indexer: mockIndexer,
+        );
+
+        await coordinator.start();
+
+        // Изменяем путь в конфигурации
+        mockConfigService.setConfig(const AppConfig(
+          watchPath: '/new/watch/path',
+        ));
+
+        await restarted.future.timeout(const Duration(seconds: 1));
+
+        // Индекс должен быть очищен при смене папки
+        expect(mockIndexer.clearIndexCallCount, 1);
+
+        await coordinator.stop();
+      });
+
+      test('should emit watchPathChanged event when path changes', () async {
+        final restarted = Completer<void>();
+        mockWatcher.onStartWatching = (callCount, overridePath) {
+          if (callCount >= 2 && !restarted.isCompleted) {
+            restarted.complete();
+          }
+        };
+
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+          indexer: mockIndexer,
+        );
+
+        await coordinator.start();
+
+        final pathChangeFuture = coordinator.watchPathChangedEvents.first
+            .timeout(const Duration(seconds: 1));
+
+        // Изменяем путь в конфигурации
+        mockConfigService.setConfig(const AppConfig(
+          watchPath: '/new/watch/path',
+        ));
+
+        final newPath = await pathChangeFuture;
+        expect(newPath, '/mock/watch/dir');
 
         await coordinator.stop();
       });

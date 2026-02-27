@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:logger/logger.dart';
 
@@ -7,6 +8,7 @@ import '../domain/core_error.dart';
 import '../domain/file_added_event.dart';
 import '../domain/file_removed_event.dart';
 import '../domain/file_watcher.dart';
+import '../domain/indexer.dart';
 import '../domain/notifications_service.dart';
 
 /// UI-friendly событие (application слой).
@@ -80,11 +82,14 @@ class FileEventsCoordinator {
   final FileWatcher _watcher;
   final NotificationsService _notifications;
   final ConfigService _configService;
+  final Indexer _indexer;
 
   late final StreamController<FileAddedUiEvent> _controller =
       StreamController<FileAddedUiEvent>.broadcast();
   late final StreamController<FileRemovedUiEvent> _removedController =
       StreamController<FileRemovedUiEvent>.broadcast();
+  late final StreamController<String> _watchPathChangedController =
+      StreamController<String>.broadcast();
   StreamSubscription<FileAddedEvent>? _sub;
   StreamSubscription<FileRemovedEvent>? _removedSub;
   StreamSubscription<AppConfig>? _configSub;
@@ -101,10 +106,12 @@ class FileEventsCoordinator {
     required FileWatcher watcher,
     required NotificationsService notifications,
     required ConfigService configService,
+    required Indexer indexer,
   })  : _log = logger,
         _watcher = watcher,
         _notifications = notifications,
-        _configService = configService {
+        _configService = configService,
+        _indexer = indexer {
     // Сохраняем начальный путь для обнаружения изменений
     _lastWatchPath = _configService.currentConfig.watchPath;
     // Подписываемся на изменения конфигурации
@@ -119,6 +126,13 @@ class FileEventsCoordinator {
 
   /// Broadcast stream событий удаления файлов.
   Stream<FileRemovedUiEvent> get fileRemovedEvents => _removedController.stream;
+
+  /// Broadcast stream уведомлений о смене папки наблюдения.
+  ///
+  /// Эмитит путь к новой директории наблюдения после очистки индекса.
+  /// UI может подписаться для обновления счётчика и статуса.
+  Stream<String> get watchPathChangedEvents =>
+      _watchPathChangedController.stream;
   bool get isRunning => _isRunning;
   bool get isDisposed => _isDisposed;
 
@@ -249,13 +263,26 @@ class FileEventsCoordinator {
           break;
         }
 
+        // Очищаем индекс при смене папки наблюдения.
+        // Файлы из предыдущей папки больше не актуальны.
+        _log.i('Clearing index due to watch path change');
+        await _indexer.clearIndex();
+
         // Если пришёл новый запрос во время stop, продолжаем цикл
         if (_restartRequested) {
           _log.i('New restart request during stop, continuing loop');
           continue;
         }
 
-        await start();
+        final result = await start();
+
+        // После успешного старта на новой папке:
+        // 1. Уведомляем UI о смене папки (для обновления счётчика)
+        // 2. Сканируем существующие файлы и эмитим события добавления
+        if (result is CoordinatorStartSuccess) {
+          _watchPathChangedController.add(result.watchDir);
+          await _scanExistingFiles(result.watchDir);
+        }
       } catch (e, st) {
         _log.e(
           'Failed to restart watcher after config change',
@@ -268,6 +295,39 @@ class FileEventsCoordinator {
         // Пользователь может перезапустить вручную
         break;
       }
+    }
+  }
+
+  /// Сканирует существующие файлы в директории и эмитит события добавления.
+  ///
+  /// Вызывается после смены папки наблюдения, чтобы файлы из новой папки
+  /// были обработаны так же, как если бы их только что добавили.
+  Future<void> _scanExistingFiles(String watchDir) async {
+    _log.i('Scanning existing files in: $watchDir');
+    try {
+      final dir = Directory(watchDir);
+      if (!await dir.exists()) {
+        _log.w('Watch directory does not exist for scanning: $watchDir');
+        return;
+      }
+
+      final entities = await dir.list().toList();
+      for (final entity in entities) {
+        if (_isDisposed || _isDisposing || _restartRequested) break;
+        if (entity is File) {
+          final path = entity.path;
+          final fileName = path.split(Platform.pathSeparator).last;
+          _log.d('Found existing file: $fileName');
+          _controller.add(FileAddedUiEvent(
+            fileName: fileName,
+            fullPath: path,
+            occurredAt: DateTime.now(),
+          ));
+        }
+      }
+      _log.i('Finished scanning existing files in: $watchDir');
+    } catch (e, st) {
+      _log.e('Error scanning existing files', error: e, stackTrace: st);
     }
   }
 
@@ -404,6 +464,7 @@ class FileEventsCoordinator {
     // 4) Закрываем поток UI-событий.
     await _controller.close();
     await _removedController.close();
+    await _watchPathChangedController.close();
 
     _isDisposed = true;
     _isDisposing = false;

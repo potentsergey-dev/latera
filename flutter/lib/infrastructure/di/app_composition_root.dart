@@ -119,6 +119,7 @@ class AppCompositionRoot {
       watcher: watcher,
       notifications: notifications,
       configService: configService,
+      indexer: sqliteIndexService,
     );
 
     final licenseCoordinator = LicenseCoordinator(

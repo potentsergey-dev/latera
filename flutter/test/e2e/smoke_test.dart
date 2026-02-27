@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latera/domain/app_config.dart';
 import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_watcher.dart';
+import 'package:latera/domain/indexer.dart';
 import 'package:latera/domain/notifications_service.dart';
 import 'package:latera/domain/file_added_event.dart';
 import 'package:latera/domain/file_removed_event.dart';
@@ -154,17 +155,56 @@ class E2EMockConfigService implements ConfigService {
   }
 }
 
+/// Мок для Indexer.
+class E2EMockIndexer implements Indexer {
+  int _indexedCount = 0;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> indexFile(
+    String filePath, {
+    required String fileName,
+    required String description,
+  }) async {
+    _indexedCount++;
+    return true;
+  }
+
+  @override
+  Future<void> removeFromIndex(String filePath) async {
+    if (_indexedCount > 0) _indexedCount--;
+  }
+
+  @override
+  Future<void> clearIndex() async {
+    _indexedCount = 0;
+  }
+
+  @override
+  Future<int> getIndexedCount() async => _indexedCount;
+
+  @override
+  Future<bool> isIndexed(String filePath) async => false;
+
+  @override
+  void dispose() {}
+}
+
 void main() {
   group('E2E Smoke Tests', () {
     late E2EMockFileWatcher watcher;
     late E2EMockNotificationsService notifications;
     late E2EMockConfigService configService;
+    late E2EMockIndexer indexer;
     late Logger logger;
 
     setUp(() {
       watcher = E2EMockFileWatcher();
       notifications = E2EMockNotificationsService();
       configService = E2EMockConfigService();
+      indexer = E2EMockIndexer();
       logger = Logger(printer: PrettyPrinter(methodCount: 0));
     });
 
@@ -180,6 +220,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         await coordinator.start();
@@ -195,6 +236,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         final uiEvents = <FileAddedUiEvent>[];
@@ -230,6 +272,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         final uiEvents = <FileAddedUiEvent>[];
@@ -267,6 +310,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         await coordinator.start();
@@ -372,6 +416,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         await coordinator.start();

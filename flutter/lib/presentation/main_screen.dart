@@ -24,6 +24,7 @@ class _MainScreenState extends State<MainScreen> {
 
   StreamSubscription<FileAddedUiEvent>? _sub;
   StreamSubscription<FileRemovedUiEvent>? _removedSub;
+  StreamSubscription<String>? _watchPathChangedSub;
   String _status = 'Инициализация…';
   String? _lastFileName;
   int _indexedCount = 0;
@@ -101,6 +102,19 @@ class _MainScreenState extends State<MainScreen> {
         (event) {
           root.logger.i('File removed: ${event.fileName}');
           unawaited(_onFileRemoved(event));
+        },
+      );
+
+      // Подписываемся на смену папки наблюдения
+      _watchPathChangedSub = coordinator.watchPathChangedEvents.listen(
+        (newWatchDir) {
+          root.logger.i('Watch path changed to: $newWatchDir');
+          if (!mounted) return;
+          setState(() {
+            _status = 'Папка изменена. Ожидаю файлы…';
+            _lastFileName = null;
+            _indexedCount = 0;
+          });
         },
       );
 
@@ -243,6 +257,8 @@ class _MainScreenState extends State<MainScreen> {
     _sub = null;
     _removedSub?.cancel();
     _removedSub = null;
+    _watchPathChangedSub?.cancel();
+    _watchPathChangedSub = null;
 
     final coordinator = _coordinator;
     if (coordinator != null) {
