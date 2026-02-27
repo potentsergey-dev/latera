@@ -16,9 +16,10 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use log::{debug, error, info, warn};
-use notify::{event::CreateKind, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{event::CreateKind, event::RemoveKind, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 pub use events::InternalFileEvent;
+pub use events::InternalFileRemovedEvent;
 
 use crate::error::LateraError;
 
@@ -148,9 +149,11 @@ fn ensure_override_dir(override_path: &str) -> Result<PathBuf, LateraError> {
 ///
 /// `override_path`: абсолютный путь (если указан). Если `None`, используется дефолт `Desktop/Latera`.
 /// `on_added`: callback, вызываемый при добавлении нового файла.
+/// `on_removed`: callback, вызываемый при удалении файла.
 pub fn start_watcher(
     override_path: Option<String>,
     on_added: impl Fn(InternalFileEvent) + Send + Sync + 'static,
+    on_removed: impl Fn(InternalFileRemovedEvent) + Send + Sync + 'static,
 ) -> Result<WatcherHandle, LateraError> {
     let watch_dir = match override_path {
         Some(p) => ensure_override_dir(&p)?,
@@ -225,6 +228,21 @@ pub fn start_watcher(
             match event_rx.recv_timeout(Duration::from_millis(50)) {
                 Ok(Ok(event)) => {
                     debug!("notify event: {:?}", event.kind);
+                    
+                    // Обработка событий удаления файлов
+                    if is_remove_file_event(&event.kind) {
+                        for path in &event.paths {
+                            match make_internal_file_removed_event(path) {
+                                Ok(e) => {
+                                    info!("File removed: {}", e.full_path.display());
+                                    on_removed(e);
+                                }
+                                Err(err) => warn!("Cannot build InternalFileRemovedEvent: {err}"),
+                            }
+                        }
+                        continue;
+                    }
+                    
                     if !is_create_file_event(&event.kind) {
                         continue;
                     }
@@ -334,6 +352,14 @@ fn is_create_file_event(kind: &EventKind) -> bool {
     }
 }
 
+fn is_remove_file_event(kind: &EventKind) -> bool {
+    match kind {
+        EventKind::Remove(RemoveKind::File) => true,
+        EventKind::Remove(RemoveKind::Any) => true,
+        _ => false,
+    }
+}
+
 fn is_regular_file(path: &Path) -> bool {
     match std::fs::metadata(path) {
         Ok(m) => m.is_file(),
@@ -352,6 +378,23 @@ fn make_internal_file_event(path: &Path) -> Result<InternalFileEvent, LateraErro
     let occurred_at_ms = now_ms();
 
     Ok(InternalFileEvent {
+        file_name,
+        full_path,
+        occurred_at_ms,
+    })
+}
+
+fn make_internal_file_removed_event(path: &Path) -> Result<InternalFileRemovedEvent, LateraError> {
+    let file_name = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| LateraError::FileNameMissing(path.to_path_buf()))?
+        .to_string();
+
+    let full_path = path.to_path_buf();
+    let occurred_at_ms = now_ms();
+
+    Ok(InternalFileRemovedEvent {
         file_name,
         full_path,
         occurred_at_ms,

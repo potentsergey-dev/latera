@@ -12,6 +12,7 @@ import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_watcher.dart';
 import 'package:latera/domain/notifications_service.dart';
 import 'package:latera/domain/file_added_event.dart';
+import 'package:latera/domain/file_removed_event.dart';
 import 'package:latera/application/file_events_coordinator.dart';
 import 'package:logger/logger.dart';
 
@@ -19,6 +20,8 @@ import 'package:logger/logger.dart';
 class E2EMockFileWatcher implements FileWatcher {
   final StreamController<FileAddedEvent> _controller =
       StreamController<FileAddedEvent>.broadcast();
+  final StreamController<FileRemovedEvent> _removedController =
+      StreamController<FileRemovedEvent>.broadcast();
   bool _isStarted = false;
   String? _watchPath;
 
@@ -30,6 +33,9 @@ class E2EMockFileWatcher implements FileWatcher {
 
   @override
   Stream<FileAddedEvent> get fileAddedEvents => _controller.stream;
+
+  @override
+  Stream<FileRemovedEvent> get fileRemovedEvents => _removedController.stream;
 
   @override
   Future<WatchResult> startWatching({String? overridePath}) async {
@@ -51,6 +57,7 @@ class E2EMockFileWatcher implements FileWatcher {
 
   void dispose() {
     _controller.close();
+    _removedController.close();
   }
 }
 

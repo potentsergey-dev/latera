@@ -5,6 +5,7 @@ import 'package:latera/application/file_events_coordinator.dart';
 import 'package:latera/domain/app_config.dart';
 import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_added_event.dart';
+import 'package:latera/domain/file_removed_event.dart';
 import 'package:latera/domain/file_watcher.dart';
 import 'package:latera/domain/notifications_service.dart';
 import 'package:logger/logger.dart';
@@ -15,6 +16,8 @@ import 'package:logger/logger.dart';
 class MockFileWatcher implements FileWatcher {
   final StreamController<FileAddedEvent> _controller =
       StreamController<FileAddedEvent>.broadcast();
+  final StreamController<FileRemovedEvent> _removedController =
+      StreamController<FileRemovedEvent>.broadcast();
 
   bool startWatchingCalled = false;
   String? lastOverridePath;
@@ -28,6 +31,9 @@ class MockFileWatcher implements FileWatcher {
 
   @override
   Stream<FileAddedEvent> get fileAddedEvents => _controller.stream;
+
+  @override
+  Stream<FileRemovedEvent> get fileRemovedEvents => _removedController.stream;
 
   @override
   bool get isWatching => _isWatching;
@@ -65,6 +71,7 @@ class MockFileWatcher implements FileWatcher {
   /// Закрывает внутренний контроллер.
   Future<void> dispose() async {
     await _controller.close();
+    await _removedController.close();
   }
 }
 

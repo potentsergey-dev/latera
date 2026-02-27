@@ -23,6 +23,7 @@ class _MainScreenState extends State<MainScreen> {
   FileEventsCoordinator? _coordinator;
 
   StreamSubscription<FileAddedUiEvent>? _sub;
+  StreamSubscription<FileRemovedUiEvent>? _removedSub;
   String _status = 'Инициализация…';
   String? _lastFileName;
   int _indexedCount = 0;
@@ -92,6 +93,14 @@ class _MainScreenState extends State<MainScreen> {
           setState(() {
             _status = 'Ошибка наблюдения: ${_extractErrorMessage(error)}';
           });
+        },
+      );
+
+      // Подписываемся на события удаления
+      _removedSub = coordinator.fileRemovedEvents.listen(
+        (event) {
+          root.logger.i('File removed: ${event.fileName}');
+          unawaited(_onFileRemoved(event));
         },
       );
 
@@ -184,6 +193,34 @@ class _MainScreenState extends State<MainScreen> {
     _showDescriptionDialog(nextEvent);
   }
 
+  /// Обрабатывает событие удаления файла — удаляет из индекса.
+  Future<void> _onFileRemoved(FileRemovedUiEvent event) async {
+    if (!mounted) return;
+
+    final filePath = event.fullPath;
+    if (filePath == null || filePath.isEmpty) return;
+
+    final root = AppScope.of(context);
+    try {
+      await root.indexer.removeFromIndex(filePath);
+      root.logger.i('File removed from index: ${event.fileName}');
+      await _refreshIndexedCount();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Файл удалён из индекса: ${event.fileName}'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e, st) {
+      root.logger.e(
+        'Failed to remove file from index: ${event.fileName}',
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
   /// Обновить счётчик проиндексированных файлов.
   Future<void> _refreshIndexedCount() async {
     if (!mounted) return;
@@ -204,6 +241,8 @@ class _MainScreenState extends State<MainScreen> {
   void dispose() {
     _sub?.cancel();
     _sub = null;
+    _removedSub?.cancel();
+    _removedSub = null;
 
     final coordinator = _coordinator;
     if (coordinator != null) {

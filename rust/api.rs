@@ -31,7 +31,18 @@ pub struct FileAddedEvent {
     pub occurred_at_ms: i64,
 }
 
+/// Событие: файл удалён.
+#[derive(Clone, Debug)]
+pub struct FileRemovedEvent {
+    pub file_name: String,
+    pub full_path: String,
+    pub occurred_at_ms: i64,
+}
+
 static FILE_ADDED_SINK: Lazy<Mutex<Option<frb_generated::StreamSink<FileAddedEvent>>>> =
+    Lazy::new(|| Mutex::new(None));
+
+static FILE_REMOVED_SINK: Lazy<Mutex<Option<frb_generated::StreamSink<FileRemovedEvent>>>> =
     Lazy::new(|| Mutex::new(None));
 
 static WATCHER: Lazy<Mutex<Option<file_watcher::WatcherHandle>>> = Lazy::new(|| Mutex::new(None));
@@ -47,6 +58,14 @@ fn close_file_added_stream() {
         .take();
     // _dropped будет дропнут здесь, закрывая stream
     log::debug!("File added stream closed");
+}
+
+fn close_file_removed_stream() {
+    let _dropped = FILE_REMOVED_SINK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .take();
+    log::debug!("File removed stream closed");
 }
 
 /// Инициализация логирования в Rust.
@@ -80,6 +99,21 @@ pub fn on_file_added(sink: frb_generated::StreamSink<FileAddedEvent>) {
     *guard = Some(sink);
 }
 
+/// Stream событий удаления файла.
+///
+/// В Dart это будет выглядеть как `Stream<FileRemovedEvent> onFileRemoved()`.
+pub fn on_file_removed(sink: frb_generated::StreamSink<FileRemovedEvent>) {
+    logging::init_logging();
+
+    let mut guard = FILE_REMOVED_SINK
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if guard.is_some() {
+        warn!("on_file_removed called while previous stream is still bound; closing previous stream");
+    }
+    *guard = Some(sink);
+}
+
 /// Запуск мониторинга.
 ///
 /// - Если `override_path` = `None` → используется дефолтный `Desktop/Latera`.
@@ -98,24 +132,45 @@ pub fn start_watching(override_path: Option<String>) -> Result<String, LateraErr
         return Err(LateraError::WatcherAlreadyRunning);
     }
 
-    let handle = file_watcher::start_watcher(override_path, |event| {
-        // Emit события в stream. Если stream закрыт — логируем и продолжаем.
-        if let Some(sink) = FILE_ADDED_SINK
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .as_ref()
-        {
-            if let Err(e) = sink.add(FileAddedEvent {
-                file_name: event.file_name,
-                full_path: event.full_path.to_string_lossy().to_string(),
-                occurred_at_ms: event.occurred_at_ms,
-            }) {
-                log::warn!("Failed to emit file added event (stream closed): {e}");
+    let handle = file_watcher::start_watcher(
+        override_path,
+        |event| {
+            // Emit события в stream. Если stream закрыт — логируем и продолжаем.
+            if let Some(sink) = FILE_ADDED_SINK
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .as_ref()
+            {
+                if let Err(e) = sink.add(FileAddedEvent {
+                    file_name: event.file_name,
+                    full_path: event.full_path.to_string_lossy().to_string(),
+                    occurred_at_ms: event.occurred_at_ms,
+                }) {
+                    log::warn!("Failed to emit file added event (stream closed): {e}");
+                }
+            } else {
+                log::debug!("File added event dropped (no active stream subscriber)");
             }
-        } else {
-            log::debug!("File added event dropped (no active stream subscriber)");
-        }
-    })?;
+        },
+        |event| {
+            // Emit события удаления в stream.
+            if let Some(sink) = FILE_REMOVED_SINK
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .as_ref()
+            {
+                if let Err(e) = sink.add(FileRemovedEvent {
+                    file_name: event.file_name,
+                    full_path: event.full_path.to_string_lossy().to_string(),
+                    occurred_at_ms: event.occurred_at_ms,
+                }) {
+                    log::warn!("Failed to emit file removed event (stream closed): {e}");
+                }
+            } else {
+                log::debug!("File removed event dropped (no active stream subscriber)");
+            }
+        },
+    )?;
 
     let watch_dir = handle.watch_dir().to_string_lossy().to_string();
     *guard = Some(handle);
@@ -185,6 +240,7 @@ pub fn stop_watching() -> Result<(), LateraError> {
 
     // 2) Затем закрываем stream (onDone во Flutter) и очищаем sink.
     close_file_added_stream();
+    close_file_removed_stream();
     Ok(())
 }
 

@@ -15,3 +15,14 @@ pub struct InternalFileEvent {
     /// Время события (Unix timestamp в миллисекундах).
     pub occurred_at_ms: i64,
 }
+
+/// Внутреннее событие: файл удалён.
+#[derive(Clone, Debug)]
+pub struct InternalFileRemovedEvent {
+    /// Имя файла.
+    pub file_name: String,
+    /// Полный путь к файлу.
+    pub full_path: PathBuf,
+    /// Время события (Unix timestamp в миллисекундах).
+    pub occurred_at_ms: i64,
+}

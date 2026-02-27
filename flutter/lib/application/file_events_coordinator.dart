@@ -5,6 +5,7 @@ import 'package:logger/logger.dart';
 import '../domain/app_config.dart';
 import '../domain/core_error.dart';
 import '../domain/file_added_event.dart';
+import '../domain/file_removed_event.dart';
 import '../domain/file_watcher.dart';
 import '../domain/notifications_service.dart';
 
@@ -22,6 +23,27 @@ class FileAddedUiEvent {
 
   factory FileAddedUiEvent.fromDomain(FileAddedEvent e) {
     return FileAddedUiEvent(
+      fileName: e.fileName,
+      fullPath: e.fullPath,
+      occurredAt: e.occurredAt,
+    );
+  }
+}
+
+/// UI-friendly событие удаления файла (application слой).
+class FileRemovedUiEvent {
+  final String fileName;
+  final String? fullPath;
+  final DateTime occurredAt;
+
+  const FileRemovedUiEvent({
+    required this.fileName,
+    required this.occurredAt,
+    this.fullPath,
+  });
+
+  factory FileRemovedUiEvent.fromDomain(FileRemovedEvent e) {
+    return FileRemovedUiEvent(
       fileName: e.fileName,
       fullPath: e.fullPath,
       occurredAt: e.occurredAt,
@@ -61,7 +83,10 @@ class FileEventsCoordinator {
 
   late final StreamController<FileAddedUiEvent> _controller =
       StreamController<FileAddedUiEvent>.broadcast();
+  late final StreamController<FileRemovedUiEvent> _removedController =
+      StreamController<FileRemovedUiEvent>.broadcast();
   StreamSubscription<FileAddedEvent>? _sub;
+  StreamSubscription<FileRemovedEvent>? _removedSub;
   StreamSubscription<AppConfig>? _configSub;
   bool _isRunning = false;
   bool _isStarting = false;
@@ -91,6 +116,9 @@ class FileEventsCoordinator {
   /// Остается активным между циклами start/stop.
   /// Закрывается только при [dispose].
   Stream<FileAddedUiEvent> get fileAddedEvents => _controller.stream;
+
+  /// Broadcast stream событий удаления файлов.
+  Stream<FileRemovedUiEvent> get fileRemovedEvents => _removedController.stream;
   bool get isRunning => _isRunning;
   bool get isDisposed => _isDisposed;
 
@@ -247,19 +275,29 @@ class FileEventsCoordinator {
     // Отменяем предыдущую подписку если есть (защита от утечек при повторном start)
     _sub?.cancel();
     _sub = null;
+    _removedSub?.cancel();
+    _removedSub = null;
 
     _isRunning = true;
 
-    // Подписываемся на события файла
-    // Оборачиваем async callback для обработки ошибок
+    // Подписываемся на события добавления файла
     _sub = _watcher.fileAddedEvents.listen(
       (event) {
-        // Запускаем async обработку с обработкой ошибок
-        // unawaited используется намеренно - обработка не должна блокировать stream
         unawaited(_onFileEventSafe(event));
       },
       onError: _onStreamError,
       onDone: _onStreamDone,
+    );
+
+    // Подписываемся на события удаления файлов
+    _removedSub = _watcher.fileRemovedEvents.listen(
+      (event) {
+        _log.i('File removed event: ${event.fileName}');
+        _removedController.add(FileRemovedUiEvent.fromDomain(event));
+      },
+      onError: (Object error, StackTrace st) {
+        _log.e('File removed stream error', error: error, stackTrace: st);
+      },
     );
 
     _log.i('File events coordinator started. Watching: $watchDir');
@@ -325,6 +363,9 @@ class FileEventsCoordinator {
     await _sub?.cancel();
     _sub = null;
 
+    await _removedSub?.cancel();
+    _removedSub = null;
+
     // Останавливаем watcher
     final error = await _watcher.stopWatching();
 
@@ -362,6 +403,7 @@ class FileEventsCoordinator {
 
     // 4) Закрываем поток UI-событий.
     await _controller.close();
+    await _removedController.close();
 
     _isDisposed = true;
     _isDisposing = false;

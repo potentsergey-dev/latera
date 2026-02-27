@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_added_event.dart';
+import 'package:latera/domain/file_removed_event.dart';
 import 'package:latera/domain/file_watcher.dart';
 
 /// Мок для [FileWatcher] с расширенным функционалом для тестирования.
@@ -12,6 +13,8 @@ import 'package:latera/domain/file_watcher.dart';
 class MockFileWatcher implements FileWatcher {
   final StreamController<FileAddedEvent> _controller =
       StreamController<FileAddedEvent>.broadcast();
+  final StreamController<FileRemovedEvent> _removedController =
+      StreamController<FileRemovedEvent>.broadcast();
 
   bool _isWatching = false;
   String? _currentPath;
@@ -29,6 +32,9 @@ class MockFileWatcher implements FileWatcher {
 
   @override
   Stream<FileAddedEvent> get fileAddedEvents => _controller.stream;
+
+  @override
+  Stream<FileRemovedEvent> get fileRemovedEvents => _removedController.stream;
 
   /// Эмулирует обнаружение нового файла.
   void simulateFileAdded({
@@ -77,6 +83,7 @@ class MockFileWatcher implements FileWatcher {
   /// Закрывает стрим контроллер.
   Future<void> dispose() async {
     await _controller.close();
+    await _removedController.close();
   }
 
   /// Сбрасывает состояние мока.
