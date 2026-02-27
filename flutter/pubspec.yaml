@@ -45,6 +45,16 @@ dependencies:
   # File system access
   file_picker: ^10.0.0
   url_launcher: ^6.3.1
+  
+  # SQLite for local index (FTS5 full-text search)
+  # Used as Dart-side implementation while FRB codegen is broken on Windows.
+  # Will be replaced with Rust-backed indexer when codegen is fixed.
+  sqlite3: ^2.7.4
+  sqlite3_flutter_libs: ^0.5.28
+  path_provider: ^2.1.5
+  
+  # App version info
+  package_info_plus: ^8.0.0
 
 dev_dependencies:
   flutter_test:

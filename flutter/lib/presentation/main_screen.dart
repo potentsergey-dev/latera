@@ -5,12 +5,13 @@ import 'package:flutter/material.dart';
 import '../application/file_events_coordinator.dart';
 import '../domain/core_error.dart';
 import 'app_scope.dart';
+import 'file_description_dialog.dart';
 
 /// Главный экран.
 ///
-/// В текущей foundation-версии watcher — заглушка.
-/// После добавления Rust toolchain будет подключён реальный stream из Rust
-/// через flutter_rust_bridge.
+/// Показывает статус наблюдения за папкой, количество проиндексированных
+/// файлов и предоставляет доступ к поиску и настройкам.
+/// При получении события о новом файле показывает диалог ввода описания.
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -24,16 +25,16 @@ class _MainScreenState extends State<MainScreen> {
   StreamSubscription<FileAddedUiEvent>? _sub;
   String _status = 'Инициализация…';
   String? _lastFileName;
+  int _indexedCount = 0;
   bool _initialized = false;
+  bool _isDescriptionDialogOpen = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Защита от повторной инициализации (didChangeDependencies может вызываться多次)
     if (_initialized) return;
     _initialized = true;
 
-    // Получаем Composition Root из AppScope
     _coordinator = AppScope.of(context).fileEventsCoordinator;
     unawaited(_init().catchError((Object error, StackTrace st) {
       debugPrint('Unexpected error in _init(): $error\n$st');
@@ -46,31 +47,24 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _init() async {
-    // Защита от повторной инициализации
     if (_sub != null) return;
-
-    // Проверяем mounted перед использованием context
     if (!mounted) return;
 
     final coordinator = _coordinator;
-    if (coordinator == null) {
-      // Координатор не инициализирован - не должно происходить при корректном использовании
-      return;
-    }
+    if (coordinator == null) return;
 
     final root = AppScope.of(context);
     try {
       await root.notifications.init();
-      
-      // Проверяем mounted после первого await
       if (!mounted) return;
-      
+
+      // Загружаем количество проиндексированных файлов
+      await _refreshIndexedCount();
+      if (!mounted) return;
+
       final startResult = await coordinator.start();
-
-      // Проверяем mounted после второго await
       if (!mounted) return;
 
-      // Обрабатываем результат запуска координатора
       if (startResult is CoordinatorStartFailure) {
         root.logger.e('Coordinator start failed', error: startResult.error);
         setState(() {
@@ -85,15 +79,11 @@ class _MainScreenState extends State<MainScreen> {
           if (!mounted) return;
           setState(() {
             _lastFileName = event.fileName;
-            _status = 'Получено событие добавления файла';
+            _status = 'Новый файл обнаружен';
           });
 
-          // Foreground UX: быстрый in-app pop-up.
-          // Проверяем mounted повторно перед использованием context
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Новый файл: ${event.fileName}')),
-          );
+          // Показываем диалог описания файла
+          _showDescriptionDialog(event);
         },
         onError: (Object error, StackTrace st) {
           root.logger.e('Stream error in UI', error: error, stackTrace: st);
@@ -106,7 +96,7 @@ class _MainScreenState extends State<MainScreen> {
 
       if (!mounted) return;
       setState(() {
-        _status = 'Готово. Ожидаю события…';
+        _status = 'Готово. Ожидаю файлы…';
       });
     } catch (e, st) {
       root.logger.e('Init failed', error: e, stackTrace: st);
@@ -117,13 +107,91 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  /// Показывает диалог ввода описания для нового файла.
+  Future<void> _showDescriptionDialog(FileAddedUiEvent event) async {
+    if (!mounted) return;
+
+    // Не индексируем файлы без пути
+    final filePath = event.fullPath;
+    if (filePath == null || filePath.isEmpty) {
+      final root = AppScope.of(context);
+      root.logger.w('Skipping file with empty path: ${event.fileName}');
+      return;
+    }
+
+    // Предотвращаем наслаивание диалогов при серии событий
+    if (_isDescriptionDialogOpen) return;
+    _isDescriptionDialogOpen = true;
+
+    final root = AppScope.of(context);
+    try {
+      final result = await FileDescriptionDialog.show(
+        context,
+        fileName: event.fileName,
+        filePath: filePath,
+      );
+
+      if (result == null) {
+        // Пользователь закрыл диалог — индексируем с пустым описанием
+        root.logger.d('Description dialog dismissed for ${event.fileName}');
+        return;
+      }
+
+      // Индексируем файл с описанием
+      final success = await root.indexer.indexFile(
+        result.filePath,
+        fileName: result.fileName,
+        description: result.description,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        root.logger.i('File indexed: ${result.fileName}');
+        await _refreshIndexedCount();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Файл проиндексирован: ${result.fileName}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        root.logger.w('Failed to index file: ${result.fileName}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка индексации: ${result.fileName}'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      _isDescriptionDialogOpen = false;
+    }
+  }
+
+  /// Обновить счётчик проиндексированных файлов.
+  Future<void> _refreshIndexedCount() async {
+    if (!mounted) return;
+    final root = AppScope.of(context);
+    try {
+      final count = await root.indexer.getIndexedCount();
+      if (mounted) {
+        setState(() {
+          _indexedCount = count;
+        });
+      }
+    } catch (e) {
+      root.logger.w('Failed to get indexed count', error: e);
+    }
+  }
+
   @override
   void dispose() {
-    // Синхронно отменяем подписку (неблокирующая операция)
     _sub?.cancel();
     _sub = null;
 
-    // Останавливаем coordinator (но не dispose - это делается на уровне AppScope)
     final coordinator = _coordinator;
     if (coordinator != null) {
       unawaited(
@@ -138,7 +206,6 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  /// Извлекает читаемое сообщение из ошибки.
   String _extractErrorMessage(Object error) {
     if (error is CoreError) {
       return error.message;
@@ -150,7 +217,8 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     final root = AppScope.of(context);
     final config = root.configService.currentConfig;
-    
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Latera'),
@@ -169,14 +237,110 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Поисковая кнопка — основное CTA
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/search');
+                },
+                icon: const Icon(Icons.search),
+                label: const Text('Найти файл'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  textStyle: theme.textTheme.titleMedium,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // Статус
-            Text(_status, style: Theme.of(context).textTheme.titleMedium),
+            Text(_status, style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            )),
             const SizedBox(height: 12),
-            
-            // Информация о папке наблюдения
+
+            // Карточки с информацией
+            Row(
+              children: [
+                // Проиндексировано файлов
+                Expanded(
+                  child: Card(
+                    elevation: 0,
+                    color: theme.colorScheme.primaryContainer,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.inventory_2_outlined,
+                            size: 24,
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$_indexedCount',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Файлов в индексе',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onPrimaryContainer,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Последний файл
+                Expanded(
+                  child: Card(
+                    elevation: 0,
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.description_outlined,
+                            size: 24,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _lastFileName ?? '—',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w500,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          Text(
+                            'Последний файл',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Папка наблюдения
             Card(
               elevation: 0,
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              color: theme.colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
@@ -184,7 +348,7 @@ class _MainScreenState extends State<MainScreen> {
                     Icon(
                       Icons.folder_outlined,
                       size: 20,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: theme.colorScheme.primary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -193,11 +357,11 @@ class _MainScreenState extends State<MainScreen> {
                         children: [
                           Text(
                             'Папка наблюдения',
-                            style: Theme.of(context).textTheme.bodySmall,
+                            style: theme.textTheme.bodySmall,
                           ),
                           Text(
                             config.watchPath ?? 'Не настроена',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                            style: theme.textTheme.bodyMedium,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -206,40 +370,6 @@ class _MainScreenState extends State<MainScreen> {
                   ],
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 12),
-            Text('Последний файл: ${_lastFileName ?? '—'}'),
-            const SizedBox(height: 24),
-            
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                FilledButton.icon(
-                  onPressed: () async {
-                    final scaffoldMessenger = ScaffoldMessenger.of(context);
-                    try {
-                      await root.notifications.showFileAdded(fileName: 'test.txt');
-                    } catch (e) {
-                      root.logger.w('Test notification failed', error: e);
-                      if (!mounted) return;
-                      scaffoldMessenger.showSnackBar(
-                        SnackBar(content: Text('Ошибка уведомления: ${_extractErrorMessage(e)}')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.notifications),
-                  label: const Text('Тест уведомления'),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/settings');
-                  },
-                  icon: const Icon(Icons.settings),
-                  label: const Text('Настройки'),
-                ),
-              ],
             ),
           ],
         ),

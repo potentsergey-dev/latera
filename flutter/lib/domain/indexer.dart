@@ -3,11 +3,22 @@
 /// Domain слой не зависит от реализации хранения (SQLite, FTS5 и т.д.).
 /// Отвечает за индексацию файлов для последующего поиска.
 abstract interface class Indexer {
-  /// Индексирует один файл по указанному пути.
+  /// Инициализирует индекс (создаёт БД, таблицы и т.д.).
+  ///
+  /// Должен быть вызван один раз при старте приложения.
+  Future<void> initialize();
+
+  /// Индексирует один файл с описанием пользователя.
   ///
   /// [filePath] — абсолютный путь к файлу.
+  /// [fileName] — имя файла.
+  /// [description] — описание от пользователя (основа для поиска).
   /// Возвращает true, если индексация прошла успешно.
-  Future<bool> indexFile(String filePath);
+  Future<bool> indexFile(
+    String filePath, {
+    required String fileName,
+    required String description,
+  });
 
   /// Удаляет файл из индекса.
   ///
@@ -19,6 +30,12 @@ abstract interface class Indexer {
 
   /// Возвращает количество проиндексированных файлов.
   Future<int> getIndexedCount();
+
+  /// Проверяет, проиндексирован ли файл.
+  Future<bool> isIndexed(String filePath);
+
+  /// Освобождает ресурсы (закрывает БД).
+  void dispose();
 }
 
 /// Результат операции индексации.

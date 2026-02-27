@@ -7,6 +7,7 @@
 pub mod error;
 pub mod file_watcher;
 pub mod frb_generated;
+pub mod indexer;
 pub mod logging;
 
 // FRB rust-input по требованию лежит в корне `rust/api.rs`.

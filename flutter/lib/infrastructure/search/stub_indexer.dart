@@ -14,7 +14,16 @@ class StubIndexer implements Indexer {
   StubIndexer({required Logger logger}) : _log = logger;
 
   @override
-  Future<bool> indexFile(String filePath) async {
+  Future<void> initialize() async {
+    _log.w('SQLite is not connected yet. initialize() ignored.');
+  }
+
+  @override
+  Future<bool> indexFile(
+    String filePath, {
+    required String fileName,
+    required String description,
+  }) async {
     _log.w(
       'SQLite is not connected yet. indexFile(filePath=$filePath) ignored.',
     );
@@ -37,5 +46,18 @@ class StubIndexer implements Indexer {
   Future<int> getIndexedCount() async {
     _log.w('SQLite is not connected yet. getIndexedCount() returning 0.');
     return 0;
+  }
+
+  @override
+  Future<bool> isIndexed(String filePath) async {
+    _log.w(
+      'SQLite is not connected yet. isIndexed(filePath=$filePath) returning false.',
+    );
+    return false;
+  }
+
+  @override
+  void dispose() {
+    // No-op
   }
 }

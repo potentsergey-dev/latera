@@ -16,7 +16,7 @@ rust_root: "."
 dart_output: "../flutter/lib/infrastructure/rust/generated"
 rust_output: "src/frb_generated.rs"
 dart_entrypoint_class_name: "RustCore"
-no_add_mod_to_lib: true
-no_web: true
+add_mod_to_lib: false
+web: false
 default_dart_async: true
 type_64bit_int: true

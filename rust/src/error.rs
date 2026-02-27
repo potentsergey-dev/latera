@@ -35,6 +35,12 @@ pub enum LateraError {
 
     #[error("LateraError::InitializationFailed: {0}")]
     InitializationFailed(String),
+
+    #[error("LateraError::Sqlite: {0}")]
+    Sqlite(#[from] rusqlite::Error),
+
+    #[error("LateraError::IndexNotInitialized: Index database is not initialized. Call init_index() first.")]
+    IndexNotInitialized,
 }
 
 impl LateraError {
@@ -51,6 +57,8 @@ impl LateraError {
             LateraError::FileNameMissing(_) => "FILE_NAME_MISSING",
             LateraError::StreamClosed => "STREAM_CLOSED",
             LateraError::InitializationFailed(_) => "INITIALIZATION_FAILED",
+            LateraError::Sqlite(_) => "SQLITE_ERROR",
+            LateraError::IndexNotInitialized => "INDEX_NOT_INITIALIZED",
         }
     }
 
@@ -66,7 +74,9 @@ impl LateraError {
             | LateraError::Io(_)
             | LateraError::Notify(_)
             | LateraError::FileNameMissing(_)
-            | LateraError::InitializationFailed(_) => false,
+            | LateraError::InitializationFailed(_)
+            | LateraError::Sqlite(_)
+            | LateraError::IndexNotInitialized => false,
         }
     }
 }

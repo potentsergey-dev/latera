@@ -9,13 +9,17 @@
 //! См. планы в `plans/runbook.md`.
 
 use once_cell::sync::Lazy;
+use std::path::Path;
 use std::sync::Mutex;
 
 use crate::error::LateraError;
 use crate::file_watcher;
 use crate::frb_generated;
+use crate::indexer;
 use crate::logging;
 use log::warn;
+
+use rusqlite::Connection;
 
 /// Событие: добавлен новый файл.
 ///
@@ -182,4 +186,134 @@ pub fn stop_watching() -> Result<(), LateraError> {
     // 2) Затем закрываем stream (onDone во Flutter) и очищаем sink.
     close_file_added_stream();
     Ok(())
+}
+
+// ============================================================================
+// Index API
+// ============================================================================
+
+/// Глобальное соединение с БД индекса.
+///
+/// Инициализируется единожды при вызове [`init_index`].
+/// Защищён мьютексом для потокобезопасного доступа.
+static INDEX_DB: Lazy<Mutex<Option<Connection>>> = Lazy::new(|| Mutex::new(None));
+
+/// Получить ссылку на подключение к БД.
+/// Если БД не инициализирована — возвращает ошибку.
+fn with_index_db<F, T>(f: F) -> Result<T, LateraError>
+where
+    F: FnOnce(&Connection) -> Result<T, LateraError>,
+{
+    let guard = INDEX_DB
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    let conn = guard.as_ref().ok_or(LateraError::IndexNotInitialized)?;
+    f(conn)
+}
+
+/// Инициализировать индексную БД.
+///
+/// Вызывается один раз при старте приложения.
+/// `db_path` — путь к файлу SQLite (будет создан вместе с директорией).
+///
+/// Безопасен для повторного вызова — если БД уже открыта, вернёт Ok.
+pub fn init_index(db_path: String) -> Result<(), LateraError> {
+    logging::init_logging();
+
+    let mut guard = INDEX_DB
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+
+    if guard.is_some() {
+        log::info!("Index DB already initialized, skipping");
+        return Ok(());
+    }
+
+    let conn = indexer::init_db(&db_path)?;
+    *guard = Some(conn);
+    Ok(())
+}
+
+/// Результат поиска, экспортируемый через FRB в Dart.
+#[derive(Clone, Debug)]
+pub struct SearchResultItem {
+    pub file_path: String,
+    pub file_name: String,
+    pub description: String,
+    pub snippet: String,
+    pub rank: f64,
+}
+
+/// Индексировать файл с описанием пользователя.
+///
+/// Автоматически извлекает текстовое содержимое из поддерживаемых форматов
+/// (.txt, .md и др.) и добавляет его в FTS5 индекс.
+///
+/// Если файл уже есть в индексе — обновляет описание и содержимое.
+pub fn index_file_with_description(
+    file_path: String,
+    file_name: String,
+    description: String,
+) -> Result<(), LateraError> {
+    logging::init_logging();
+
+    // Извлекаем текстовое содержимое, если файл текстовый
+    let text_content = indexer::extract_text(Path::new(&file_path));
+
+    with_index_db(|conn| {
+        indexer::index_file(
+            conn,
+            &file_path,
+            &file_name,
+            &description,
+            text_content.as_deref(),
+        )?;
+        Ok(())
+    })
+}
+
+/// Поиск файлов по запросу.
+///
+/// Использует FTS5 полнотекстовый поиск по имени, описанию и содержимому.
+/// Результаты упорядочены по BM25 рангу (наиболее релевантные первыми).
+pub fn search_files(query: String, limit: u32) -> Result<Vec<SearchResultItem>, LateraError> {
+    logging::init_logging();
+
+    with_index_db(|conn| {
+        let results = indexer::search(conn, &query, limit as usize)?;
+        Ok(results
+            .into_iter()
+            .map(|r| SearchResultItem {
+                file_path: r.file_path,
+                file_name: r.file_name,
+                description: r.description,
+                snippet: r.snippet,
+                rank: r.rank,
+            })
+            .collect())
+    })
+}
+
+/// Удалить файл из индекса.
+pub fn remove_from_index(file_path: String) -> Result<bool, LateraError> {
+    logging::init_logging();
+    with_index_db(|conn| indexer::remove_file(conn, &file_path))
+}
+
+/// Проверить, проиндексирован ли файл.
+pub fn is_file_indexed(file_path: String) -> Result<bool, LateraError> {
+    logging::init_logging();
+    with_index_db(|conn| indexer::is_indexed(conn, &file_path))
+}
+
+/// Получить количество проиндексированных файлов.
+pub fn get_indexed_file_count() -> Result<i64, LateraError> {
+    logging::init_logging();
+    with_index_db(|conn| indexer::get_indexed_count(conn))
+}
+
+/// Очистить весь индекс.
+pub fn clear_file_index() -> Result<(), LateraError> {
+    logging::init_logging();
+    with_index_db(|conn| indexer::clear_index(conn))
 }

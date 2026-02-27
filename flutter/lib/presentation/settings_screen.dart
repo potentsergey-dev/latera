@@ -2,14 +2,11 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../domain/app_config.dart';
 import 'app_scope.dart';
-
-/// Версия приложения.
-/// TODO: Использовать package_info_plus для динамического получения версии.
-const String _appVersion = '1.0.0';
 
 /// Экран настроек приложения.
 ///
@@ -31,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _error;
   bool _folderExists = false;
   bool _initialized = false;
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -46,6 +44,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _initialized = true;
     _configService = AppScope.of(context).configService;
     _loadConfig();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = '${info.version}+${info.buildNumber}';
+      });
+    }
   }
 
   Future<void> _loadConfig() async {
@@ -444,7 +452,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return ListTile(
       leading: const Icon(Icons.info_outline),
       title: const Text('Версия'),
-      subtitle: const Text(_appVersion),
+      subtitle: Text(_appVersion.isEmpty ? '...' : _appVersion),
     );
   }
 }

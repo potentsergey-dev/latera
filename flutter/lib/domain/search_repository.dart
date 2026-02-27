@@ -6,6 +6,9 @@ class SearchResult {
   /// Имя файла.
   final String fileName;
 
+  /// Описание файла, введённое пользователем.
+  final String description;
+
   /// Релевантность результата (0.0 - 1.0).
   final double relevance;
 
@@ -18,6 +21,7 @@ class SearchResult {
   const SearchResult({
     required this.filePath,
     required this.fileName,
+    required this.description,
     required this.relevance,
     this.snippet,
     this.indexedAt,

@@ -1,18 +1,23 @@
 import 'package:logger/logger.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../application/file_events_coordinator.dart';
 import '../../application/license_coordinator.dart';
 import '../../domain/app_config.dart';
 import '../../domain/feature_flags.dart';
 import '../../domain/file_watcher.dart';
+import '../../domain/indexer.dart';
 import '../../domain/license_service.dart';
 import '../../domain/notifications_service.dart';
+import '../../domain/search_repository.dart';
 import '../config/shared_preferences_config_service.dart';
 import '../licensing/stub_feature_flags.dart';
 import '../licensing/stub_license_service.dart';
 import '../logging/app_logger.dart';
 import '../notifications/local_notifications_service.dart';
 import '../rust/rust_file_watcher_frb.dart';
+import '../search/sqlite_index_service.dart';
 
 /// Конфигурация окружения приложения.
 enum AppEnvironment {
@@ -31,6 +36,8 @@ class AppCompositionRoot {
   final LicenseService licenseService;
   final FeatureFlags featureFlags;
   final ConfigService configService;
+  final Indexer indexer;
+  final SearchRepository searchRepository;
 
   // === Application Coordinators ===
   final FileEventsCoordinator fileEventsCoordinator;
@@ -38,6 +45,9 @@ class AppCompositionRoot {
 
   // === Infrastructure ===
   final Logger logger;
+
+  /// Ссылка на SqliteIndexService для dispose.
+  final SqliteIndexService? _sqliteIndexService;
 
   bool _isDisposed = false;
 
@@ -47,10 +57,13 @@ class AppCompositionRoot {
     required this.licenseService,
     required this.featureFlags,
     required this.configService,
+    required this.indexer,
+    required this.searchRepository,
     required this.fileEventsCoordinator,
     required this.licenseCoordinator,
     required this.logger,
-  });
+    SqliteIndexService? sqliteIndexService,
+  }) : _sqliteIndexService = sqliteIndexService;
 
   /// Создать Composition Root с настройками окружения.
   ///
@@ -91,6 +104,15 @@ class AppCompositionRoot {
     await configService.initialize();
     await configService.load();
 
+    // SQLite FTS5 Index Service (implements both Indexer and SearchRepository)
+    final appDataDir = await getApplicationSupportDirectory();
+    final dbPath = p.join(appDataDir.path, 'Latera', 'index', 'latera_index.db');
+    final sqliteIndexService = SqliteIndexService(
+      logger: logger,
+      dbPath: dbPath,
+    );
+    await sqliteIndexService.initialize();
+
     // === Application Layer ===
     final fileEventsCoordinator = FileEventsCoordinator(
       logger: logger,
@@ -111,9 +133,12 @@ class AppCompositionRoot {
       licenseService: licenseService,
       featureFlags: featureFlags,
       configService: configService,
+      indexer: sqliteIndexService,
+      searchRepository: sqliteIndexService,
       fileEventsCoordinator: fileEventsCoordinator,
       licenseCoordinator: licenseCoordinator,
       logger: logger,
+      sqliteIndexService: sqliteIndexService,
     );
   }
 
@@ -128,6 +153,9 @@ class AppCompositionRoot {
 
     // Dispose coordinator (останавливает watcher и закрывает streams)
     await fileEventsCoordinator.dispose();
+
+    // Dispose SQLite index service
+    _sqliteIndexService?.dispose();
 
     // Dispose stub services
     if (licenseService is StubLicenseService) {
