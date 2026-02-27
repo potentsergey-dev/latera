@@ -28,6 +28,7 @@ class _MainScreenState extends State<MainScreen> {
   int _indexedCount = 0;
   bool _initialized = false;
   bool _isDescriptionDialogOpen = false;
+  final List<FileAddedUiEvent> _pendingFiles = [];
 
   @override
   void didChangeDependencies() {
@@ -119,8 +120,11 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    // Предотвращаем наслаивание диалогов при серии событий
-    if (_isDescriptionDialogOpen) return;
+    // Если диалог уже открыт, добавляем файл в очередь
+    if (_isDescriptionDialogOpen) {
+      _pendingFiles.add(event);
+      return;
+    }
     _isDescriptionDialogOpen = true;
 
     final root = AppScope.of(context);
@@ -168,7 +172,16 @@ class _MainScreenState extends State<MainScreen> {
       }
     } finally {
       _isDescriptionDialogOpen = false;
+      // Обрабатываем следующий файл из очереди
+      _processNextPendingFile();
     }
+  }
+
+  /// Обрабатывает следующий файл из очереди ожидающих.
+  void _processNextPendingFile() {
+    if (_pendingFiles.isEmpty) return;
+    final nextEvent = _pendingFiles.removeAt(0);
+    _showDescriptionDialog(nextEvent);
   }
 
   /// Обновить счётчик проиндексированных файлов.
