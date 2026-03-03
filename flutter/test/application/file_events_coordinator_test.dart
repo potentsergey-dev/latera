@@ -147,6 +147,21 @@ class MockConfigService implements ConfigService {
     String? language,
     bool clearWatchPath = false,
     bool clearLanguage = false,
+    // Производительность и контент
+    bool? resourceSaverEnabled,
+    bool? enableOfficeDocs,
+    bool? enableOcr,
+    bool? enableTranscription,
+    bool? enableEmbeddings,
+    bool? enableSemanticSimilarity,
+    bool? enableRag,
+    bool? enableAutoSummary,
+    bool? enableAutoTags,
+    // Лимиты
+    int? maxConcurrentJobs,
+    int? maxFileSizeMbForEnrichment,
+    int? maxMediaMinutes,
+    int? maxPagesPerPdf,
   }) async {
     // ВАЖНО: copyWith() не умеет устанавливать null.
     // Создаём AppConfig напрямую с явными значениями.
@@ -158,6 +173,19 @@ class MockConfigService implements ConfigService {
       logLevel: logLevel ?? _currentConfig.logLevel,
       theme: theme ?? _currentConfig.theme,
       language: clearLanguage ? null : (language ?? _currentConfig.language),
+      resourceSaverEnabled: resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
+      enableOfficeDocs: enableOfficeDocs ?? _currentConfig.enableOfficeDocs,
+      enableOcr: enableOcr ?? _currentConfig.enableOcr,
+      enableTranscription: enableTranscription ?? _currentConfig.enableTranscription,
+      enableEmbeddings: enableEmbeddings ?? _currentConfig.enableEmbeddings,
+      enableSemanticSimilarity: enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
+      enableRag: enableRag ?? _currentConfig.enableRag,
+      enableAutoSummary: enableAutoSummary ?? _currentConfig.enableAutoSummary,
+      enableAutoTags: enableAutoTags ?? _currentConfig.enableAutoTags,
+      maxConcurrentJobs: maxConcurrentJobs ?? _currentConfig.maxConcurrentJobs,
+      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? _currentConfig.maxFileSizeMbForEnrichment,
+      maxMediaMinutes: maxMediaMinutes ?? _currentConfig.maxMediaMinutes,
+      maxPagesPerPdf: maxPagesPerPdf ?? _currentConfig.maxPagesPerPdf,
     );
     _configController.add(_currentConfig);
   }
@@ -223,6 +251,23 @@ class MockIndexer implements Indexer {
   Future<bool> isIndexed(String filePath) async {
     return indexedFilePaths.contains(filePath);
   }
+
+  @override
+  Future<void> updateTextContent(String filePath, String textContent) async {}
+
+  @override
+  Future<void> updateTranscriptText(String filePath, String transcript) async {}
+
+  @override
+  Future<void> storeEmbeddings(
+    String filePath, {
+    required List<String> chunkTexts,
+    required List<int> chunkOffsets,
+    required List<List<double>> embeddingVectors,
+  }) async {}
+
+  @override
+  Future<bool> hasEmbeddings(String filePath) async => false;
 
   @override
   void dispose() {}

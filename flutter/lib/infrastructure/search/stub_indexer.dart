@@ -57,6 +57,40 @@ class StubIndexer implements Indexer {
   }
 
   @override
+  Future<void> updateTextContent(String filePath, String textContent) async {
+    _log.w(
+      'SQLite is not connected yet. updateTextContent(filePath=$filePath) ignored.',
+    );
+  }
+
+  @override
+  Future<void> updateTranscriptText(String filePath, String transcript) async {
+    _log.w(
+      'SQLite is not connected yet. updateTranscriptText(filePath=$filePath) ignored.',
+    );
+  }
+
+  @override
+  Future<void> storeEmbeddings(
+    String filePath, {
+    required List<String> chunkTexts,
+    required List<int> chunkOffsets,
+    required List<List<double>> embeddingVectors,
+  }) async {
+    _log.w(
+      'SQLite is not connected yet. storeEmbeddings(filePath=$filePath) ignored.',
+    );
+  }
+
+  @override
+  Future<bool> hasEmbeddings(String filePath) async {
+    _log.w(
+      'SQLite is not connected yet. hasEmbeddings(filePath=$filePath) returning false.',
+    );
+    return false;
+  }
+
+  @override
   void dispose() {
     // No-op
   }

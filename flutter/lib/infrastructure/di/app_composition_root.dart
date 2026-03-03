@@ -2,6 +2,7 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../application/content_enrichment_coordinator.dart';
 import '../../application/file_events_coordinator.dart';
 import '../../application/license_coordinator.dart';
 import '../../domain/app_config.dart';
@@ -10,13 +11,21 @@ import '../../domain/file_watcher.dart';
 import '../../domain/indexer.dart';
 import '../../domain/license_service.dart';
 import '../../domain/notifications_service.dart';
+import '../../domain/rag.dart';
 import '../../domain/search_repository.dart';
+import '../../domain/text_extraction.dart';
+import '../../domain/transcription.dart';
 import '../config/shared_preferences_config_service.dart';
 import '../licensing/stub_feature_flags.dart';
 import '../licensing/stub_license_service.dart';
 import '../logging/app_logger.dart';
 import '../notifications/local_notifications_service.dart';
 import '../rust/rust_file_watcher_frb.dart';
+import '../rust/stub_audio_transcriber.dart';
+import '../rust/stub_embedding_service.dart';
+import '../rust/stub_ocr_service.dart';
+import '../rust/stub_rag_service.dart';
+import '../extraction/dart_rich_text_extractor.dart';
 import '../search/sqlite_index_service.dart';
 
 /// Конфигурация окружения приложения.
@@ -38,10 +47,12 @@ class AppCompositionRoot {
   final ConfigService configService;
   final Indexer indexer;
   final SearchRepository searchRepository;
+  final RagService ragService;
 
   // === Application Coordinators ===
   final FileEventsCoordinator fileEventsCoordinator;
   final LicenseCoordinator licenseCoordinator;
+  final ContentEnrichmentCoordinator contentEnrichmentCoordinator;
 
   // === Infrastructure ===
   final Logger logger;
@@ -59,8 +70,10 @@ class AppCompositionRoot {
     required this.configService,
     required this.indexer,
     required this.searchRepository,
+    required this.ragService,
     required this.fileEventsCoordinator,
     required this.licenseCoordinator,
+    required this.contentEnrichmentCoordinator,
     required this.logger,
     SqliteIndexService? sqliteIndexService,
   }) : _sqliteIndexService = sqliteIndexService;
@@ -128,6 +141,32 @@ class AppCompositionRoot {
       featureFlags: featureFlags,
     );
 
+    // Content enrichment (PDF/DOCX text extraction + audio transcription + embeddings)
+    // PDF/DOCX: Dart-side реализация (syncfusion_flutter_pdf + archive) — обход бага FRB codegen на Windows.
+    // Остальное: Stub-реализации до подключения Rust FRB bindings.
+    final RichTextExtractor richTextExtractor = DartRichTextExtractor(logger: logger);
+    final AudioTranscriber audioTranscriber = StubAudioTranscriber();
+    final embeddingService = StubEmbeddingService();
+    final ocrService = StubOcrService();
+
+    // RAG service (Phase 4: «Спроси папку»)
+    // Использует Stub-реализацию до подключения Rust FRB bindings.
+    final RagService ragService = StubRagService();
+
+    final contentEnrichmentCoordinator = ContentEnrichmentCoordinator(
+      logger: logger,
+      configService: configService,
+      indexer: sqliteIndexService,
+      extractor: richTextExtractor,
+      transcriber: audioTranscriber,
+      embeddingService: embeddingService,
+      ocrService: ocrService,
+    );
+    // Подключаем к потоку событий добавления файлов
+    contentEnrichmentCoordinator.start(
+      fileEventsCoordinator.fileAddedEvents,
+    );
+
     return AppCompositionRoot._(
       notifications: notifications,
       fileWatcher: watcher,
@@ -136,8 +175,10 @@ class AppCompositionRoot {
       configService: configService,
       indexer: sqliteIndexService,
       searchRepository: sqliteIndexService,
+      ragService: ragService,
       fileEventsCoordinator: fileEventsCoordinator,
       licenseCoordinator: licenseCoordinator,
+      contentEnrichmentCoordinator: contentEnrichmentCoordinator,
       logger: logger,
       sqliteIndexService: sqliteIndexService,
     );
@@ -154,6 +195,9 @@ class AppCompositionRoot {
 
     // Dispose coordinator (останавливает watcher и закрывает streams)
     await fileEventsCoordinator.dispose();
+
+    // Dispose content enrichment coordinator
+    await contentEnrichmentCoordinator.dispose();
 
     // Dispose SQLite index service
     _sqliteIndexService?.dispose();

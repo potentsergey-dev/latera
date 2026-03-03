@@ -6,6 +6,7 @@ import '../infrastructure/di/app_composition_root.dart';
 import 'app_scope.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
+import 'rag_screen.dart';
 import 'search_screen.dart';
 import 'settings_screen.dart';
 
@@ -163,6 +164,7 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
           '/onboarding': (context) => const OnboardingScreen(),
           '/main': (context) => const MainScreen(),
           '/search': (context) => const SearchScreen(),
+          '/rag': (context) => const RagScreen(),
           '/settings': (context) => const SettingsScreen(),
         },
       ),

@@ -46,6 +46,11 @@ dependencies:
   file_picker: ^10.0.0
   url_launcher: ^6.3.1
   
+  # PDF text extraction (pure Dart, no native deps — works while FRB codegen is broken on Windows)
+  syncfusion_flutter_pdf: ^28.1.33
+  # DOCX / ZIP extraction
+  archive: ^4.0.9
+
   # SQLite for local index (FTS5 full-text search)
   # Used as Dart-side implementation while FRB codegen is broken on Windows.
   # Will be replaced with Rust-backed indexer when codegen is fixed.

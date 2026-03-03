@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../application/file_events_coordinator.dart';
+import '../domain/app_config.dart';
 import '../domain/core_error.dart';
 import 'app_scope.dart';
 import 'file_description_dialog.dart';
@@ -175,6 +176,12 @@ class _MainScreenState extends State<MainScreen> {
 
       if (success) {
         root.logger.i('File indexed: ${result.fileName}');
+        // Запускаем обогащение после индексации — гарантируем, что строка
+        // в БД уже существует, и updateTextContent не потеряет текст.
+        root.contentEnrichmentCoordinator.enqueueFile(
+          result.filePath,
+          result.fileName,
+        );
         await _refreshIndexedCount();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -317,6 +324,29 @@ class _MainScreenState extends State<MainScreen> {
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: theme.textTheme.titleMedium,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // RAG кнопка — «Спроси свою папку»
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: config.isFeatureEffectivelyEnabled(ContentFeature.rag)
+                    ? () {
+                        Navigator.pushNamed(context, '/rag');
+                      }
+                    : null,
+                icon: const Icon(Icons.psychology),
+                label: Text(
+                  config.isFeatureEffectivelyEnabled(ContentFeature.rag)
+                      ? 'Спроси свою папку'
+                      : 'Спроси свою папку (выкл.)',
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: theme.textTheme.titleSmall,
                 ),
               ),
             ),

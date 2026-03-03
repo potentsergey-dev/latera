@@ -34,6 +34,44 @@ abstract interface class Indexer {
   /// Проверяет, проиндексирован ли файл.
   Future<bool> isIndexed(String filePath);
 
+  /// Обновляет текстовое содержимое проиндексированного файла.
+  ///
+  /// Используется при фоновом обогащении контента (PDF/DOCX extraction).
+  /// Если файл не найден в индексе — операция игнорируется.
+  ///
+  /// [filePath] — абсолютный путь к файлу.
+  /// [textContent] — извлечённый текст из PDF/DOCX.
+  Future<void> updateTextContent(String filePath, String textContent);
+
+  /// Обновляет транскрипт проиндексированного файла.
+  ///
+  /// Используется при фоновом обогащении контента (транскрибация Whisper).
+  /// Если файл не найден в индексе — операция игнорируется.
+  ///
+  /// [filePath] — абсолютный путь к файлу.
+  /// [transcript] — текст транскрибации аудио/видео.
+  Future<void> updateTranscriptText(String filePath, String transcript);
+
+  // === Phase 3: Embeddings ===
+
+  /// Сохраняет чанки и их эмбеддинги для файла.
+  ///
+  /// Удаляет предыдущие эмбеддинги для файла перед вставкой.
+  ///
+  /// [filePath] — абсолютный путь к файлу (должен быть уже проиндексирован).
+  /// [chunkTexts] — массив текстов чанков.
+  /// [chunkOffsets] — массив байтовых смещений чанков.
+  /// [embeddingVectors] — массив эмбеддинг-векторов (по одному на чанк).
+  Future<void> storeEmbeddings(
+    String filePath, {
+    required List<String> chunkTexts,
+    required List<int> chunkOffsets,
+    required List<List<double>> embeddingVectors,
+  });
+
+  /// Проверяет, вычислены ли эмбеддинги для файла.
+  Future<bool> hasEmbeddings(String filePath);
+
   /// Освобождает ресурсы (закрывает БД).
   void dispose();
 }

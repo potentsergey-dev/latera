@@ -60,6 +60,21 @@ class StubConfigService implements ConfigService {
     String? language,
     bool clearWatchPath = false,
     bool clearLanguage = false,
+    // Производительность и контент
+    bool? resourceSaverEnabled,
+    bool? enableOfficeDocs,
+    bool? enableOcr,
+    bool? enableTranscription,
+    bool? enableEmbeddings,
+    bool? enableSemanticSimilarity,
+    bool? enableRag,
+    bool? enableAutoSummary,
+    bool? enableAutoTags,
+    // Лимиты
+    int? maxConcurrentJobs,
+    int? maxFileSizeMbForEnrichment,
+    int? maxMediaMinutes,
+    int? maxPagesPerPdf,
   }) async {
     _logger.d('StubConfigService: updateValue');
     // ВАЖНО: copyWith() не умеет устанавливать null (паттерн newValue ?? oldValue).
@@ -72,6 +87,19 @@ class StubConfigService implements ConfigService {
       logLevel: logLevel ?? _currentConfig.logLevel,
       theme: theme ?? _currentConfig.theme,
       language: clearLanguage ? null : (language ?? _currentConfig.language),
+      resourceSaverEnabled: resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
+      enableOfficeDocs: enableOfficeDocs ?? _currentConfig.enableOfficeDocs,
+      enableOcr: enableOcr ?? _currentConfig.enableOcr,
+      enableTranscription: enableTranscription ?? _currentConfig.enableTranscription,
+      enableEmbeddings: enableEmbeddings ?? _currentConfig.enableEmbeddings,
+      enableSemanticSimilarity: enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
+      enableRag: enableRag ?? _currentConfig.enableRag,
+      enableAutoSummary: enableAutoSummary ?? _currentConfig.enableAutoSummary,
+      enableAutoTags: enableAutoTags ?? _currentConfig.enableAutoTags,
+      maxConcurrentJobs: maxConcurrentJobs ?? _currentConfig.maxConcurrentJobs,
+      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? _currentConfig.maxFileSizeMbForEnrichment,
+      maxMediaMinutes: maxMediaMinutes ?? _currentConfig.maxMediaMinutes,
+      maxPagesPerPdf: maxPagesPerPdf ?? _currentConfig.maxPagesPerPdf,
     );
     _configController.add(_currentConfig);
   }

@@ -227,6 +227,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  Future<void> _toggleResourceSaver(bool value) async {
+    await _configService.updateValue(resourceSaverEnabled: value);
+    setState(() {
+      _config = _config.copyWith(resourceSaverEnabled: value);
+    });
+  }
+
+  Future<void> _toggleOfficeDocs(bool value) async {
+    await _configService.updateValue(enableOfficeDocs: value);
+    setState(() {
+      _config = _config.copyWith(enableOfficeDocs: value);
+    });
+  }
+
+  Future<void> _toggleOcr(bool value) async {
+    await _configService.updateValue(enableOcr: value);
+    setState(() {
+      _config = _config.copyWith(enableOcr: value);
+    });
+  }
+
+  Future<void> _toggleTranscription(bool value) async {
+    await _configService.updateValue(enableTranscription: value);
+    setState(() {
+      _config = _config.copyWith(enableTranscription: value);
+    });
+  }
+
+  Future<void> _toggleEmbeddings(bool value) async {
+    await _configService.updateValue(enableEmbeddings: value);
+    setState(() {
+      _config = _config.copyWith(enableEmbeddings: value);
+    });
+  }
+
+  Future<void> _toggleSemanticSimilarity(bool value) async {
+    await _configService.updateValue(enableSemanticSimilarity: value);
+    setState(() {
+      _config = _config.copyWith(enableSemanticSimilarity: value);
+    });
+  }
+
+  Future<void> _toggleRag(bool value) async {
+    await _configService.updateValue(enableRag: value);
+    setState(() {
+      _config = _config.copyWith(enableRag: value);
+    });
+  }
+
+  Future<void> _toggleAutoSummary(bool value) async {
+    await _configService.updateValue(enableAutoSummary: value);
+    setState(() {
+      _config = _config.copyWith(enableAutoSummary: value);
+    });
+  }
+
+  Future<void> _toggleAutoTags(bool value) async {
+    await _configService.updateValue(enableAutoTags: value);
+    setState(() {
+      _config = _config.copyWith(enableAutoTags: value);
+    });
+  }
+
   Future<void> _resetSettings() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -322,6 +385,93 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Уведомления',
             children: [
               _buildNotificationsToggle(),
+            ],
+          ),
+
+          const Divider(),
+
+          // === Производительность ===
+          _buildSection(
+            title: 'Производительность',
+            children: [
+              _buildResourceSaverToggle(),
+            ],
+          ),
+
+          const Divider(),
+
+          // === Обработка содержимого ===
+          _buildSection(
+            title: 'Обработка содержимого',
+            children: [
+              _buildContentFeatureToggle(
+                icon: Icons.description_outlined,
+                title: 'Извлечение текста из документов',
+                subtitle: 'Поиск по содержимому PDF, DOCX и др.',
+                value: _config.enableOfficeDocs,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs),
+                onChanged: _toggleOfficeDocs,
+              ),
+              _buildContentFeatureToggle(
+                icon: Icons.document_scanner_outlined,
+                title: 'Распознавание текста (OCR)',
+                subtitle: 'Текст со скриншотов, сканов и фото',
+                value: _config.enableOcr,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.ocr),
+                onChanged: _toggleOcr,
+                comingSoon: true,
+              ),
+              _buildContentFeatureToggle(
+                icon: Icons.mic_outlined,
+                title: 'Транскрибация медиа',
+                subtitle: 'Поиск по аудио и видео (Whisper)',
+                value: _config.enableTranscription,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.transcription),
+                onChanged: _toggleTranscription,
+              ),
+              _buildContentFeatureToggle(
+                icon: Icons.hub_outlined,
+                title: 'Семантический поиск',
+                subtitle: 'Поиск похожих документов по смыслу',
+                value: _config.enableEmbeddings,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.embeddings),
+                onChanged: _toggleEmbeddings,
+              ),
+              _buildContentFeatureToggle(
+                icon: Icons.find_replace_outlined,
+                title: 'Похожие файлы',
+                subtitle: 'Рекомендации похожих документов',
+                value: _config.enableSemanticSimilarity,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity),
+                onChanged: _toggleSemanticSimilarity,
+              ),
+              _buildContentFeatureToggle(
+                icon: Icons.chat_outlined,
+                title: 'Спроси свою папку (RAG)',
+                subtitle: 'Чат с ответами по файлам',
+                value: _config.enableRag,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.rag),
+                onChanged: _toggleRag,
+                comingSoon: true,
+              ),
+              _buildContentFeatureToggle(
+                icon: Icons.auto_awesome_outlined,
+                title: 'Автоматические описания',
+                subtitle: 'Автосаммари документов',
+                value: _config.enableAutoSummary,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary),
+                onChanged: _toggleAutoSummary,
+                comingSoon: true,
+              ),
+              _buildContentFeatureToggle(
+                icon: Icons.label_outlined,
+                title: 'Автоматические теги',
+                subtitle: 'Автоприсвоение тегов по содержимому',
+                value: _config.enableAutoTags,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoTags),
+                onChanged: _toggleAutoTags,
+                comingSoon: true,
+              ),
             ],
           ),
 
@@ -428,6 +578,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
       subtitle: const Text('Уведомления о новых файлах в папке'),
       value: _config.notificationsEnabled,
       onChanged: _toggleNotifications,
+    );
+  }
+
+  Widget _buildResourceSaverToggle() {
+    return SwitchListTile(
+      secondary: Icon(
+        Icons.battery_saver,
+        color: _config.resourceSaverEnabled
+            ? Theme.of(context).colorScheme.tertiary
+            : null,
+      ),
+      title: const Text('Экономия ресурсов'),
+      subtitle: Text(
+        _config.resourceSaverEnabled
+            ? 'Тяжёлые функции отключены, лимиты уменьшены'
+            : 'Отключите ресурсоёмкие функции для слабых ПК',
+      ),
+      value: _config.resourceSaverEnabled,
+      onChanged: _toggleResourceSaver,
+    );
+  }
+
+  /// Переключатель контент-функции с учётом режима экономии.
+  ///
+  /// [comingSoon] — функция ещё не реализована (показать бейдж).
+  /// [effectiveValue] — реальное состояние с учётом режима экономии.
+  Widget _buildContentFeatureToggle({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required bool effectiveValue,
+    required ValueChanged<bool> onChanged,
+    bool comingSoon = false,
+  }) {
+    final isOverriddenByResourceSaver =
+        _config.resourceSaverEnabled && value && !effectiveValue;
+
+    return SwitchListTile(
+      secondary: Icon(
+        icon,
+        color: comingSoon ? Theme.of(context).disabledColor : null,
+      ),
+      title: Row(
+        children: [
+          Flexible(child: Text(title)),
+          if (comingSoon) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'скоро',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      subtitle: Text(
+        isOverriddenByResourceSaver
+            ? '$subtitle • отключено режимом экономии'
+            : subtitle,
+        style: TextStyle(
+          color: isOverriddenByResourceSaver
+              ? Theme.of(context).colorScheme.outline
+              : null,
+        ),
+      ),
+      value: effectiveValue,
+      onChanged: comingSoon ? null : onChanged,
     );
   }
 
