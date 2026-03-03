@@ -1,0 +1,11 @@
+﻿00:00 +0: loading C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart
+00:00 +0: OcrOptions constructs with required parameters
+00:00 +1: OcrOptions constructs with optional language
+00:00 +2: OcrResult isSuccess returns true when errorCode is null
+00:00 +3: OcrResult isSuccess returns false when errorCode is set
+00:00 +4: OcrResult hasText returns false for empty text
+00:00 +5: OcrResult partial success with warning (too_many_pages)
+00:00 +6: OcrResult toString contains all fields
+00:00 +7: OcrResult toString with error
+00:00 +8: OcrService contract stub implementation satisfies interface
+00:00 +9: All tests passed!

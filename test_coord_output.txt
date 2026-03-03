@@ -1,0 +1,32 @@
+﻿00:00 +0: loading C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart
+00:00 +0: ContentEnrichmentCoordinator enriches PDF file when event received
+00:00 +1: ContentEnrichmentCoordinator enriches DOCX file when event received
+00:00 +2: ContentEnrichmentCoordinator ignores non-rich, non-media, non-image files (txt, etc.)
+00:00 +3: ContentEnrichmentCoordinator ignores files with null fullPath
+00:00 +4: ContentEnrichmentCoordinator skips enrichment when officeDocs disabled
+00:00 +5: ContentEnrichmentCoordinator skips enrichment in resource saver mode for heavy features
+00:00 +6: ContentEnrichmentCoordinator passes config limits to extractor
+00:00 +7: ContentEnrichmentCoordinator respects maxConcurrentJobs limit
+00:00 +8: ContentEnrichmentCoordinator handles extraction failure gracefully
+00:00 +9: ContentEnrichmentCoordinator handles extractor exception gracefully
+00:00 +10: ContentEnrichmentCoordinator enqueueFile adds job manually
+00:00 +11: ContentEnrichmentCoordinator stop() prevents new file events from being processed
+00:00 +12: ContentEnrichmentCoordinator dispose() clears queue and closes streams
+00:00 +13: ContentEnrichmentCoordinator events ignored after dispose
+00:00 +14: ContentEnrichmentCoordinator transcribes MP3 file when transcription enabled
+00:00 +15: ContentEnrichmentCoordinator transcribes MP4 video file when transcription enabled
+00:00 +16: ContentEnrichmentCoordinator ignores audio files when transcription disabled
+00:00 +17: ContentEnrichmentCoordinator transcription disabled in resource saver mode
+00:00 +18: ContentEnrichmentCoordinator passes config limits to transcriber
+00:00 +19: ContentEnrichmentCoordinator handles transcription failure gracefully
+00:00 +20: ContentEnrichmentCoordinator handles transcriber exception gracefully
+00:00 +21: ContentEnrichmentCoordinator does not transcribe non-media files
+00:00 +22: ContentEnrichmentCoordinator OCR processes PNG image when OCR enabled
+00:00 +23: ContentEnrichmentCoordinator OCR processes JPEG image when OCR enabled
+00:00 +24: ContentEnrichmentCoordinator ignores images when OCR disabled
+00:00 +25: ContentEnrichmentCoordinator OCR disabled in resource saver mode
+00:01 +26: ContentEnrichmentCoordinator passes config limits to OCR service
+00:01 +27: ContentEnrichmentCoordinator handles OCR failure gracefully
+00:01 +28: ContentEnrichmentCoordinator handles OCR exception gracefully
+00:01 +29: ContentEnrichmentCoordinator OCR supports multiple image formats
+00:01 +30: All tests passed!

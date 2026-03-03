@@ -5,7 +5,11 @@
 //! - полнотекстовый поиск через FTS5
 //! - CRUD операции индекса
 
+pub mod embeddings;
+pub mod ocr;
+pub mod rag;
 mod text_extractor;
+pub mod transcriber;
 
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,7 +18,17 @@ use log::{debug, info, warn};
 use rusqlite::{params, Connection};
 
 use crate::error::LateraError;
+pub use embeddings::{
+    chunk_text, compute_embeddings, find_similar_files, get_embedding_count, has_embeddings,
+    init_embeddings_tables, remove_embeddings_for_file, similarity_search,
+    store_chunks_and_embeddings, EmbeddingVector, SimilarityResult, TextChunk,
+    DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, EMBEDDING_DIM,
+};
+pub use ocr::{is_ocr_supported, ocr_content_type, ocr_extract_text, OcrOptions, OcrResult};
+pub use rag::{rag_query, rag_query_full_context, RagResult, RagSource};
 pub use text_extractor::extract_text;
+pub use text_extractor::{extract_rich_content, ExtractionOptions, ExtractionResult};
+pub use transcriber::{transcribe_audio, TranscriptionOptions, TranscriptionResult};
 
 /// Результат поиска файла.
 #[derive(Clone, Debug)]
@@ -63,9 +77,23 @@ pub fn init_db(db_path: &str) -> Result<Connection, LateraError> {
             file_name TEXT NOT NULL,
             description TEXT DEFAULT '',
             text_content TEXT DEFAULT '',
+            transcript_text TEXT DEFAULT '',
             indexed_at INTEGER NOT NULL
         );",
     )?;
+
+    // Миграция: добавляем колонку transcript_text если её нет (для существующих БД)
+    let has_transcript_col: bool = conn
+        .prepare("SELECT COUNT(*) FROM pragma_table_info('files') WHERE name='transcript_text'")
+        .and_then(|mut s| s.query_row([], |r| r.get::<_, i64>(0)))
+        .unwrap_or(0)
+        > 0;
+    if !has_transcript_col {
+        conn.execute_batch(
+            "ALTER TABLE files ADD COLUMN transcript_text TEXT DEFAULT '';",
+        )?;
+        info!("Migrated: added transcript_text column to files table");
+    }
 
     // FTS5 виртуальная таблица для полнотекстового поиска.
     // content='files' означает external content FTS — FTS индекс ссылается
@@ -76,6 +104,7 @@ pub fn init_db(db_path: &str) -> Result<Connection, LateraError> {
             file_name,
             description,
             text_content,
+            transcript_text,
             content='files',
             content_rowid='id'
         );",
@@ -83,24 +112,31 @@ pub fn init_db(db_path: &str) -> Result<Connection, LateraError> {
 
     // Триггеры для автоматической синхронизации FTS5 при INSERT/UPDATE/DELETE.
     // Это гарантирует, что FTS5 индекс всегда актуален.
+    // NOTE: DROP + CREATE для идемпотентной миграции (добавлена колонка transcript_text).
     conn.execute_batch(
-        "CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
-            INSERT INTO files_fts(rowid, file_name, description, text_content)
-            VALUES (new.id, new.file_name, new.description, new.text_content);
+        "DROP TRIGGER IF EXISTS files_ai;
+        CREATE TRIGGER files_ai AFTER INSERT ON files BEGIN
+            INSERT INTO files_fts(rowid, file_name, description, text_content, transcript_text)
+            VALUES (new.id, new.file_name, new.description, new.text_content, new.transcript_text);
         END;
 
-        CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN
-            INSERT INTO files_fts(files_fts, rowid, file_name, description, text_content)
-            VALUES('delete', old.id, old.file_name, old.description, old.text_content);
+        DROP TRIGGER IF EXISTS files_ad;
+        CREATE TRIGGER files_ad AFTER DELETE ON files BEGIN
+            INSERT INTO files_fts(files_fts, rowid, file_name, description, text_content, transcript_text)
+            VALUES('delete', old.id, old.file_name, old.description, old.text_content, old.transcript_text);
         END;
 
-        CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE ON files BEGIN
-            INSERT INTO files_fts(files_fts, rowid, file_name, description, text_content)
-            VALUES('delete', old.id, old.file_name, old.description, old.text_content);
-            INSERT INTO files_fts(rowid, file_name, description, text_content)
-            VALUES (new.id, new.file_name, new.description, new.text_content);
+        DROP TRIGGER IF EXISTS files_au;
+        CREATE TRIGGER files_au AFTER UPDATE ON files BEGIN
+            INSERT INTO files_fts(files_fts, rowid, file_name, description, text_content, transcript_text)
+            VALUES('delete', old.id, old.file_name, old.description, old.text_content, old.transcript_text);
+            INSERT INTO files_fts(rowid, file_name, description, text_content, transcript_text)
+            VALUES (new.id, new.file_name, new.description, new.text_content, new.transcript_text);
         END;",
     )?;
+
+    // Phase 3: таблицы chunks + embeddings
+    embeddings::init_embeddings_tables(&conn)?;
 
     info!("Index database initialized at: {db_path}");
     Ok(conn)
@@ -171,7 +207,7 @@ pub fn search(
             f.file_name,
             f.description,
             snippet(files_fts, 2, '<b>', '</b>', '...', 32) as snippet,
-            bm25(files_fts, 5.0, 10.0, 1.0) as rank
+            bm25(files_fts, 5.0, 10.0, 1.0, 1.0) as rank
         FROM files_fts
         JOIN files f ON f.id = files_fts.rowid
         WHERE files_fts MATCH ?1
@@ -199,6 +235,33 @@ pub fn search(
         .collect();
 
     Ok(results)
+}
+
+/// Обновляет транскрипт проиндексированного файла.
+///
+/// Используется при фоновом обогащении контента (транскрибация Whisper).
+/// Если файл не найден в индексе — операция игнорируется.
+pub fn update_transcript_text(
+    conn: &Connection,
+    file_path: &str,
+    transcript: &str,
+) -> Result<(), LateraError> {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    let rows = conn.execute(
+        "UPDATE files SET transcript_text = ?1, indexed_at = ?2 WHERE file_path = ?3",
+        params![transcript, now, file_path],
+    )?;
+
+    if rows > 0 {
+        debug!("Updated transcript for: {file_path} ({} chars)", transcript.len());
+    } else {
+        debug!("File not found in index for transcript update: {file_path}");
+    }
+    Ok(())
 }
 
 /// Удаляет файл из индекса.
@@ -437,5 +500,121 @@ mod tests {
 
         let info = get_indexed_file(&conn, "/nonexistent").unwrap();
         assert!(info.is_none());
+    }
+
+    // ------------------------------------------------------------------
+    // Phase 2: transcript_text
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_transcript_column_exists() {
+        let conn = create_test_db();
+
+        // Проверяем что колонка transcript_text существует
+        let has_col: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('files') WHERE name='transcript_text'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(has_col, 1);
+    }
+
+    #[test]
+    fn test_update_transcript_text() {
+        let conn = create_test_db();
+
+        index_file(
+            &conn,
+            "/media/lecture.mp4",
+            "lecture.mp4",
+            "Lecture on Rust programming",
+            None,
+        )
+        .unwrap();
+
+        update_transcript_text(
+            &conn,
+            "/media/lecture.mp4",
+            "Today we will learn about ownership and borrowing in Rust",
+        )
+        .unwrap();
+
+        // Проверяем что транскрипт сохранён
+        let transcript: String = conn
+            .query_row(
+                "SELECT transcript_text FROM files WHERE file_path = ?1",
+                params!["/media/lecture.mp4"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(transcript.contains("ownership"));
+    }
+
+    #[test]
+    fn test_search_finds_transcript_text() {
+        let conn = create_test_db();
+
+        index_file(
+            &conn,
+            "/media/podcast.mp3",
+            "podcast.mp3",
+            "Weekly tech podcast",
+            None,
+        )
+        .unwrap();
+
+        update_transcript_text(
+            &conn,
+            "/media/podcast.mp3",
+            "In this episode we discuss quantum computing breakthroughs",
+        )
+        .unwrap();
+
+        // Поиск по тексту из транскрипта
+        let results = search(&conn, "quantum", 10).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].file_name, "podcast.mp3");
+    }
+
+    #[test]
+    fn test_update_transcript_nonexistent_file() {
+        let conn = create_test_db();
+
+        // Обновление несуществующего файла не должно падать
+        update_transcript_text(&conn, "/nonexistent.mp3", "some text").unwrap();
+    }
+
+    #[test]
+    fn test_transcript_and_text_content_independent() {
+        let conn = create_test_db();
+
+        index_file(
+            &conn,
+            "/mixed/video_notes.mp4",
+            "video_notes.mp4",
+            "Video with notes",
+            Some("Written notes about the video content"),
+        )
+        .unwrap();
+
+        update_transcript_text(
+            &conn,
+            "/mixed/video_notes.mp4",
+            "Spoken words from the audio track of the video",
+        )
+        .unwrap();
+
+        // Поиск по text_content
+        let results = search(&conn, "Written", 10).unwrap();
+        assert_eq!(results.len(), 1);
+
+        // Поиск по transcript_text
+        let results = search(&conn, "Spoken", 10).unwrap();
+        assert_eq!(results.len(), 1);
+
+        // Оба поиска находят один и тот же файл
+        assert_eq!(results[0].file_path, "/mixed/video_notes.mp4");
     }
 }

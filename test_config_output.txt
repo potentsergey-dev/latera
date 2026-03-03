@@ -1,0 +1,16 @@
+﻿00:00 +0: loading C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart
+00:00 +0: AppConfig defaults defaultConfig has expected default values
+00:00 +1: AppConfig defaults resourceSaverPreset has correct values
+00:00 +2: AppConfig.copyWith copies all new fields correctly
+00:00 +3: AppConfig.copyWith preserves existing fields when not specified
+00:00 +4: AppConfig.isFeatureEffectivelyEnabled returns raw flag when resourceSaver is off
+00:00 +5: AppConfig.isFeatureEffectivelyEnabled officeDocs remains enabled when resourceSaver is on
+00:00 +6: AppConfig.isFeatureEffectivelyEnabled heavy features are disabled when resourceSaver is on
+00:00 +7: AppConfig.isFeatureEffectivelyEnabled returns false when feature is off regardless of resourceSaver
+00:00 +8: AppConfig.isFeatureEffectivelyEnabled semanticSimilarity requires both enableSemanticSimilarity and enableEmbeddings
+00:00 +9: AppConfig.isFeatureEffectivelyEnabled semanticSimilarity disabled in resource saver mode
+00:00 +10: AppConfig.effectiveLimits returns user limits when resourceSaver is off
+00:00 +11: AppConfig.effectiveLimits returns reduced limits when resourceSaver is on
+00:00 +12: AppConfig equality configs with same values are equal
+00:00 +13: AppConfig equality configs with different new fields are not equal
+00:00 +14: All tests passed!

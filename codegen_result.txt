@@ -1,0 +1,13 @@
+﻿flutter_rust_bridge_codegen : Error: When compute_mod_from_rust_path(code_path=
+"C:\\Users\\voron\\Documents\\Projects\\latera\\rust\\src/frb_generated.rs", 
+base_dir="\\\\?\\C:\\Users\\voron\\Documents\\Projects\\latera\\rust\\src")
+строка:1 знак:51
++ ... atera\rust; flutter_rust_bridge_codegen generate --config-file frb_co ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Error: When com...ra\\rust\\src") 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+Caused by:
+    prefix not found
