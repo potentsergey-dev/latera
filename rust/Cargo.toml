@@ -16,12 +16,31 @@ once_cell = "1.19.0"
 thiserror = "1.0.69"
 rusqlite = { version = "0.31", features = ["bundled"] }
 
+# Semantic embeddings: ONNX Runtime + Hugging Face tokenizer
+ort = { version = "2.0.0-rc.11", features = ["download-binaries"] }
+tokenizers = { version = "0.21", default-features = false, features = ["progressbar", "onig"] }
+ureq = "2.12"
+
 # PDF text extraction (text layer, без OCR)
 lopdf = "0.34"
 
 # DOCX (Office Open XML) extraction
 zip = "0.6"
 quick-xml = "0.31"
+
+# Windows OCR (Windows.Media.Ocr) — только для Windows
+[target.'cfg(target_os = "windows")'.dependencies.windows]
+version = "0.58"
+features = [
+    "Media_Ocr",
+    "Graphics_Imaging",
+    "Storage",
+    "Storage_Streams",
+    "Foundation",
+    "Foundation_Collections",
+    "Globalization",
+    "Win32_System_Com",
+]
 
 [dev-dependencies]
 tempfile = "3.10.0"

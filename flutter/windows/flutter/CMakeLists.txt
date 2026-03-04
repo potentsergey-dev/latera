@@ -116,6 +116,7 @@ set_source_files_properties("${PHONY_OUTPUT}" PROPERTIES SYMBOLIC TRUE)
 # machines fails to copy cpp_client_wrapper (error: "system cannot find
 # the specified path").  The script runs unconditionally and is idempotent.
 set(_COPY_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/_copy_engine_artifacts.cmake")
+set(_MATERIAL_FONTS_CACHE "${FLUTTER_ROOT}/bin/cache/artifacts/material_fonts")
 file(WRITE "${_COPY_SCRIPT}" "
 set(_SRC \"${_ENGINE_CACHE}\")
 set(_DST \"${EPHEMERAL_DIR}\")
@@ -130,6 +131,19 @@ foreach(_f flutter_windows.dll flutter_windows.dll.lib flutter_export.h
     file(COPY \"\${_SRC}/\${_f}\" DESTINATION \"\${_DST}\")
   endif()
 endforeach()
+
+# Ensure MaterialIcons font is present in flutter_assets.
+# flutter assemble sometimes skips this step when its stamp files are stale
+# (stamp exists from a previous build but output files were cleaned away).
+set(_FONTS_DST \"${PROJECT_DIR}/build/flutter_assets/fonts\")
+set(_FONT_SRC \"${_MATERIAL_FONTS_CACHE}/materialicons-regular.otf\")
+set(_FONT_DST \"\${_FONTS_DST}/MaterialIcons-Regular.otf\")
+if(EXISTS \"\${_FONT_SRC}\" AND NOT EXISTS \"\${_FONT_DST}\")
+  file(MAKE_DIRECTORY \"\${_FONTS_DST}\")
+  file(COPY \"\${_FONT_SRC}\" DESTINATION \"\${_FONTS_DST}\")
+  file(RENAME \"\${_FONTS_DST}/materialicons-regular.otf\" \"\${_FONT_DST}\")
+  message(STATUS \"Copied MaterialIcons-Regular.otf from SDK cache to flutter_assets/fonts/\")
+endif()
 ")
 
 add_custom_command(

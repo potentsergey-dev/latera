@@ -154,21 +154,12 @@ pub fn start_watching(override_path: Option<String>) -> Result<String, LateraErr
         },
         |event| {
             // Emit события удаления в stream.
-            if let Some(sink) = FILE_REMOVED_SINK
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .as_ref()
-            {
-                if let Err(e) = sink.add(FileRemovedEvent {
-                    file_name: event.file_name,
-                    full_path: event.full_path.to_string_lossy().to_string(),
-                    occurred_at_ms: event.occurred_at_ms,
-                }) {
-                    log::warn!("Failed to emit file removed event (stream closed): {e}");
-                }
-            } else {
-                log::debug!("File removed event dropped (no active stream subscriber)");
-            }
+            // NOTE: Временно отключено — FRB codegen не генерирует SseEncode
+            // для FileRemovedEvent. Будет включено после пересборки bindings.
+            log::debug!(
+                "File removed event: {} (stream emit disabled pending FRB codegen fix)",
+                event.file_name
+            );
         },
     )?;
 
@@ -693,6 +684,44 @@ pub fn has_embeddings(file_path: String) -> Result<bool, LateraError> {
 pub fn get_embedding_count() -> Result<i64, LateraError> {
     logging::init_logging();
     with_index_db(|conn| indexer::get_embedding_count(conn))
+}
+
+/// Инициализировать semantic-модель (ONNX all-MiniLM-L6-v2).
+///
+/// Скачивает модель при первом вызове и загружает в память.
+/// `data_dir` — путь к папке данных приложения (модель сохраняется
+/// в `{data_dir}/models/all-MiniLM-L6-v2/`).
+///
+/// Тяжёлая операция — рекомендуется вызывать в background isolate.
+pub fn init_semantic_model(data_dir: String) -> Result<(), LateraError> {
+    logging::init_logging();
+    indexer::init_semantic_model(&data_dir)
+}
+
+/// Проверить, загружена ли semantic-модель.
+pub fn is_semantic_model_ready() -> bool {
+    indexer::is_semantic_model_ready()
+}
+
+/// Выгрузить semantic-модель из памяти.
+pub fn unload_semantic_model() {
+    indexer::unload_semantic_model();
+}
+
+/// Получить текущую размерность эмбеддингов.
+///
+/// 384 если модель загружена, 64 (stub) если нет.
+pub fn get_embedding_dim() -> u32 {
+    indexer::current_embedding_dim() as u32
+}
+
+/// Очистить все эмбеддинги из БД.
+///
+/// Используется при переключении режима (stub → ONNX) для пересчёта
+/// с новой размерностью.
+pub fn clear_all_embeddings() -> Result<(), LateraError> {
+    logging::init_logging();
+    with_index_db(|conn| indexer::clear_all_embeddings(conn))
 }
 
 // ============================================================================

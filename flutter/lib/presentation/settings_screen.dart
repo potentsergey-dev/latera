@@ -419,7 +419,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 value: _config.enableOcr,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.ocr),
                 onChanged: _toggleOcr,
-                comingSoon: true,
               ),
               _buildContentFeatureToggle(
                 icon: Icons.mic_outlined,

@@ -27,8 +27,11 @@ const _textExtensions = <String>{
 /// Максимальный размер файла для извлечения текста (10 MB).
 const _maxTextFileSize = 10 * 1024 * 1024;
 
-/// Размерность вектора эмбеддинга (должна совпадать с Rust EMBEDDING_DIM).
-const _embeddingDim = 64;
+/// Размерность вектора эмбеддинга (384 для all-MiniLM-L6-v2, 64 для stub).
+/// При вычислении similarity — используем фактическую размерность из BLOB.
+// ignore_for_file: unused_element
+const _embeddingDimOnnx = 384;
+const _embeddingDimStub = 64;
 
 /// SQLite FTS5 реализация индексатора и поискового репозитория.
 ///
@@ -685,7 +688,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
 
   /// Среднее нескольких векторов.
   List<double> _averageVectors(List<List<double>> vectors) {
-    if (vectors.isEmpty) return List.filled(_embeddingDim, 0.0);
+    if (vectors.isEmpty) return List.filled(_embeddingDimStub, 0.0);
     final dim = vectors.first.length;
     final avg = List.filled(dim, 0.0);
     for (final v in vectors) {
@@ -705,7 +708,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
   List<double> _stubComputeEmbedding(String text) {
     final hash = text.hashCode;
     final rng = Random(hash);
-    final vec = List<double>.generate(_embeddingDim, (_) => rng.nextDouble() * 2 - 1);
+    final vec = List<double>.generate(_embeddingDimStub, (_) => rng.nextDouble() * 2 - 1);
     // L2-normalize
     var norm = 0.0;
     for (final v in vec) {

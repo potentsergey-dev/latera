@@ -1,9 +1,12 @@
 //! Embeddings: вычисление и similarity search.
 //!
-//! Phase 3: stub-реализация.
-//! Использует простое хеширование текста для генерации псевдо-эмбеддингов
-//! и косинусное сходство для поиска. Полноценная модель (ONNX / candle)
-//! будет подключена в будущих фазах.
+//! Phase 3.5: реальный ONNX-пайплайн на базе all-MiniLM-L6-v2.
+//!
+//! Текст → HF Tokenizer → ONNX Runtime → mean-pooling → L2-norm → f32 vector.
+//!
+//! Модель (~80 MB) загружается по требованию при первом вызове
+//! [`init_semantic_model`] и сохраняется в папку данных приложения.
+//! Если модель не инициализирована — используется stub fallback (hash-based).
 //!
 //! ## Схема хранения
 //!
@@ -22,9 +25,14 @@
 //! ```
 
 use log::{debug, info, warn};
+use once_cell::sync::Lazy;
+use ort::session::builder::GraphOptimizationLevel;
+use ort::session::Session;
 use rusqlite::{params, Connection};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::path::Path;
+use std::sync::Mutex;
 
 use crate::error::LateraError;
 
@@ -32,14 +40,37 @@ use crate::error::LateraError;
 // Constants
 // ============================================================================
 
-/// Размерность эмбеддинга (stub: 64, production: 384+ для all-MiniLM).
-pub const EMBEDDING_DIM: usize = 64;
+/// Размерность эмбеддинга (384 для all-MiniLM-L6-v2).
+pub const EMBEDDING_DIM: usize = 384;
+
+/// Размерность stub-эмбеддинга (для fallback без модели).
+const STUB_EMBEDDING_DIM: usize = 64;
 
 /// Максимальный размер чанка (символов) при разбиении текста.
 pub const DEFAULT_CHUNK_SIZE: usize = 500;
 
 /// Перекрытие между соседними чанками (символов).
 pub const DEFAULT_CHUNK_OVERLAP: usize = 50;
+
+/// Имя директории модели.
+const MODEL_DIR_NAME: &str = "all-MiniLM-L6-v2";
+
+/// Имя файла ONNX-модели.
+const MODEL_FILE: &str = "model.onnx";
+
+/// Имя файла токенизатора.
+const TOKENIZER_FILE: &str = "tokenizer.json";
+
+/// URL ONNX-модели на Hugging Face.
+const MODEL_URL: &str =
+    "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx";
+
+/// URL токенизатора на Hugging Face.
+const TOKENIZER_URL: &str =
+    "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer.json";
+
+/// Максимальная длина последовательности токенов для модели.
+const MAX_SEQ_LENGTH: usize = 256;
 
 // ============================================================================
 // Public types (FRB-совместимые определены в api.rs)
@@ -78,6 +109,124 @@ pub struct SimilarityResult {
     pub chunk_offset: u32,
     /// Косинусное сходство (0.0 – 1.0).
     pub score: f64,
+}
+
+// ============================================================================
+// Semantic model (ONNX + tokenizer)
+// ============================================================================
+
+/// Загруженная semantic-модель.
+struct SemanticModel {
+    session: Session,
+    tokenizer: tokenizers::Tokenizer,
+}
+
+// Глобальное состояние модели: None = не загружена.
+static SEMANTIC_MODEL: Lazy<Mutex<Option<SemanticModel>>> = Lazy::new(|| Mutex::new(None));
+
+/// Проверяет, загружена ли semantic-модель.
+pub fn is_semantic_model_ready() -> bool {
+    SEMANTIC_MODEL
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .is_some()
+}
+
+/// Возвращает текущую размерность эмбеддинга.
+///
+/// Если модель загружена — 384 (all-MiniLM-L6-v2).
+/// Если нет — 64 (stub fallback).
+pub fn current_embedding_dim() -> usize {
+    if is_semantic_model_ready() {
+        EMBEDDING_DIM
+    } else {
+        STUB_EMBEDDING_DIM
+    }
+}
+
+/// Инициализирует semantic-модель: скачивает (при необходимости) и загружает.
+///
+/// `data_dir` — корневая директория данных приложения.
+/// Модель сохраняется в `{data_dir}/models/all-MiniLM-L6-v2/`.
+///
+/// Безопасен для повторного вызова — если модель уже загружена, возвращает Ok.
+pub fn init_semantic_model(data_dir: &str) -> Result<(), LateraError> {
+    {
+        let guard = SEMANTIC_MODEL
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if guard.is_some() {
+            info!("Semantic model already loaded, skipping");
+            return Ok(());
+        }
+    }
+
+    let model_dir = Path::new(data_dir).join("models").join(MODEL_DIR_NAME);
+    std::fs::create_dir_all(&model_dir)?;
+
+    let model_path = model_dir.join(MODEL_FILE);
+    let tokenizer_path = model_dir.join(TOKENIZER_FILE);
+
+    // Загрузка файлов, если отсутствуют
+    if !model_path.exists() {
+        info!("Downloading ONNX model from {MODEL_URL}...");
+        download_file(MODEL_URL, &model_path)?;
+        info!("Model downloaded to {}", model_path.display());
+    }
+    if !tokenizer_path.exists() {
+        info!("Downloading tokenizer from {TOKENIZER_URL}...");
+        download_file(TOKENIZER_URL, &tokenizer_path)?;
+        info!("Tokenizer downloaded to {}", tokenizer_path.display());
+    }
+
+    // Загрузка ONNX Runtime session
+    info!("Loading ONNX model from {}...", model_path.display());
+    let session = Session::builder()
+        .map_err(|e| LateraError::ModelLoadFailed(format!("Session builder: {e}")))?
+        .with_optimization_level(GraphOptimizationLevel::Level3)
+        .map_err(|e| LateraError::ModelLoadFailed(format!("Optimization level: {e}")))?
+        .with_intra_threads(2)
+        .map_err(|e| LateraError::ModelLoadFailed(format!("Intra threads: {e}")))?
+        .commit_from_file(&model_path)
+        .map_err(|e| LateraError::ModelLoadFailed(format!("Commit from file: {e}")))?;
+
+    // Загрузка токенизатора
+    info!("Loading tokenizer from {}...", tokenizer_path.display());
+    let tokenizer = tokenizers::Tokenizer::from_file(&tokenizer_path)
+        .map_err(|e| LateraError::ModelLoadFailed(format!("Tokenizer: {e}")))?;
+
+    let mut guard = SEMANTIC_MODEL
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    *guard = Some(SemanticModel { session, tokenizer });
+
+    info!("Semantic model loaded successfully (dim={})", EMBEDDING_DIM);
+    Ok(())
+}
+
+/// Выгружает semantic-модель из памяти.
+pub fn unload_semantic_model() {
+    let mut guard = SEMANTIC_MODEL
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if guard.take().is_some() {
+        info!("Semantic model unloaded");
+    }
+}
+
+/// Скачивает файл по URL и сохраняет на диск.
+fn download_file(url: &str, dest: &Path) -> Result<(), LateraError> {
+    let resp = ureq::get(url)
+        .call()
+        .map_err(|e| LateraError::ModelDownloadFailed(format!("{e}")))?;
+
+    let mut reader = resp.into_reader();
+    let tmp_path = dest.with_extension("tmp");
+    let mut file = std::fs::File::create(&tmp_path)?;
+    std::io::copy(&mut reader, &mut file)?;
+    std::fs::rename(&tmp_path, dest)?;
+
+    Ok(())
 }
 
 // ============================================================================
@@ -163,18 +312,18 @@ pub fn chunk_text(
 }
 
 // ============================================================================
-// Embedding computation (stub)
+// Embedding computation (real ONNX or stub fallback)
 // ============================================================================
 
-/// Вычисляет эмбеддинги для набора чанков (stub-реализация).
+/// Вычисляет эмбеддинги для набора чанков.
 ///
-/// **Stub**: генерирует детерминированные псевдо-векторы на основе хеша текста.
-/// Заменить на ONNX/candle инференс при интеграции реальной модели.
+/// Если semantic-модель загружена — использует ONNX Runtime (all-MiniLM-L6-v2).
+/// Иначе — возвращает детерминированные stub-векторы (hash-based, dim=64).
 pub fn compute_embeddings(chunks: &[TextChunk]) -> Vec<EmbeddingVector> {
     chunks
         .iter()
         .map(|chunk| {
-            let vector = stub_embed(&chunk.text);
+            let vector = embed_text(&chunk.text);
             EmbeddingVector {
                 chunk_index: chunk.chunk_index,
                 vector,
@@ -183,11 +332,122 @@ pub fn compute_embeddings(chunks: &[TextChunk]) -> Vec<EmbeddingVector> {
         .collect()
 }
 
-/// Stub: генерирует детерминированный вектор размерности [`EMBEDDING_DIM`]
+/// Вычисляет эмбеддинг для одного текста.
+///
+/// Пытается использовать ONNX-модель. При неудаче или отсутствии модели
+/// возвращает stub-вектор.
+fn embed_text(text: &str) -> Vec<f32> {
+    let mut guard = SEMANTIC_MODEL
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+
+    if let Some(model) = guard.as_mut() {
+        match onnx_embed(model, text) {
+            Ok(vec) => return vec,
+            Err(e) => {
+                warn!("ONNX embed failed, falling back to stub: {e}");
+            }
+        }
+    }
+
+    // Fallback: stub embedding
+    stub_embed(text)
+}
+
+/// Реальное вычисление эмбеддинга через ONNX Runtime.
+///
+/// Pipeline: tokenize → pad/truncate → run ONNX → mean-pool → L2-norm.
+fn onnx_embed(model: &mut SemanticModel, text: &str) -> Result<Vec<f32>, LateraError> {
+    let encoding = model
+        .tokenizer
+        .encode(text, true)
+        .map_err(|e| LateraError::EmbeddingComputeFailed(format!("Tokenization: {e}")))?;
+
+    let mut input_ids: Vec<i64> = encoding.get_ids().iter().map(|&id| i64::from(id)).collect();
+    let mut attention_mask: Vec<i64> = encoding
+        .get_attention_mask()
+        .iter()
+        .map(|&m| i64::from(m))
+        .collect();
+    let mut token_type_ids: Vec<i64> = encoding
+        .get_type_ids()
+        .iter()
+        .map(|&t| i64::from(t))
+        .collect();
+
+    // Truncate to max sequence length
+    let seq_len = input_ids.len().min(MAX_SEQ_LENGTH);
+    input_ids.truncate(seq_len);
+    attention_mask.truncate(seq_len);
+    token_type_ids.truncate(seq_len);
+
+    // Создаём Value через (shape, vec) — совместимо с любой версией ort
+    let shape = vec![1_usize, seq_len];
+    let input_ids_val = ort::value::Value::from_array(
+        (shape.clone(), input_ids),
+    )
+    .map_err(|e| LateraError::EmbeddingComputeFailed(format!("input_ids value: {e}")))?;
+    let attn_mask_clone = attention_mask.clone();
+    let attention_mask_val = ort::value::Value::from_array(
+        (shape.clone(), attn_mask_clone),
+    )
+    .map_err(|e| LateraError::EmbeddingComputeFailed(format!("attention_mask value: {e}")))?;
+    let token_type_ids_val = ort::value::Value::from_array(
+        (shape, token_type_ids),
+    )
+    .map_err(|e| LateraError::EmbeddingComputeFailed(format!("token_type_ids value: {e}")))?;
+
+    let outputs = model
+        .session
+        .run(
+            ort::inputs! {
+                "input_ids" => input_ids_val,
+                "attention_mask" => attention_mask_val,
+                "token_type_ids" => token_type_ids_val,
+            },
+        )
+        .map_err(|e| LateraError::EmbeddingComputeFailed(format!("session.run: {e}")))?;
+
+    // last_hidden_state: [1, seq_len, 384]
+    // try_extract_tensor returns (&Shape, &[f32]) in ort 2.0.0-rc
+    let (out_shape, out_data) = outputs[0]
+        .try_extract_tensor::<f32>()
+        .map_err(|e| LateraError::EmbeddingComputeFailed(format!("extract tensor: {e}")))?;
+
+    // Mean pooling с учётом attention_mask
+    // Shape: [1, seq_len, hidden_dim]
+    let dim = out_shape.last().copied().unwrap_or(EMBEDDING_DIM as i64) as usize;
+    let mut pooled = vec![0.0f32; dim];
+    let mut mask_sum = 0.0f32;
+
+    for i in 0..seq_len {
+        let mask_val = attention_mask[i] as f32;
+        if mask_val > 0.0 {
+            let row_start = i * dim;
+            for j in 0..dim {
+                pooled[j] += out_data[row_start + j] * mask_val;
+            }
+            mask_sum += mask_val;
+        }
+    }
+
+    if mask_sum > 0.0 {
+        for v in &mut pooled {
+            *v /= mask_sum;
+        }
+    }
+
+    // L2-нормализация
+    l2_normalize(&mut pooled);
+
+    Ok(pooled)
+}
+
+/// Stub: генерирует детерминированный вектор размерности [`STUB_EMBEDDING_DIM`]
 /// из хеша текста. Один и тот же текст всегда даёт один и тот же вектор.
 fn stub_embed(text: &str) -> Vec<f32> {
-    let mut vec = Vec::with_capacity(EMBEDDING_DIM);
-    for i in 0..EMBEDDING_DIM {
+    let mut vec = Vec::with_capacity(STUB_EMBEDDING_DIM);
+    for i in 0..STUB_EMBEDDING_DIM {
         let mut hasher = DefaultHasher::new();
         text.hash(&mut hasher);
         i.hash(&mut hasher);
@@ -196,14 +456,18 @@ fn stub_embed(text: &str) -> Vec<f32> {
         let val = ((h % 10000) as f64 / 5000.0) - 1.0;
         vec.push(val as f32);
     }
-    // L2-нормализация
+    l2_normalize(&mut vec);
+    vec
+}
+
+/// L2-нормализация вектора in-place.
+fn l2_normalize(vec: &mut [f32]) {
     let norm = vec.iter().map(|v| v * v).sum::<f32>().sqrt();
     if norm > 0.0 {
-        for v in &mut vec {
+        for v in vec.iter_mut() {
             *v /= norm;
         }
     }
-    vec
 }
 
 // ============================================================================
@@ -285,7 +549,7 @@ pub fn similarity_search(
         return Ok(Vec::new());
     }
 
-    let query_vec = stub_embed(query_text);
+    let query_vec = embed_text(query_text);
 
     // Загружаем все эмбеддинги с метаданными
     let mut stmt = conn.prepare(
@@ -527,12 +791,7 @@ fn average_vectors(vecs: &[Vec<f32>]) -> Vec<f32> {
         *v /= count;
     }
     // L2-нормализация
-    let norm = avg.iter().map(|v| v * v).sum::<f32>().sqrt();
-    if norm > 0.0 {
-        for v in &mut avg {
-            *v /= norm;
-        }
-    }
+    l2_normalize(&mut avg);
     avg
 }
 
@@ -563,6 +822,21 @@ pub fn cosine_similarity_pub(a: &[f32], b: &[f32]) -> f64 {
 /// Public wrapper вокруг [`truncate_snippet`] для RAG-модуля.
 pub fn truncate_snippet_pub(text: &str, max_len: usize) -> String {
     truncate_snippet(text, max_len)
+}
+
+/// Public wrapper вокруг [`embed_text`] для RAG-модуля.
+pub fn embed_text_pub(text: &str) -> Vec<f32> {
+    embed_text(text)
+}
+
+/// Удаляет все эмбеддинги из БД.
+///
+/// Используется при переключении режима (stub → ONNX) для пересчёта
+/// с новой размерностью.
+pub fn clear_all_embeddings(conn: &Connection) -> Result<(), LateraError> {
+    conn.execute_batch("DELETE FROM embeddings; DELETE FROM chunks;")?;
+    info!("All embeddings cleared (for re-indexing with new model)");
+    Ok(())
 }
 
 // ============================================================================
@@ -626,12 +900,16 @@ mod tests {
     fn test_chunk_overlap() {
         let text = "ABCDEFGHIJ"; // 10 chars
         let chunks = chunk_text(text, 5, 2);
-        // chunk 0: ABCDE (offset=0)
-        // chunk 1: DEFGH (offset=3)
-        // chunk 2: GHIJ  (offset=6)
-        assert_eq!(chunks.len(), 3);
+        // step = 5 - 2 = 3
+        // chunk 0: ABCDE (start=0)
+        // chunk 1: DEFGH (start=3)
+        // chunk 2: GHIJ  (start=6)
+        // chunk 3: J     (start=9)
+        assert_eq!(chunks.len(), 4);
         assert_eq!(chunks[0].text, "ABCDE");
         assert_eq!(chunks[1].text, "DEFGH");
+        assert_eq!(chunks[2].text, "GHIJ");
+        assert_eq!(chunks[3].text, "J");
     }
 
     // ------------------------------------------------------------------
@@ -651,14 +929,15 @@ mod tests {
     }
 
     #[test]
-    fn test_compute_embeddings_dimension() {
+    fn test_compute_embeddings_dimension_stub() {
+        // Без загруженной модели используется stub (dim=64)
         let chunks = vec![TextChunk {
             text: "hello".to_string(),
             chunk_index: 0,
             chunk_offset: 0,
         }];
         let emb = compute_embeddings(&chunks);
-        assert_eq!(emb[0].vector.len(), EMBEDDING_DIM);
+        assert_eq!(emb[0].vector.len(), STUB_EMBEDDING_DIM);
     }
 
     #[test]
@@ -692,6 +971,41 @@ mod tests {
     }
 
     // ------------------------------------------------------------------
+    // Model readiness
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_model_not_ready_by_default() {
+        assert!(!is_semantic_model_ready());
+    }
+
+    #[test]
+    fn test_current_embedding_dim_stub() {
+        assert_eq!(current_embedding_dim(), STUB_EMBEDDING_DIM);
+    }
+
+    // ------------------------------------------------------------------
+    // L2 normalization
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_l2_normalize() {
+        let mut v = vec![3.0f32, 4.0];
+        l2_normalize(&mut v);
+        let norm: f32 = v.iter().map(|x| x * x).sum::<f32>().sqrt();
+        assert!((norm - 1.0).abs() < 1e-6);
+        assert!((v[0] - 0.6).abs() < 1e-6);
+        assert!((v[1] - 0.8).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_l2_normalize_zero() {
+        let mut v = vec![0.0f32, 0.0];
+        l2_normalize(&mut v);
+        assert_eq!(v, vec![0.0, 0.0]);
+    }
+
+    // ------------------------------------------------------------------
     // Serialisation
     // ------------------------------------------------------------------
 
@@ -700,6 +1014,15 @@ mod tests {
         let vec = vec![1.0f32, -0.5, 0.25, 3.14];
         let blob = embedding_to_blob(&vec);
         let restored = blob_to_embedding(&blob);
+        assert_eq!(vec, restored);
+    }
+
+    #[test]
+    fn test_blob_roundtrip_384_dim() {
+        let vec: Vec<f32> = (0..384).map(|i| (i as f32) * 0.01).collect();
+        let blob = embedding_to_blob(&vec);
+        let restored = blob_to_embedding(&blob);
+        assert_eq!(vec.len(), restored.len());
         assert_eq!(vec, restored);
     }
 
@@ -921,6 +1244,46 @@ mod tests {
         // Удаляем файл из основной таблицы → CASCADE удалит chunks → embeddings
         indexer::remove_file(&conn, "/del.txt").unwrap();
         assert_eq!(get_embedding_count(&conn).unwrap(), 0);
+    }
+
+    // ------------------------------------------------------------------
+    // Clear all embeddings
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_clear_all_embeddings() {
+        let conn = create_test_db();
+
+        indexer::index_file(&conn, "/a.txt", "a.txt", "a", None).unwrap();
+        let a_info = indexer::get_indexed_file(&conn, "/a.txt").unwrap().unwrap();
+        let chunks = vec![TextChunk {
+            text: "text a".to_string(),
+            chunk_index: 0,
+            chunk_offset: 0,
+        }];
+        let embs = compute_embeddings(&chunks);
+        store_chunks_and_embeddings(&conn, a_info.id, &chunks, &embs).unwrap();
+
+        indexer::index_file(&conn, "/b.txt", "b.txt", "b", None).unwrap();
+        let b_info = indexer::get_indexed_file(&conn, "/b.txt").unwrap().unwrap();
+        store_chunks_and_embeddings(&conn, b_info.id, &chunks, &embs).unwrap();
+
+        assert_eq!(get_embedding_count(&conn).unwrap(), 2);
+
+        clear_all_embeddings(&conn).unwrap();
+        assert_eq!(get_embedding_count(&conn).unwrap(), 0);
+    }
+
+    // ------------------------------------------------------------------
+    // Cosine similarity with different dims
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_cosine_similarity_different_lengths() {
+        let a = vec![1.0f32, 0.0, 0.0];
+        let b = vec![1.0f32, 0.0];
+        let score = cosine_similarity(&a, &b);
+        assert!((score - 1.0).abs() < 1e-6);
     }
 
     // ------------------------------------------------------------------

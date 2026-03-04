@@ -41,6 +41,18 @@ pub enum LateraError {
 
     #[error("LateraError::IndexNotInitialized: Index database is not initialized. Call init_index() first.")]
     IndexNotInitialized,
+
+    #[error("LateraError::ModelLoadFailed: {0}")]
+    ModelLoadFailed(String),
+
+    #[error("LateraError::ModelDownloadFailed: {0}")]
+    ModelDownloadFailed(String),
+
+    #[error("LateraError::ModelNotInitialized: Semantic model is not loaded. Call init_semantic_model() first.")]
+    ModelNotInitialized,
+
+    #[error("LateraError::EmbeddingComputeFailed: {0}")]
+    EmbeddingComputeFailed(String),
 }
 
 impl LateraError {
@@ -59,6 +71,10 @@ impl LateraError {
             LateraError::InitializationFailed(_) => "INITIALIZATION_FAILED",
             LateraError::Sqlite(_) => "SQLITE_ERROR",
             LateraError::IndexNotInitialized => "INDEX_NOT_INITIALIZED",
+            LateraError::ModelLoadFailed(_) => "MODEL_LOAD_FAILED",
+            LateraError::ModelDownloadFailed(_) => "MODEL_DOWNLOAD_FAILED",
+            LateraError::ModelNotInitialized => "MODEL_NOT_INITIALIZED",
+            LateraError::EmbeddingComputeFailed(_) => "EMBEDDING_COMPUTE_FAILED",
         }
     }
 
@@ -76,7 +92,11 @@ impl LateraError {
             | LateraError::FileNameMissing(_)
             | LateraError::InitializationFailed(_)
             | LateraError::Sqlite(_)
-            | LateraError::IndexNotInitialized => false,
+            | LateraError::IndexNotInitialized
+            | LateraError::ModelLoadFailed(_)
+            | LateraError::ModelDownloadFailed(_)
+            | LateraError::ModelNotInitialized
+            | LateraError::EmbeddingComputeFailed(_) => false,
         }
     }
 }

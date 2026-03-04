@@ -55,6 +55,29 @@ Future<String> getDefaultWatchPathPreview() =>
 Future<String> getIndexPath() =>
     RustCore.instance.api.crateApiGetIndexPath();
 
+/// Инициализировать семантическую модель (all-MiniLM-L6-v2 ONNX).
+///
+/// [dataDir] — папка, в которой искать файлы модели (model.onnx, tokenizer.json и др.).
+/// Вызывается один раз при старте приложения; блокирует поток Rust, не Dart.
+Future<void> initSemanticModel({required String dataDir}) =>
+    RustCore.instance.api.crateApiInitSemanticModel(dataDir: dataDir);
+
+/// Проверить, загружена ли семантическая модель.
+Future<bool> isSemanticModelReady() =>
+    RustCore.instance.api.crateApiIsSemanticModelReady();
+
+/// Выгрузить семантическую модель из памяти.
+Future<void> unloadSemanticModel() =>
+    RustCore.instance.api.crateApiUnloadSemanticModel();
+
+/// Вернуть размерность эмбеддингов (384 для MiniLM-L6-v2).
+Future<int> getEmbeddingDim() =>
+    RustCore.instance.api.crateApiGetEmbeddingDim();
+
+/// Удалить все эмбеддинги из индекса.
+Future<void> clearAllEmbeddings() =>
+    RustCore.instance.api.crateApiClearAllEmbeddings();
+
 /// Событие: добавлен новый файл.
 ///
 /// Поля подобраны так, чтобы их было удобно бриджить во Flutter.

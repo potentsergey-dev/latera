@@ -66,7 +66,7 @@ class RustCore
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 641461859;
+  int get rustContentHash => 0;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -90,6 +90,16 @@ abstract class RustCoreApi extends BaseApi {
   Future<String> crateApiGetDefaultWatchPathPreview();
 
   Future<String> crateApiGetIndexPath();
+
+  Future<void> crateApiInitSemanticModel({required String dataDir});
+
+  Future<bool> crateApiIsSemanticModelReady();
+
+  Future<void> crateApiUnloadSemanticModel();
+
+  Future<int> crateApiGetEmbeddingDim();
+
+  Future<void> crateApiClearAllEmbeddings();
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LateraError;
@@ -312,6 +322,144 @@ class RustCoreApiImpl extends RustCoreApiImplPlatform implements RustCoreApi {
   TaskConstMeta get kCrateApiGetIndexPathConstMeta =>
       const TaskConstMeta(debugName: "get_index_path", argNames: []);
 
+  @override
+  Future<void> crateApiInitSemanticModel({required String dataDir}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(dataDir, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLateraError,
+        ),
+        constMeta: kCrateApiInitSemanticModelConstMeta,
+        argValues: [dataDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiInitSemanticModelConstMeta =>
+      const TaskConstMeta(debugName: "init_semantic_model", argNames: ["dataDir"]);
+
+  @override
+  Future<bool> crateApiIsSemanticModelReady() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiIsSemanticModelReadyConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIsSemanticModelReadyConstMeta =>
+      const TaskConstMeta(debugName: "is_semantic_model_ready", argNames: []);
+
+  @override
+  Future<void> crateApiUnloadSemanticModel() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUnloadSemanticModelConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUnloadSemanticModelConstMeta =>
+      const TaskConstMeta(debugName: "unload_semantic_model", argNames: []);
+
+  @override
+  Future<int> crateApiGetEmbeddingDim() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiGetEmbeddingDimConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiGetEmbeddingDimConstMeta =>
+      const TaskConstMeta(debugName: "get_embedding_dim", argNames: []);
+
+  @override
+  Future<void> crateApiClearAllEmbeddings() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLateraError,
+        ),
+        constMeta: kCrateApiClearAllEmbeddingsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClearAllEmbeddingsConstMeta =>
+      const TaskConstMeta(debugName: "clear_all_embeddings", argNames: []);
+
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LateraError => wire
       .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLateraError;
@@ -509,6 +657,12 @@ class RustCoreApiImpl extends RustCoreApiImplPlatform implements RustCoreApi {
   int sse_decode_u_8(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8();
+  }
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
   }
 
   @protected

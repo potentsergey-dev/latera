@@ -112,6 +112,9 @@ abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
   int sse_decode_u_8(SseDeserializer deserializer);
 
   @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
+
+  @protected
   void sse_decode_unit(SseDeserializer deserializer);
 
   @protected

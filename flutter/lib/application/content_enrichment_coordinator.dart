@@ -318,12 +318,32 @@ class ContentEnrichmentCoordinator {
         '${result.pagesExtracted > 0 ? ", ${result.pagesExtracted} pages" : ""})',
       );
     } else {
-      job.status = EnrichmentJobStatus.failed;
-      job.errorCode = result.errorCode;
-      _log.w(
-        'Failed to enrich file: ${job.fileName} '
-        '(error: ${result.errorCode})',
-      );
+      // Если PDF не содержит текстового слоя — возможно, это скан.
+      // При включённом OCR отправляем его на распознавание.
+      final ext =
+          p.extension(job.filePath).toLowerCase().replaceFirst('.', '');
+      final config = _configService.currentConfig;
+
+      if (ext == 'pdf' &&
+          config.isFeatureEffectivelyEnabled(ContentFeature.ocr)) {
+        _log.i(
+          'PDF has no text layer, enqueuing OCR: ${job.fileName}',
+        );
+        final ocrJob = EnrichmentJob(
+          filePath: job.filePath,
+          fileName: job.fileName,
+          type: EnrichmentJobType.ocr,
+        );
+        _queue.add(ocrJob);
+        job.status = EnrichmentJobStatus.completed;
+      } else {
+        job.status = EnrichmentJobStatus.failed;
+        job.errorCode = result.errorCode;
+        _log.w(
+          'Failed to enrich file: ${job.fileName} '
+          '(error: ${result.errorCode})',
+        );
+      }
     }
   }
 
@@ -417,6 +437,7 @@ class ContentEnrichmentCoordinator {
     final options = OcrOptions(
       maxPagesPerPdf: limits.maxPagesPerPdf,
       maxFileSizeMb: limits.maxFileSizeMb,
+      language: _configService.currentConfig.language,
     );
 
     final result = await _ocrService.extractText(job.filePath, options);

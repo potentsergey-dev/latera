@@ -5,6 +5,7 @@
 //! генерируемый `flutter_rust_bridge`.
 
 pub mod error;
+pub mod ffi_ocr;
 pub mod file_watcher;
 pub mod frb_generated;
 pub mod indexer;

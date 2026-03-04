@@ -19,9 +19,11 @@ use rusqlite::{params, Connection};
 
 use crate::error::LateraError;
 pub use embeddings::{
-    chunk_text, compute_embeddings, find_similar_files, get_embedding_count, has_embeddings,
-    init_embeddings_tables, remove_embeddings_for_file, similarity_search,
-    store_chunks_and_embeddings, EmbeddingVector, SimilarityResult, TextChunk,
+    chunk_text, clear_all_embeddings, compute_embeddings, current_embedding_dim,
+    find_similar_files, get_embedding_count, has_embeddings, init_embeddings_tables,
+    init_semantic_model, is_semantic_model_ready, remove_embeddings_for_file,
+    similarity_search, store_chunks_and_embeddings, unload_semantic_model,
+    EmbeddingVector, SimilarityResult, TextChunk,
     DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, EMBEDDING_DIM,
 };
 pub use ocr::{is_ocr_supported, ocr_content_type, ocr_extract_text, OcrOptions, OcrResult};

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -11,6 +13,7 @@ import '../../domain/file_watcher.dart';
 import '../../domain/indexer.dart';
 import '../../domain/license_service.dart';
 import '../../domain/notifications_service.dart';
+import '../../domain/ocr.dart';
 import '../../domain/rag.dart';
 import '../../domain/search_repository.dart';
 import '../../domain/text_extraction.dart';
@@ -23,8 +26,10 @@ import '../notifications/local_notifications_service.dart';
 import '../rust/rust_file_watcher_frb.dart';
 import '../rust/stub_audio_transcriber.dart';
 import '../rust/stub_embedding_service.dart';
+import '../rust/rust_ocr_service.dart';
 import '../rust/stub_ocr_service.dart';
 import '../rust/stub_rag_service.dart';
+import '../rust/generated/api.dart' as rust_api;
 import '../extraction/dart_rich_text_extractor.dart';
 import '../search/sqlite_index_service.dart';
 
@@ -126,6 +131,16 @@ class AppCompositionRoot {
     );
     await sqliteIndexService.initialize();
 
+    // Инициализация семантической модели в фоне (ONNX all-MiniLM-L6-v2).
+    // Загрузка занимает ~1-3 сек; выполняется асинхронно, не блокирует UI.
+    final modelDataDir = p.join(appDataDir.path, 'Latera');
+    unawaited(
+      rust_api
+          .initSemanticModel(dataDir: modelDataDir)
+          .then((_) => logger.i('Semantic model loaded from $modelDataDir'))
+          .catchError((Object e) => logger.w('Semantic model init failed: $e')),
+    );
+
     // === Application Layer ===
     final fileEventsCoordinator = FileEventsCoordinator(
       logger: logger,
@@ -147,7 +162,16 @@ class AppCompositionRoot {
     final RichTextExtractor richTextExtractor = DartRichTextExtractor(logger: logger);
     final AudioTranscriber audioTranscriber = StubAudioTranscriber();
     final embeddingService = StubEmbeddingService();
-    final ocrService = StubOcrService();
+    // OCR: используем Rust FFI если DLL доступна, иначе stub
+    final OcrService ocrService;
+    final ocrLibPath = RustOcrService.resolveLibraryPath();
+    if (ocrLibPath != null) {
+      ocrService = RustOcrService(libraryPath: ocrLibPath);
+      logger.i('OCR: using Rust Windows.Media.Ocr (via FFI)');
+    } else {
+      ocrService = StubOcrService();
+      logger.w('OCR: Rust DLL not found, using stub');
+    }
 
     // RAG service (Phase 4: «Спроси папку»)
     // Использует Stub-реализацию до подключения Rust FRB bindings.
@@ -198,6 +222,13 @@ class AppCompositionRoot {
 
     // Dispose content enrichment coordinator
     await contentEnrichmentCoordinator.dispose();
+
+    // Unload semantic model
+    try {
+      await rust_api.unloadSemanticModel();
+    } catch (e) {
+      logger.w('unloadSemanticModel failed: $e');
+    }
 
     // Dispose SQLite index service
     _sqliteIndexService?.dispose();
