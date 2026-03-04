@@ -550,6 +550,23 @@ pub fn similarity_search(
     }
 
     let query_vec = embed_text(query_text);
+    let query_clean = normalize_for_lexical_match(query_text);
+    let query_tokens = tokenize_for_lexical_match(&query_clean);
+    let query_token_count = query_tokens.len();
+    let query_is_short = query_tokens
+        .iter()
+        .all(|t| t.chars().count() <= 4);
+
+    // Короткие и обрезанные запросы (например, "упражнени")
+    // хуже обрабатываются чисто семантически, поэтому усиливаем
+    // лексический сигнал по имени файла/тексту чанка.
+    let (semantic_weight, lexical_weight) = if query_token_count <= 1 {
+        (0.35, 0.65)
+    } else if query_is_short {
+        (0.55, 0.45)
+    } else {
+        (0.8, 0.2)
+    };
 
     // Загружаем все эмбеддинги с метаданными
     let mut stmt = conn.prepare(
@@ -576,20 +593,34 @@ pub fn similarity_search(
         Ok((blob, chunk_text, chunk_offset, file_path, file_name, file_id))
     })?;
 
-    let mut scored: Vec<SimilarityResult> = Vec::new();
+    let mut scored: Vec<(SimilarityResult, f64, f64)> = Vec::new();
 
     for row_result in rows {
         match row_result {
             Ok((blob, chunk_text, chunk_offset, file_path, file_name, _file_id)) => {
                 let stored_vec = blob_to_embedding(&blob);
-                let score = cosine_similarity(&query_vec, &stored_vec);
-                scored.push(SimilarityResult {
-                    file_path,
-                    file_name,
-                    chunk_snippet: truncate_snippet(&chunk_text, 200),
-                    chunk_offset,
-                    score,
-                });
+                let semantic_score = cosine_similarity(&query_vec, &stored_vec);
+                let semantic_score_norm = calibrate_semantic_score(semantic_score);
+                let lexical_score = lexical_match_score(
+                    &query_clean,
+                    &query_tokens,
+                    &file_name,
+                    &chunk_text,
+                );
+                let score = (semantic_weight * semantic_score_norm
+                    + lexical_weight * lexical_score)
+                    .clamp(0.0, 1.0);
+                scored.push((
+                    SimilarityResult {
+                        file_path,
+                        file_name,
+                        chunk_snippet: truncate_snippet(&chunk_text, 200),
+                        chunk_offset,
+                        score,
+                    },
+                    semantic_score_norm,
+                    lexical_score,
+                ));
             }
             Err(e) => {
                 warn!("Error reading embedding row: {e}");
@@ -598,14 +629,56 @@ pub fn similarity_search(
     }
 
     // Сортируем по убыванию score, берём top_k
-    scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
-    scored.truncate(top_k);
-
+    scored.sort_by(|a, b| {
+        b.0.score
+            .partial_cmp(&a.0.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     // Дедупликация по file_path (оставляем лучший чанк)
     let mut seen = std::collections::HashSet::new();
-    scored.retain(|r| seen.insert(r.file_path.clone()));
+    scored.retain(|r| seen.insert(r.0.file_path.clone()));
+    if scored.is_empty() {
+        return Ok(Vec::new());
+    }
 
-    Ok(scored)
+    // ---------------------------------------------------------------
+    // Фильтрация шума — два сценария:
+    //
+    // 1) Однословный запрос («упражнени»):
+    //    all-MiniLM-L6-v2 не обучена на русском, поэтому baseline
+    //    cosine двух любых русских текстов ≈ 0.55–0.70 — это шум.
+    //    Решение: показывать ТОЛЬКО файлы с явным лексическим
+    //    совпадением (токен встречается в имени файла или тексте чанка).
+    //    Если таких нет — показываем пустой список, не шум.
+    //
+    // 2) Запрос из нескольких слов («Контракты заключенные»):
+    //    Здесь семантика значима. Фильтруем относительным порогом:
+    //    показываем только файлы с score ≥ best_score × RELATIVE_KEEP.
+    //    Это убирает «хвост» из похожих по cosine, но нерелевантных файлов.
+    // ---------------------------------------------------------------
+
+    let mut filtered: Vec<SimilarityResult> = if query_token_count <= 1 {
+        // Однословный запрос: только лексические совпадения
+        scored
+            .iter()
+            .filter(|(_, _, lexical)| *lexical > 0.0)
+            .map(|(r, _, _)| r.clone())
+            .collect()
+    } else {
+        // Фразовый запрос: относительный порог от лучшего результата
+        const RELATIVE_KEEP: f64 = 0.82;
+        const MIN_SCORE_MULTI: f64 = 0.15;
+        let best_score = scored[0].0.score;
+        let threshold = (best_score * RELATIVE_KEEP).max(MIN_SCORE_MULTI);
+        scored
+            .iter()
+            .filter(|(r, _, _)| r.score >= threshold)
+            .map(|(r, _, _)| r.clone())
+            .collect()
+    };
+
+    filtered.truncate(top_k);
+    Ok(filtered)
 }
 
 /// Ищет файлы, похожие на данный файл.
@@ -769,6 +842,92 @@ fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
         return 0.0;
     }
     (dot / denom).clamp(-1.0, 1.0)
+}
+
+/// Калибрует raw cosine similarity в шкалу 0..1.
+///
+/// Для all-MiniLM-L6-v2 на коротких запросах «случайный» cosine часто заметно
+/// выше нуля, поэтому простая формула `(cos + 1)/2` даёт завышенные проценты.
+/// Эта калибровка сдвигает baseline вниз, сохраняя порядок ранжирования.
+/// Калибрует raw cosine similarity в шкалу 0..1.
+///
+/// all-MiniLM-L6-v2: для любых двух русских текстов baseline cosine ≈ 0.45–0.55.
+/// Простая формула `(cos+1)/2` давала бы ~72% для несвязанных текстов.
+/// Калибровка поднимает нижнюю границу и растягивает «семантически значимый» диапазон.
+fn calibrate_semantic_score(cosine: f64) -> f64 {
+    // Baseline ≈ нижний типичный cosine двух случайных рус. текстов.
+    // Range ≈ ширина значимого диапазона поверх baseline.
+    const COSINE_BASELINE: f64 = 0.42;
+    const COSINE_RANGE: f64 = 0.43;
+    ((cosine - COSINE_BASELINE) / COSINE_RANGE).clamp(0.0, 1.0)
+}
+
+/// Нормализует строку для простого лексического сопоставления:
+/// lowercase + удаление лишней пунктуации.
+fn normalize_for_lexical_match(text: &str) -> String {
+    text
+        .to_lowercase()
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' || c == '-' || c.is_whitespace() {
+                c
+            } else {
+                ' '
+            }
+        })
+        .collect()
+}
+
+/// Токенизация нормализованного текста для лексического матчинга.
+fn tokenize_for_lexical_match(text: &str) -> Vec<String> {
+    text
+        .split_whitespace()
+        .filter(|t| !t.is_empty())
+        .map(|t| t.to_string())
+        .collect()
+}
+
+/// Лёгкий лексический сигнал (0.0..1.0) для гибридного ранжирования.
+///
+/// Приоритет:
+/// - совпадение в имени файла
+/// - совпадение в тексте чанка
+/// - совпадение целой фразы
+fn lexical_match_score(
+    query_clean: &str,
+    query_tokens: &[String],
+    file_name: &str,
+    chunk_text: &str,
+) -> f64 {
+    if query_tokens.is_empty() {
+        return 0.0;
+    }
+
+    let file_name_l = normalize_for_lexical_match(file_name);
+    let chunk_text_l = normalize_for_lexical_match(chunk_text);
+
+    let mut score: f64 = 0.0;
+    for token in query_tokens {
+        if token.chars().count() < 2 {
+            continue;
+        }
+
+        if file_name_l.contains(token) {
+            score += 0.8;
+        } else if chunk_text_l.contains(token) {
+            score += 0.4;
+        }
+    }
+
+    if query_clean.chars().count() >= 4 {
+        if file_name_l.contains(query_clean) {
+            score += 0.3;
+        } else if chunk_text_l.contains(query_clean) {
+            score += 0.15;
+        }
+    }
+
+    score.clamp(0.0, 1.0)
 }
 
 /// Средний вектор из набора векторов.
@@ -1186,6 +1345,52 @@ mod tests {
         let conn = create_test_db();
         let results = similarity_search(&conn, "anything", 5).unwrap();
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_similarity_search_boosts_filename_prefix_match() {
+        let conn = create_test_db();
+
+        indexer::index_file(
+            &conn,
+            "/complex.txt",
+            "КомплексУпражнений.txt",
+            "",
+            Some("общие заметки"),
+        )
+        .unwrap();
+        let complex_info = indexer::get_indexed_file(&conn, "/complex.txt")
+            .unwrap()
+            .unwrap();
+        let complex_chunks =
+            chunk_text("общие заметки", DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP);
+        let complex_embs = compute_embeddings(&complex_chunks);
+        store_chunks_and_embeddings(&conn, complex_info.id, &complex_chunks, &complex_embs)
+            .unwrap();
+
+        indexer::index_file(
+            &conn,
+            "/other.txt",
+            "SerpAPI.txt",
+            "",
+            Some("api интеграции и автоматизация"),
+        )
+        .unwrap();
+        let other_info = indexer::get_indexed_file(&conn, "/other.txt")
+            .unwrap()
+            .unwrap();
+        let other_chunks = chunk_text(
+            "api интеграции и автоматизация",
+            DEFAULT_CHUNK_SIZE,
+            DEFAULT_CHUNK_OVERLAP,
+        );
+        let other_embs = compute_embeddings(&other_chunks);
+        store_chunks_and_embeddings(&conn, other_info.id, &other_chunks, &other_embs)
+            .unwrap();
+
+        let results = similarity_search(&conn, "упражнени", 5).unwrap();
+        assert!(!results.is_empty());
+        assert_eq!(results[0].file_name, "КомплексУпражнений.txt");
     }
 
     #[test]

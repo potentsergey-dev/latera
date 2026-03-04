@@ -25,11 +25,13 @@ import '../logging/app_logger.dart';
 import '../notifications/local_notifications_service.dart';
 import '../rust/rust_file_watcher_frb.dart';
 import '../rust/stub_audio_transcriber.dart';
+import '../rust/rust_ffi_embedding_service.dart';
 import '../rust/stub_embedding_service.dart';
 import '../rust/rust_ocr_service.dart';
 import '../rust/stub_ocr_service.dart';
 import '../rust/stub_rag_service.dart';
 import '../rust/generated/api.dart' as rust_api;
+import '../rust/rust_core.dart';
 import '../extraction/dart_rich_text_extractor.dart';
 import '../search/sqlite_index_service.dart';
 
@@ -106,6 +108,9 @@ class AppCompositionRoot {
       enableColors: enableLogColors,
     );
 
+    // Инициализация flutter_rust_bridge (FFI) — обязательно до любых вызовов Rust API.
+    await RustCoreBootstrap.ensureInitialized();
+
     // Domain services (interfaces)
     final notifications = LocalNotificationsService(logger: logger);
     final watcher = RustFileWatcherFrb(logger: logger);
@@ -161,7 +166,14 @@ class AppCompositionRoot {
     // Остальное: Stub-реализации до подключения Rust FRB bindings.
     final RichTextExtractor richTextExtractor = DartRichTextExtractor(logger: logger);
     final AudioTranscriber audioTranscriber = StubAudioTranscriber();
-    final embeddingService = StubEmbeddingService();
+    // Embedding: используем Rust FFI если DLL доступна, иначе stub
+    final rustEmbedding = RustFfiEmbeddingService();
+    final embeddingService = rustEmbedding.isAvailable ? rustEmbedding : StubEmbeddingService();
+    if (rustEmbedding.isAvailable) {
+      logger.i('Embeddings: using Rust ONNX (via FFI)');
+    } else {
+      logger.w('Embeddings: Rust DLL not found, using stub');
+    }
     // OCR: используем Rust FFI если DLL доступна, иначе stub
     final OcrService ocrService;
     final ocrLibPath = RustOcrService.resolveLibraryPath();
@@ -190,6 +202,16 @@ class AppCompositionRoot {
     contentEnrichmentCoordinator.start(
       fileEventsCoordinator.fileAddedEvents,
     );
+
+    // Пересчитываем эмбеддинги для файлов, у которых их нет
+    // (после миграции stub → ONNX или первой инициализации)
+    final filesToReEmbed = sqliteIndexService.getFilesWithoutEmbeddings();
+    if (filesToReEmbed.isNotEmpty) {
+      logger.i('Re-embedding ${filesToReEmbed.length} files (migration stub → ONNX)');
+      for (final f in filesToReEmbed) {
+        contentEnrichmentCoordinator.enqueueFile(f['filePath']!, f['fileName']!);
+      }
+    }
 
     return AppCompositionRoot._(
       notifications: notifications,

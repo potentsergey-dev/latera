@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:io';
 
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
@@ -119,18 +118,28 @@ class ContentEnrichmentCoordinator {
 
   /// Расширения изображений для OCR.
   static const _imageExtensions = {
-    'png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp',
+    'png',
+    'jpg',
+    'jpeg',
+    'tiff',
+    'tif',
+    'bmp',
+    'webp',
   };
 
   /// Расширения аудиофайлов для транскрибации.
   static const _audioExtensions = {
-    'wav', 'mp3', 'm4a', 'ogg', 'flac', 'aac', 'wma',
+    'wav',
+    'mp3',
+    'm4a',
+    'ogg',
+    'flac',
+    'aac',
+    'wma',
   };
 
   /// Расширения видеофайлов для транскрибации.
-  static const _videoExtensions = {
-    'mp4', 'mkv', 'webm', 'avi', 'mov', 'wmv',
-  };
+  static const _videoExtensions = {'mp4', 'mkv', 'webm', 'avi', 'mov', 'wmv'};
 
   /// Stream завершённых задач обогащения (для UI/логирования).
   final StreamController<EnrichmentJob> _completedController =
@@ -144,13 +153,13 @@ class ContentEnrichmentCoordinator {
     required AudioTranscriber transcriber,
     required EmbeddingService embeddingService,
     required OcrService ocrService,
-  })  : _log = logger,
-        _configService = configService,
-        _indexer = indexer,
-        _extractor = extractor,
-        _transcriber = transcriber,
-        _embeddingService = embeddingService,
-        _ocrService = ocrService;
+  }) : _log = logger,
+       _configService = configService,
+       _indexer = indexer,
+       _extractor = extractor,
+       _transcriber = transcriber,
+       _embeddingService = embeddingService,
+       _ocrService = ocrService;
 
   /// Stream завершённых (или проваленных) задач обогащения.
   Stream<EnrichmentJob> get completedJobs => _completedController.stream;
@@ -177,23 +186,42 @@ class ContentEnrichmentCoordinator {
   ///
   /// Полезно для повторной обработки или ручного запуска.
   void enqueueFile(String filePath, String fileName) {
-    _onFileAdded(FileAddedUiEvent(
-      fileName: fileName,
-      fullPath: filePath,
-      occurredAt: DateTime.now(),
-    ));
+    _onFileAdded(
+      FileAddedUiEvent(
+        fileName: fileName,
+        fullPath: filePath,
+        occurredAt: DateTime.now(),
+      ),
+    );
   }
 
   // --------------------------------------------------------------------------
   // Private
   // --------------------------------------------------------------------------
 
+  void _enqueueEmbeddingsIfEnabled(String filePath, String fileName) {
+    final config = _configService.currentConfig;
+    if (config.isFeatureEffectivelyEnabled(ContentFeature.embeddings) ||
+        config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity)) {
+      final embeddingsJob = EnrichmentJob(
+        filePath: filePath,
+        fileName: fileName,
+        type: EnrichmentJobType.embeddings,
+      );
+      _queue.add(embeddingsJob);
+      _log.d('Enqueued embeddings job (post-enrichment): $fileName');
+      _processQueue();
+    }
+  }
+
   void _onFileAdded(FileAddedUiEvent event) {
     if (_isDisposed) return;
     if (event.fullPath == null) return;
 
-    final ext =
-        p.extension(event.fullPath!).toLowerCase().replaceFirst('.', '');
+    final ext = p
+        .extension(event.fullPath!)
+        .toLowerCase()
+        .replaceFirst('.', '');
 
     final config = _configService.currentConfig;
 
@@ -242,8 +270,21 @@ class ContentEnrichmentCoordinator {
       }
     }
 
+    // Determine if file needs preprocessing before embeddings
+    final needsPreprocessing =
+        _richExtensions.contains(ext) ||
+        _audioExtensions.contains(ext) ||
+        _videoExtensions.contains(ext) ||
+        _imageExtensions.contains(ext);
+
     // Embeddings (для всех файлов при включённом семантическом поиске)
-    if (config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity)) {
+    // Если файлу нужна предобработка (экстракция, OCR и т.д.), эмбеддинги будут
+    // добавлены в очередь только ПОСЛЕ успешной обработки.
+    if (!needsPreprocessing &&
+        (config.isFeatureEffectivelyEnabled(ContentFeature.embeddings) ||
+            config.isFeatureEffectivelyEnabled(
+              ContentFeature.semanticSimilarity,
+            ))) {
       final job = EnrichmentJob(
         filePath: event.fullPath!,
         fileName: event.fileName,
@@ -317,18 +358,16 @@ class ContentEnrichmentCoordinator {
         '(${result.contentType}, ${result.text.length} chars'
         '${result.pagesExtracted > 0 ? ", ${result.pagesExtracted} pages" : ""})',
       );
+      _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
     } else {
       // Если PDF не содержит текстового слоя — возможно, это скан.
       // При включённом OCR отправляем его на распознавание.
-      final ext =
-          p.extension(job.filePath).toLowerCase().replaceFirst('.', '');
+      final ext = p.extension(job.filePath).toLowerCase().replaceFirst('.', '');
       final config = _configService.currentConfig;
 
       if (ext == 'pdf' &&
           config.isFeatureEffectivelyEnabled(ContentFeature.ocr)) {
-        _log.i(
-          'PDF has no text layer, enqueuing OCR: ${job.fileName}',
-        );
+        _log.i('PDF has no text layer, enqueuing OCR: ${job.fileName}');
         final ocrJob = EnrichmentJob(
           filePath: job.filePath,
           fileName: job.fileName,
@@ -364,6 +403,7 @@ class ContentEnrichmentCoordinator {
         '(${result.contentType}, ${result.text.length} chars, '
         '${result.durationSeconds}s)',
       );
+      _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
     } else {
       job.status = EnrichmentJobStatus.failed;
       job.errorCode = result.errorCode;
@@ -383,28 +423,14 @@ class ContentEnrichmentCoordinator {
       return;
     }
 
-    // Читаем текстовое содержимое файла (берём из описания, text, transcript)
-    // Для простоты — пытаемся прочитать как текст
-    String textContent;
-    try {
-      final file = File(job.filePath);
-      if (!await file.exists()) {
-        job.status = EnrichmentJobStatus.failed;
-        job.errorCode = 'file_not_found';
-        return;
-      }
-      textContent = await file.readAsString();
-    } catch (_) {
-      // Бинарный файл — пропускаем, эмбеддинги для него появятся
-      // после text extraction или transcription
-      job.status = EnrichmentJobStatus.completed;
-      _log.d('Cannot read text for embeddings: ${job.fileName} (binary?)');
-      return;
-    }
+    // Читаем текстовое содержимое файла (берём из БД: description, text, transcript, либо fallback на чтение с диска)
+    final textContent = await _indexer.getTextContent(job.filePath);
 
-    if (textContent.trim().isEmpty) {
+    if (textContent == null || textContent.trim().isEmpty) {
       job.status = EnrichmentJobStatus.completed;
-      _log.d('Empty text content, skipping embeddings: ${job.fileName}');
+      _log.d(
+        'Cannot read text or empty content, skipping embeddings: ${job.fileName}',
+      );
       return;
     }
 
@@ -452,6 +478,7 @@ class ContentEnrichmentCoordinator {
         '${result.pagesProcessed > 0 ? ", ${result.pagesProcessed} pages" : ""}'
         '${result.confidence != null ? ", conf=${result.confidence!.toStringAsFixed(2)}" : ""})',
       );
+      _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
     } else {
       job.status = EnrichmentJobStatus.failed;
       job.errorCode = result.errorCode;

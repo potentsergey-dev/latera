@@ -1,13 +1,17 @@
+import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:ffi/ffi.dart';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../domain/indexer.dart';
 import '../../domain/search_repository.dart';
+import '../rust/rust_ocr_service.dart' show RustOcrService;
 
 /// Расширения файлов, из которых извлекается текстовый контент.
 ///
@@ -45,17 +49,17 @@ class SqliteIndexService implements Indexer, SearchRepository {
   final String _dbPath;
   Database? _db;
 
-  SqliteIndexService({
-    required Logger logger,
-    required String dbPath,
-  })  : _log = logger,
-        _dbPath = dbPath;
+  SqliteIndexService({required Logger logger, required String dbPath})
+    : _log = logger,
+      _dbPath = dbPath;
 
   /// Получить открытую БД или бросить исключение.
   Database get _database {
     final db = _db;
     if (db == null) {
-      throw StateError('Index database is not initialized. Call initialize() first.');
+      throw StateError(
+        'Index database is not initialized. Call initialize() first.',
+      );
     }
     return db;
   }
@@ -97,11 +101,17 @@ class SqliteIndexService implements Indexer, SearchRepository {
     ''');
 
     // Миграция: добавляем колонку transcript_text если её нет (для существующих БД)
-    final hasTranscriptCol = db
-        .select("SELECT COUNT(*) as cnt FROM pragma_table_info('files') WHERE name='transcript_text'")
-        .first['cnt'] as int;
+    final hasTranscriptCol =
+        db
+                .select(
+                  "SELECT COUNT(*) as cnt FROM pragma_table_info('files') WHERE name='transcript_text'",
+                )
+                .first['cnt']
+            as int;
     if (hasTranscriptCol == 0) {
-      db.execute("ALTER TABLE files ADD COLUMN transcript_text TEXT DEFAULT '';");
+      db.execute(
+        "ALTER TABLE files ADD COLUMN transcript_text TEXT DEFAULT '';",
+      );
       _log.i('Migrated: added transcript_text column to files table');
     }
 
@@ -109,16 +119,22 @@ class SqliteIndexService implements Indexer, SearchRepository {
     // Миграция: если FTS-таблица существует, но без колонки transcript_text —
     // пересоздаём её (ALTER TABLE не поддерживается для виртуальных FTS5 таблиц).
     var ftsRecreated = false;
-    final ftsExists = db
-        .select("SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table' AND name='files_fts'")
-        .first['cnt'] as int;
+    final ftsExists =
+        db
+                .select(
+                  "SELECT COUNT(*) as cnt FROM sqlite_master WHERE type='table' AND name='files_fts'",
+                )
+                .first['cnt']
+            as int;
     if (ftsExists > 0) {
       // Проверяем наличие колонки transcript_text в FTS-таблице
       // FTS5 не поддерживает pragma_table_info, поэтому пробуем SELECT
       try {
         db.execute('SELECT transcript_text FROM files_fts LIMIT 0');
       } catch (_) {
-        _log.i('Migrating files_fts: adding transcript_text column (drop + recreate)');
+        _log.i(
+          'Migrating files_fts: adding transcript_text column (drop + recreate)',
+        );
         db.execute('DROP TABLE files_fts;');
         ftsRecreated = true;
       }
@@ -188,6 +204,31 @@ class SqliteIndexService implements Indexer, SearchRepository {
       );
     ''');
 
+    // Миграция: удаляем эмбеддинги, созданные stub (dim=64, blob=256 байт).
+    // Настоящие ONNX-эмбеддинги имеют dim=384 (blob=1536 байт).
+    // Это позволит ContentEnrichmentCoordinator пересчитать их реальной моделью.
+    final wrongDimCount =
+        db.select(
+              'SELECT COUNT(*) as cnt FROM embeddings WHERE length(embedding) != ?',
+              [_embeddingDimOnnx * 4], // 384 floats * 4 bytes
+            ).first['cnt']
+            as int;
+    if (wrongDimCount > 0) {
+      _log.i(
+        'Purging $wrongDimCount embeddings with wrong dimension (stub migration)',
+      );
+      db.execute('DELETE FROM embeddings WHERE length(embedding) != ?', [
+        _embeddingDimOnnx * 4,
+      ]);
+      // Также удаляем осиротевшие чанки
+      db.execute(
+        'DELETE FROM chunks WHERE id NOT IN (SELECT chunk_id FROM embeddings)',
+      );
+      _log.i(
+        'Stub embeddings purged. Files will be re-embedded on next enrichment cycle.',
+      );
+    }
+
     _db = db;
     _log.i('Index database initialized at: $_dbPath');
   }
@@ -244,10 +285,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
 
   @override
   Future<void> removeFromIndex(String filePath) async {
-    _database.execute(
-      'DELETE FROM files WHERE file_path = ?',
-      [filePath],
-    );
+    _database.execute('DELETE FROM files WHERE file_path = ?', [filePath]);
     _log.d('Removed from index: $filePath');
   }
 
@@ -297,6 +335,52 @@ class SqliteIndexService implements Indexer, SearchRepository {
     _log.d('Updated transcript for: $filePath (${transcript.length} chars)');
   }
 
+  @override
+  Future<String?> getTextContent(String filePath) async {
+    final result = _database.select(
+      'SELECT description, text_content, transcript_text FROM files WHERE file_path = ? LIMIT 1',
+      [filePath],
+    );
+
+    if (result.isEmpty) return null;
+
+    final row = result.first;
+    final description = row['description'] as String?;
+    final textContent = row['text_content'] as String?;
+    final transcript = row['transcript_text'] as String?;
+
+    final buffer = StringBuffer();
+    if (description != null && description.isNotEmpty) {
+      buffer.writeln(description);
+    }
+    if (textContent != null && textContent.isNotEmpty) {
+      buffer.writeln(textContent);
+    }
+    if (transcript != null && transcript.isNotEmpty) {
+      buffer.writeln(transcript);
+    }
+
+    final fullText = buffer.toString().trim();
+    if (fullText.isEmpty) {
+      // Пытаемся fallback на чтение как текстовый файл для txt/md и т.д.
+      try {
+        final file = File(filePath);
+        if (await file.exists()) {
+          // Читаем только если файл небольшой (до 1МБ), чтобы не уронить память
+          if (await file.length() < 1024 * 1024) {
+            final content = await file.readAsString();
+            return content.trim();
+          }
+        }
+      } catch (_) {
+        // Игнорируем ошибки чтения файлов
+      }
+      return null;
+    }
+
+    return fullText;
+  }
+
   // ====================================================================
   // Indexer — Embeddings (Phase 3)
   // ====================================================================
@@ -312,10 +396,9 @@ class SqliteIndexService implements Indexer, SearchRepository {
     assert(chunkTexts.length == chunkOffsets.length);
 
     // Найти file_id по filePath
-    final rows = _database.select(
-      'SELECT id FROM files WHERE file_path = ?',
-      [filePath],
-    );
+    final rows = _database.select('SELECT id FROM files WHERE file_path = ?', [
+      filePath,
+    ]);
     if (rows.isEmpty) {
       _log.w('storeEmbeddings: file not indexed, skipping: $filePath');
       return;
@@ -361,6 +444,27 @@ class SqliteIndexService implements Indexer, SearchRepository {
       [filePath],
     );
     return (rows.first['cnt'] as int) > 0;
+  }
+
+  /// Возвращает список файлов (filePath, fileName), у которых нет эмбеддингов.
+  ///
+  /// Используется для пересчёта эмбеддингов после миграции stub → ONNX.
+  List<Map<String, String>> getFilesWithoutEmbeddings() {
+    final rows = _database.select(
+      '''SELECT f.file_path, f.file_name FROM files f
+         WHERE f.id NOT IN (
+           SELECT DISTINCT c.file_id FROM chunks c
+           JOIN embeddings e ON e.chunk_id = c.id
+         )''',
+    );
+    return rows
+        .map(
+          (r) => {
+            'filePath': r['file_path'] as String,
+            'fileName': r['file_name'] as String,
+          },
+        )
+        .toList();
   }
 
   // ====================================================================
@@ -444,156 +548,50 @@ class SqliteIndexService implements Indexer, SearchRepository {
   }
 
   @override
-  Future<List<SearchResult>> semanticSearch(String query, {int limit = 20}) async {
+  Future<List<SearchResult>> semanticSearch(
+    String query, {
+    int limit = 20,
+  }) async {
     if (query.trim().isEmpty) return [];
 
-    // Для семантического поиска нужно: 1) вычислить эмбеддинг запроса,
-    // 2) сравнить с хранимыми. Пока используем linear scan.
-    // NOTE: Подключить реальные эмбеддинги через EmbeddingService (Phase 3+).
-
-    // Загружаем все эмбеддинги с метаданными
-    final rows = _database.select('''
-      SELECT
-        e.embedding,
-        c.chunk_text,
-        f.file_path,
-        f.file_name,
-        f.description,
-        f.indexed_at
-      FROM embeddings e
-      JOIN chunks c ON c.id = e.chunk_id
-      JOIN files f ON f.id = c.file_id
-    ''');
-
-    if (rows.isEmpty) return [];
-
-    // Stub: вычисляем эмбеддинг запроса детерминированно (hash-based)
-    final queryEmbedding = _stubComputeEmbedding(query);
-
-    // Считаем cosine similarity для каждого чанка
-    final scored = <_ScoredResult>[];
-    for (final row in rows) {
-      final blob = row['embedding'] as Uint8List;
-      final chunkEmb = _blobToEmbedding(blob);
-      final sim = _cosineSimilarity(queryEmbedding, chunkEmb);
-
-      scored.add(_ScoredResult(
-        filePath: row['file_path'] as String,
-        fileName: row['file_name'] as String,
-        description: row['description'] as String,
-        snippet: _truncateSnippet(row['chunk_text'] as String, 200),
-        similarity: sim,
-        indexedAt: DateTime.fromMillisecondsSinceEpoch(
-          (row['indexed_at'] as int) * 1000,
-        ),
-      ));
+    // Делегируем семантический поиск в Rust через FFI.
+    // Rust использует тот же embedding-движок (ONNX или stub), что и при индексации,
+    // гарантируя совместимость query-эмбеддинга и хранимых эмбеддингов.
+    final results = _RustSemanticSearchFfi.instance.semanticSearch(
+      _dbPath,
+      query,
+      limit,
+    );
+    if (results != null) {
+      _log.d('Semantic search via Rust FFI: ${results.length} results');
+      return results;
     }
 
-    // Сортируем по similarity DESC, дедуплицируем по file_path (лучший чанк)
-    scored.sort((a, b) => b.similarity.compareTo(a.similarity));
-    final seen = <String>{};
-    final results = <SearchResult>[];
-    for (final s in scored) {
-      if (seen.contains(s.filePath)) continue;
-      seen.add(s.filePath);
-      results.add(SearchResult(
-        filePath: s.filePath,
-        fileName: s.fileName,
-        description: s.description,
-        relevance: s.similarity.clamp(0.0, 1.0),
-        snippet: s.snippet,
-        indexedAt: s.indexedAt,
-      ));
-      if (results.length >= limit) break;
-    }
-
-    return results;
+    // Fallback: если Rust FFI недоступен — возвращаем пустой список
+    // (Dart-side stub-эмбеддинги несовместимы с Rust-side, поэтому
+    //  старый Dart-only поиск давал нулевые результаты.)
+    _log.w('Rust FFI not available for semantic search, returning empty');
+    return [];
   }
 
   @override
-  Future<List<SearchResult>> findSimilarFiles(String filePath, {int limit = 10}) async {
-    // Получаем эмбеддинги файла-источника
-    final sourceRows = _database.select('''
-      SELECT e.embedding
-      FROM embeddings e
-      JOIN chunks c ON c.id = e.chunk_id
-      JOIN files f ON f.id = c.file_id
-      WHERE f.file_path = ?
-    ''', [filePath]);
-
-    if (sourceRows.isEmpty) return [];
-
-    // Среднее по всем чанкам файла
-    final sourceEmbeddings = sourceRows
-        .map((r) => _blobToEmbedding(r['embedding'] as Uint8List))
-        .toList();
-    final avgSource = _averageVectors(sourceEmbeddings);
-
-    // Загружаем эмбеддинги всех остальных файлов
-    final allRows = _database.select('''
-      SELECT
-        e.embedding,
-        c.chunk_text,
-        f.file_path,
-        f.file_name,
-        f.description,
-        f.indexed_at
-      FROM embeddings e
-      JOIN chunks c ON c.id = e.chunk_id
-      JOIN files f ON f.id = c.file_id
-      WHERE f.file_path != ?
-    ''', [filePath]);
-
-    if (allRows.isEmpty) return [];
-
-    // Группируем чанки по файлу, считаем среднее и similarity
-    final fileChunks = <String, List<List<double>>>{};
-    final fileMeta = <String, _ScoredResult>{};
-
-    for (final row in allRows) {
-      final fp = row['file_path'] as String;
-      final emb = _blobToEmbedding(row['embedding'] as Uint8List);
-      fileChunks.putIfAbsent(fp, () => []).add(emb);
-      fileMeta.putIfAbsent(
-        fp,
-        () => _ScoredResult(
-          filePath: fp,
-          fileName: row['file_name'] as String,
-          description: row['description'] as String,
-          snippet: _truncateSnippet(row['chunk_text'] as String, 200),
-          similarity: 0,
-          indexedAt: DateTime.fromMillisecondsSinceEpoch(
-            (row['indexed_at'] as int) * 1000,
-          ),
-        ),
-      );
+  Future<List<SearchResult>> findSimilarFiles(
+    String filePath, {
+    int limit = 10,
+  }) async {
+    // Делегируем поиск похожих файлов в Rust через FFI.
+    final results = _RustSemanticSearchFfi.instance.findSimilarFiles(
+      _dbPath,
+      filePath,
+      limit,
+    );
+    if (results != null) {
+      _log.d('Find similar files via Rust FFI: ${results.length} results');
+      return results;
     }
 
-    final scored = <_ScoredResult>[];
-    for (final entry in fileChunks.entries) {
-      final avg = _averageVectors(entry.value);
-      final sim = _cosineSimilarity(avgSource, avg);
-      final meta = fileMeta[entry.key]!;
-      scored.add(_ScoredResult(
-        filePath: meta.filePath,
-        fileName: meta.fileName,
-        description: meta.description,
-        snippet: meta.snippet,
-        similarity: sim,
-        indexedAt: meta.indexedAt,
-      ));
-    }
-
-    scored.sort((a, b) => b.similarity.compareTo(a.similarity));
-
-    return scored.take(limit).map((s) => SearchResult(
-      filePath: s.filePath,
-      fileName: s.fileName,
-      description: s.description,
-      relevance: s.similarity.clamp(0.0, 1.0),
-      snippet: s.snippet,
-      indexedAt: s.indexedAt,
-    )).toList();
+    _log.w('Rust FFI not available for findSimilarFiles, returning empty');
+    return [];
   }
 
   // ====================================================================
@@ -708,7 +706,10 @@ class SqliteIndexService implements Indexer, SearchRepository {
   List<double> _stubComputeEmbedding(String text) {
     final hash = text.hashCode;
     final rng = Random(hash);
-    final vec = List<double>.generate(_embeddingDimStub, (_) => rng.nextDouble() * 2 - 1);
+    final vec = List<double>.generate(
+      _embeddingDimStub,
+      (_) => rng.nextDouble() * 2 - 1,
+    );
     // L2-normalize
     var norm = 0.0;
     for (final v in vec) {
@@ -741,21 +742,163 @@ class SqliteIndexService implements Indexer, SearchRepository {
   }
 }
 
-/// Внутренний класс для промежуточного ранжирования результатов.
-class _ScoredResult {
-  final String filePath;
-  final String fileName;
-  final String description;
-  final String? snippet;
-  final double similarity;
-  final DateTime? indexedAt;
+// ======================================================================
+// FFI вызов Rust для семантического поиска
+// ======================================================================
 
-  const _ScoredResult({
-    required this.filePath,
-    required this.fileName,
-    required this.description,
-    this.snippet,
-    required this.similarity,
-    this.indexedAt,
-  });
+// FFI type definitions — каждая функция принимает db_path первым аргументом
+typedef _SemanticSearchC =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> dbPathPtr,
+      Pointer<Utf8> queryPtr,
+      Uint32 topK,
+    );
+typedef _SemanticSearchDart =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> dbPathPtr,
+      Pointer<Utf8> queryPtr,
+      int topK,
+    );
+
+typedef _FindSimilarFilesC =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> dbPathPtr,
+      Pointer<Utf8> filePathPtr,
+      Uint32 topK,
+    );
+typedef _FindSimilarFilesDart =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> dbPathPtr,
+      Pointer<Utf8> filePathPtr,
+      int topK,
+    );
+
+typedef _FreeCStringC = Void Function(Pointer<Utf8> ptr);
+typedef _FreeCStringDart = void Function(Pointer<Utf8> ptr);
+
+/// Singleton обёртка для FFI вызовов семантического поиска в Rust.
+///
+/// Использует тот же DLL что и OCR (latera_rust.dll).
+/// Каждый вызов передаёт путь к БД — Rust открывает read-only соединение.
+/// Если DLL не найден — возвращает null, вызывающий код использует fallback.
+class _RustSemanticSearchFfi {
+  static final _RustSemanticSearchFfi instance = _RustSemanticSearchFfi._();
+  static final _log = Logger(printer: PrettyPrinter(methodCount: 0));
+
+  _SemanticSearchDart? _semanticSearchFfi;
+  _FindSimilarFilesDart? _findSimilarFilesFfi;
+  _FreeCStringDart? _freeCStringFfi;
+  bool _initialized = false;
+  bool _available = false;
+
+  _RustSemanticSearchFfi._();
+
+  void _ensureInitialized() {
+    if (_initialized) return;
+    _initialized = true;
+
+    final libPath = RustOcrService.resolveLibraryPath();
+    if (libPath == null) {
+      _log.w('Semantic search FFI: resolveLibraryPath() returned null');
+      _available = false;
+      return;
+    }
+
+    _log.d('Semantic search FFI: loading from $libPath');
+
+    try {
+      final lib = DynamicLibrary.open(libPath);
+
+      _semanticSearchFfi = lib
+          .lookupFunction<_SemanticSearchC, _SemanticSearchDart>(
+            'latera_semantic_search',
+          );
+      _findSimilarFilesFfi = lib
+          .lookupFunction<_FindSimilarFilesC, _FindSimilarFilesDart>(
+            'latera_find_similar_files',
+          );
+      _freeCStringFfi = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
+        'latera_free_cstring',
+      );
+
+      _available = true;
+      _log.i('Semantic search FFI: loaded successfully');
+    } catch (e) {
+      _log.e('Semantic search FFI: failed to load functions from $libPath: $e');
+      _available = false;
+    }
+  }
+
+  /// Семантический поиск через Rust FFI.
+  ///
+  /// [dbPath] — путь к SQLite БД индекса.
+  /// Возвращает null если FFI недоступен.
+  List<SearchResult>? semanticSearch(String dbPath, String query, int limit) {
+    _ensureInitialized();
+    if (!_available) return null;
+
+    final dbPathPtr = dbPath.toNativeUtf8();
+    final queryPtr = query.toNativeUtf8();
+    Pointer<Utf8> resultPtr = Pointer.fromAddress(0);
+    try {
+      resultPtr = _semanticSearchFfi!(dbPathPtr, queryPtr, limit);
+      if (resultPtr.address == 0) return [];
+      final jsonStr = resultPtr.toDartString();
+      return _parseResults(jsonStr);
+    } finally {
+      calloc.free(dbPathPtr);
+      calloc.free(queryPtr);
+      if (resultPtr.address != 0) {
+        _freeCStringFfi!(resultPtr);
+      }
+    }
+  }
+
+  /// Поиск похожих файлов через Rust FFI.
+  ///
+  /// [dbPath] — путь к SQLite БД индекса.
+  /// Возвращает null если FFI недоступен.
+  List<SearchResult>? findSimilarFiles(
+    String dbPath,
+    String filePath,
+    int limit,
+  ) {
+    _ensureInitialized();
+    if (!_available) return null;
+
+    final dbPathPtr = dbPath.toNativeUtf8();
+    final filePathPtr = filePath.toNativeUtf8();
+    Pointer<Utf8> resultPtr = Pointer.fromAddress(0);
+    try {
+      resultPtr = _findSimilarFilesFfi!(dbPathPtr, filePathPtr, limit);
+      if (resultPtr.address == 0) return [];
+      final jsonStr = resultPtr.toDartString();
+      return _parseResults(jsonStr);
+    } finally {
+      calloc.free(dbPathPtr);
+      calloc.free(filePathPtr);
+      if (resultPtr.address != 0) {
+        _freeCStringFfi!(resultPtr);
+      }
+    }
+  }
+
+  /// Парсит JSON массив результатов из Rust.
+  static List<SearchResult> _parseResults(String jsonStr) {
+    try {
+      final list = json.decode(jsonStr) as List<dynamic>;
+      return list.map((item) {
+        final map = item as Map<String, dynamic>;
+        return SearchResult(
+          filePath: (map['file_path'] as String?) ?? '',
+          fileName: (map['file_name'] as String?) ?? '',
+          description: '', // Rust similarity_search не возвращает description
+          relevance: ((map['score'] as num?) ?? 0.0).toDouble().clamp(0.0, 1.0),
+          snippet: map['chunk_snippet'] as String?,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }

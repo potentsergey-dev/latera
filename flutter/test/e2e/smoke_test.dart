@@ -219,6 +219,9 @@ class E2EMockIndexer implements Indexer {
   Future<void> updateTranscriptText(String filePath, String transcript) async {}
 
   @override
+  Future<String?> getTextContent(String filePath) async => null;
+
+  @override
   Future<void> storeEmbeddings(
     String filePath, {
     required List<String> chunkTexts,

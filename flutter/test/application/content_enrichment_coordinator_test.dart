@@ -162,6 +162,11 @@ class MockIndexer implements Indexer {
     updatedTranscripts[filePath] = transcript;
   }
 
+  @override
+  Future<String?> getTextContent(String filePath) async {
+    return updatedTextContents[filePath];
+  }
+
   final Map<String, String> updatedTranscripts = {};
 
   // Phase 3: Embeddings

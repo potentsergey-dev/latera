@@ -52,6 +52,11 @@ abstract interface class Indexer {
   /// [transcript] — текст транскрибации аудио/видео.
   Future<void> updateTranscriptText(String filePath, String transcript);
 
+  /// Получает текстовое содержимое (и транскрипт) файла из индекса.
+  ///
+  /// Используется для генерации эмбеддингов после того, как файл был обогащен.
+  Future<String?> getTextContent(String filePath);
+
   // === Phase 3: Embeddings ===
 
   /// Сохраняет чанки и их эмбеддинги для файла.

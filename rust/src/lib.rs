@@ -6,6 +6,7 @@
 
 pub mod error;
 pub mod ffi_ocr;
+pub mod ffi_search;
 pub mod file_watcher;
 pub mod frb_generated;
 pub mod indexer;

@@ -71,6 +71,11 @@ class StubIndexer implements Indexer {
   }
 
   @override
+  Future<String?> getTextContent(String filePath) async {
+    return null;
+  }
+
+  @override
   Future<void> storeEmbeddings(
     String filePath, {
     required List<String> chunkTexts,

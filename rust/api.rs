@@ -247,7 +247,7 @@ static INDEX_DB: Lazy<Mutex<Option<Connection>>> = Lazy::new(|| Mutex::new(None)
 
 /// Получить ссылку на подключение к БД.
 /// Если БД не инициализирована — возвращает ошибку.
-fn with_index_db<F, T>(f: F) -> Result<T, LateraError>
+pub(crate) fn with_index_db<F, T>(f: F) -> Result<T, LateraError>
 where
     F: FnOnce(&Connection) -> Result<T, LateraError>,
 {
