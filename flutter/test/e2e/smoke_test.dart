@@ -75,6 +75,11 @@ class E2EMockNotificationsService implements NotificationsService {
   }
 
   @override
+  Future<void> showFileNeedsReview({required String fileName}) async {
+    _shownNotifications.add('needs_review:$fileName');
+  }
+
+  @override
   Future<void> init() async {}
 }
 
@@ -231,6 +236,31 @@ class E2EMockIndexer implements Indexer {
 
   @override
   Future<bool> hasEmbeddings(String filePath) async => false;
+
+  @override
+  Future<bool> indexFileForReview(
+    String filePath, {
+    required String fileName,
+  }) async {
+    _indexedCount++;
+    return true;
+  }
+
+  @override
+  Future<List<InboxFile>> getFilesNeedingReview() async => [];
+
+  @override
+  Future<int> getFilesNeedingReviewCount() async => 0;
+
+  @override
+  Future<void> saveFileReview(
+    String filePath, {
+    required String description,
+    required String tags,
+  }) async {}
+
+  @override
+  Future<void> markFileEnriched(String filePath) async {}
 
   @override
   void dispose() {}

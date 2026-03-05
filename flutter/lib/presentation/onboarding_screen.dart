@@ -3,13 +3,18 @@ import 'package:flutter/material.dart';
 
 import '../infrastructure/rust/generated/api.dart';
 import '../infrastructure/rust/rust_core.dart';
+import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
 
 /// Экран онбординга для первого запуска.
 ///
 /// Позволяет пользователю:
+/// - Узнать, что отслеживает приложение
+/// - Увидеть информацию о приватности и хранении данных
 /// - Выбрать папку для наблюдения
-/// - Понять основные функции приложения
+///
+/// Важно: папка НЕ создаётся до нажатия кнопки «Начать работу».
+/// Создание происходит позже при вызове start_watching на MainScreen.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -20,6 +25,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   String? _selectedPath;
   String? _defaultPath;
+  String? _indexPath;
   bool _isProcessing = false;
   bool _useDefaultPath = false;
   bool _isLoadingDefault = true;
@@ -28,40 +34,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDefaultPath();
+    _loadPaths();
   }
 
-  Future<void> _loadDefaultPath() async {
-    // Сбрасываем состояние перед новой попыткой (в т.ч. при нажатии «Повторить»)
+  Future<void> _loadPaths() async {
     if (mounted) {
       setState(() {
         _isLoadingDefault = true;
         _loadError = null;
         _defaultPath = null;
+        _indexPath = null;
       });
     }
 
     try {
-      // Инициализируем Rust Core если ещё не инициализирован
       await RustCoreBootstrap.ensureInitialized();
-      
-      // Проверяем что инициализация прошла успешно перед вызовом API
+
       if (!RustCoreBootstrap.isInitialized) {
         throw StateError('RustCore failed to initialize');
       }
-      
-      // Получаем preview дефолтного пути из Rust (НЕ создаёт директорию)
-      // Это важно для приватности: показываем путь до согласия пользователя
-      final defaultPath = await getDefaultWatchPathPreview();
-      
+
+      // Оба вызова НЕ создают директории — только возвращают пути
+      final results = await Future.wait([
+        getDefaultWatchPathPreview(),
+        getIndexPath(),
+      ]);
+
       if (mounted) {
         setState(() {
-          _defaultPath = defaultPath;
+          _defaultPath = results[0];
+          _indexPath = results[1];
           _isLoadingDefault = false;
         });
       }
     } catch (e, st) {
-      debugPrint('Failed to load default watch path: $e\n$st');
+      debugPrint('Failed to load paths: $e\n$st');
       if (mounted) {
         setState(() {
           _loadError = e.toString();
@@ -72,9 +79,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Future<void> _selectFolder() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final result = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Выберите папку для наблюдения',
+        dialogTitle: l10n.onboardingSelectFolder,
       );
 
       if (result != null) {
@@ -87,7 +95,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка выбора папки: $e'),
+            content: Text(l10n.onboardingFolderPickError(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -103,18 +111,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
 
     try {
+      final l10n = AppLocalizations.of(context)!;
       final root = AppScope.of(context);
       final configService = root.configService;
 
-      // Определяем путь для сохранения
-      final pathToSave = _selectedPath ?? (_useDefaultPath ? _defaultPath : null);
-      
-      // Защита: если выбран дефолтный путь, но он не загружен - показать ошибку
+      final pathToSave =
+          _selectedPath ?? (_useDefaultPath ? _defaultPath : null);
+
       if (_useDefaultPath && _defaultPath == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Не удалось получить путь по умолчанию. Выберите папку вручную.'),
+            SnackBar(
+              content: Text(l10n.onboardingDefaultPathUnavailable),
               backgroundColor: Colors.orange,
             ),
           );
@@ -124,27 +132,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         }
         return;
       }
-      
-      // Сначала сохраняем путь (если выбран)
+
+      // Сохраняем путь — папка ещё НЕ создаётся.
+      // Создание произойдёт при start_watching на MainScreen.
       if (pathToSave != null) {
         await configService.updateValue(watchPath: pathToSave);
       }
 
-      // Только после успешного сохранения отмечаем onboarding
       await configService.completeOnboarding();
 
       if (mounted) {
-        // Переходим на главный экран
         Navigator.of(context).pushReplacementNamed('/main');
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
           _isProcessing = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка сохранения настроек: $e'),
+            content: Text(l10n.onboardingSaveError(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -161,17 +169,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   // === Логотип и заголовок ===
@@ -182,33 +190,59 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Добро пожаловать в Latera',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    l10n.onboardingTitle,
+                    style:
+                        Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
-                    'Приложение для отслеживания новых файлов в папке.\n'
-                    'Выберите папку, которую хотите наблюдать:',
+                    l10n.onboardingDescription,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                     textAlign: TextAlign.center,
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+
+                  // === Что отслеживает приложение ===
+                  _buildInfoCard(
+                    icon: Icons.visibility_outlined,
+                    title: l10n.onboardingWhatTracksTitle,
+                    items: [
+                      l10n.onboardingWhatTracksItem1,
+                      l10n.onboardingWhatTracksItem2,
+                      l10n.onboardingWhatTracksItem3,
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // === Конфиденциальность ===
+                  _buildInfoCard(
+                    icon: Icons.shield_outlined,
+                    title: l10n.onboardingPrivacyTitle,
+                    items: [
+                      l10n.onboardingPrivacyItem1,
+                      l10n.onboardingPrivacyItem2,
+                    ],
+                    accentColor: colorScheme.tertiary,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // === Где хранятся данные ===
+                  _buildDataStorageCard(),
+
+                  const SizedBox(height: 24),
 
                   // === Выбор папки ===
                   _buildFolderSelection(),
 
-                  const SizedBox(height: 32),
-
-                  // === Информация о приватности ===
-                  _buildPrivacyInfo(),
-
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
                   // === Кнопки ===
                   _buildButtons(),
@@ -221,7 +255,141 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  /// Карточка с иконкой, заголовком и списком bullet-пунктов.
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    required List<String> items,
+    Color? accentColor,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = accentColor ?? colorScheme.primary;
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final item in items)
+              Padding(
+                padding: const EdgeInsets.only(left: 4, top: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('•  ', style: TextStyle(color: color)),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Карточка «Где хранятся данные» с путём индекса из Rust API.
+  Widget _buildDataStorageCard() {
+    final l10n = AppLocalizations.of(context)!;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.storage_outlined,
+                    size: 20, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  l10n.onboardingDataStorageTitle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            // Индекс
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${l10n.onboardingIndexLocation} ',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Expanded(
+                    child: _isLoadingDefault
+                        ? const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            _indexPath ?? '—',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: colorScheme.outline),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            // Настройки
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4),
+              child: Text(
+                l10n.onboardingSettingsStorage,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: colorScheme.outline),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildFolderSelection() {
+    final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
 
     // Показываем ошибку загрузки
@@ -236,7 +404,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               const Icon(Icons.error_outline, color: Colors.red),
               const SizedBox(height: 8),
               Text(
-                'Ошибка загрузки: $_loadError',
+                l10n.onboardingLoadError(_loadError!),
                 style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
               ),
@@ -247,10 +415,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     _isLoadingDefault = true;
                     _loadError = null;
                   });
-                  _loadDefaultPath();
+                  _loadPaths();
                 },
                 icon: const Icon(Icons.refresh),
-                label: const Text('Повторить'),
+                label: Text(l10n.buttonRetry),
               ),
             ],
           ),
@@ -268,16 +436,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.folder_outlined,
-                  color: colorScheme.primary,
-                ),
+                Icon(Icons.folder_outlined, color: colorScheme.primary),
                 const SizedBox(width: 12),
                 Text(
-                  'Папка для наблюдения',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  l10n.onboardingFolderSectionTitle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -291,30 +457,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: _selectedPath != null 
-                      ? colorScheme.primary 
-                      : colorScheme.outline,
+                    color: _selectedPath != null
+                        ? colorScheme.primary
+                        : colorScheme.outline,
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      _selectedPath != null 
-                        ? Icons.check_circle 
-                        : Icons.create_new_folder_outlined,
-                      color: _selectedPath != null 
-                        ? Colors.green 
-                        : colorScheme.primary,
+                      _selectedPath != null
+                          ? Icons.check_circle
+                          : Icons.create_new_folder_outlined,
+                      color: _selectedPath != null
+                          ? Colors.green
+                          : colorScheme.primary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _selectedPath ?? 'Нажмите для выбора папки',
+                        _selectedPath ?? l10n.onboardingSelectFolder,
                         style: TextStyle(
-                          color: _selectedPath != null 
-                            ? null 
-                            : colorScheme.outline,
+                          color:
+                              _selectedPath != null ? null : colorScheme.outline,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -327,7 +492,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
             const SizedBox(height: 12),
 
-            // Опция "Использовать по умолчанию"
+            // Опция «Использовать по умолчанию»
             InkWell(
               onTap: _isLoadingDefault ? null : _useDefault,
               borderRadius: BorderRadius.circular(8),
@@ -335,33 +500,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: _useDefaultPath 
-                      ? colorScheme.primary 
-                      : colorScheme.outline.withValues(alpha: 0.5),
+                    color: _useDefaultPath
+                        ? colorScheme.primary
+                        : colorScheme.outline.withValues(alpha: 0.5),
                   ),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      _useDefaultPath 
-                        ? Icons.check_circle 
-                        : Icons.folder_special_outlined,
-                      color: _useDefaultPath 
-                        ? Colors.green 
-                        : colorScheme.outline,
+                      _useDefaultPath
+                          ? Icons.check_circle
+                          : Icons.folder_special_outlined,
+                      color:
+                          _useDefaultPath ? Colors.green : colorScheme.outline,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Использовать по умолчанию'),
+                          Text(l10n.onboardingUseDefault),
                           if (_isLoadingDefault)
                             const SizedBox(
                               width: 12,
                               height: 12,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2),
                             )
                           else
                             Text(
@@ -385,35 +550,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildPrivacyInfo() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.security,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Приложение отслеживает только выбранную вами папку. '
-              'Данные не покидают ваше устройство.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildButtons() {
-    final canContinue = _selectedPath != null || (_useDefaultPath && _defaultPath != null);
+    final l10n = AppLocalizations.of(context)!;
+    final canContinue =
+        _selectedPath != null || (_useDefaultPath && _defaultPath != null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -427,17 +567,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.arrow_forward),
-          label: Text(_isProcessing ? 'Загрузка...' : 'Начать работу'),
+          label:
+              Text(_isProcessing ? l10n.onboardingLoading : l10n.onboardingStartButton),
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
         const SizedBox(height: 8),
         Text(
-          'Папку можно изменить позже в настройках',
+          l10n.onboardingChangeLater,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.outline,
-          ),
+                color: Theme.of(context).colorScheme.outline,
+              ),
           textAlign: TextAlign.center,
         ),
       ],

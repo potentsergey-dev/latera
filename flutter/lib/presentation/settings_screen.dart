@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../domain/app_config.dart';
+import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
 
 /// Экран настроек приложения.
@@ -13,7 +14,8 @@ import 'app_scope.dart';
 /// Позволяет пользователю:
 /// - Выбрать папку для наблюдения
 /// - Включить/отключить уведомления
-/// - Открыть папку в проводнике
+/// - Управлять функциями обработки контента
+/// - Включить режим экономии ресурсов
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -31,15 +33,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _appVersion = '';
 
   @override
-  void initState() {
-    super.initState();
-    // ConfigService будет получен в didChangeDependencies
-  }
-
-  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Защита от повторной инициализации (didChangeDependencies может вызываться многократно)
     if (_initialized) return;
     _initialized = true;
     _configService = AppScope.of(context).configService;
@@ -64,7 +59,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     try {
       final config = await _configService.load();
-      // Асинхронная проверка существования папки
       await _checkFolderExists(config.watchPath);
       if (mounted) {
         setState(() {
@@ -82,7 +76,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  /// Асинхронно проверяет существование папки.
   Future<void> _checkFolderExists(String? path) async {
     if (path == null || path.isEmpty) {
       _folderExists = false;
@@ -96,9 +89,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _selectFolder() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final result = await FilePicker.platform.getDirectoryPath(
-        dialogTitle: 'Выберите папку для наблюдения',
+        dialogTitle: l10n.settingsSelectFolder,
         initialDirectory: _config.watchPath,
       );
 
@@ -111,13 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Папка изменена: $result'),
-              action: SnackBarAction(
-                label: 'OK',
-                onPressed: () {},
-              ),
-            ),
+            SnackBar(content: Text(l10n.settingsFolderChanged(result))),
           );
         }
       }
@@ -125,7 +113,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка выбора папки: $e'),
+            content: Text(l10n.settingsFolderPickError(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -134,41 +122,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _openFolder() async {
+    final l10n = AppLocalizations.of(context)!;
     final path = _config.watchPath;
     if (path == null || path.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Папка не выбрана'),
+        SnackBar(
+          content: Text(l10n.settingsFolderNotSelected),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // На Windows используем explorer.exe для надёжного открытия папки
-    // url_launcher с Uri.directory может не работать корректно
     try {
       if (Platform.isWindows) {
-        // Проверяем существование папки перед открытием
         final exists = await Directory(path).exists();
         if (!exists && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Папка не существует: $path'),
+              content: Text(l10n.settingsFolderNotExists(path)),
               backgroundColor: Colors.red,
             ),
           );
           return;
         }
 
-        // Валидация пути: защита от потенциально опасных символов
-        // explorer.exe принимает путь как аргумент, поэтому проверяем
-        // на наличие символов, которые могут быть интерпретированы shell
         if (_containsDangerousChars(path)) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Путь содержит недопустимые символы'),
+              SnackBar(
+                content: Text(l10n.settingsPathDangerousChars),
                 backgroundColor: Colors.red,
               ),
             );
@@ -176,22 +159,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return;
         }
 
-        // Используем Process.start вместо Process.run для большего контроля
-        // и избегаем shell interpretation
         await Process.start(
           'explorer.exe',
           [path],
           mode: ProcessStartMode.detached,
         );
       } else {
-        // На других платформах используем url_launcher
         final uri = Uri.directory(path);
         if (await canLaunchUrl(uri)) {
           await launchUrl(uri);
         } else if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Не удалось открыть папку: $path'),
+              content: Text(l10n.settingsOpenFolderError(path)),
               backgroundColor: Colors.red,
             ),
           );
@@ -201,7 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка открытия папки: $e'),
+            content: Text(l10n.settingsOpenFolderError(e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -209,13 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  /// Проверяет путь на наличие потенциально опасных символов.
-  ///
-  /// Explorer.exe принимает путь как аргумент командной строки,
-  /// поэтому некоторые символы могут быть интерпретированы некорректно.
   bool _containsDangerousChars(String path) {
-    // Проверяем на символы, которые могут вызвать проблемы
-    // в командной строке Windows
     final dangerousPattern = RegExp(r'[<>|&^"]');
     return dangerousPattern.hasMatch(path);
   }
@@ -248,13 +222,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _toggleTranscription(bool value) async {
-    await _configService.updateValue(enableTranscription: value);
-    setState(() {
-      _config = _config.copyWith(enableTranscription: value);
-    });
-  }
-
   Future<void> _toggleEmbeddings(bool value) async {
     await _configService.updateValue(enableEmbeddings: value);
     setState(() {
@@ -262,54 +229,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _toggleSemanticSimilarity(bool value) async {
-    await _configService.updateValue(enableSemanticSimilarity: value);
-    setState(() {
-      _config = _config.copyWith(enableSemanticSimilarity: value);
-    });
-  }
-
-  Future<void> _toggleRag(bool value) async {
-    await _configService.updateValue(enableRag: value);
-    setState(() {
-      _config = _config.copyWith(enableRag: value);
-    });
-  }
-
-  Future<void> _toggleAutoSummary(bool value) async {
-    await _configService.updateValue(enableAutoSummary: value);
-    setState(() {
-      _config = _config.copyWith(enableAutoSummary: value);
-    });
-  }
-
-  Future<void> _toggleAutoTags(bool value) async {
-    await _configService.updateValue(enableAutoTags: value);
-    setState(() {
-      _config = _config.copyWith(enableAutoTags: value);
-    });
-  }
-
   Future<void> _resetSettings() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Сбросить настройки?'),
-        content: const Text(
-          'Все настройки будут возвращены к значениям по умолчанию. '
-          'Папка наблюдения будет сброшена.',
-        ),
+        title: Text(l10n.settingsResetConfirmTitle),
+        content: Text(l10n.settingsResetConfirmBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Отмена'),
+            child: Text(l10n.buttonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Сбросить'),
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: Text(l10n.buttonReset),
           ),
         ],
       ),
@@ -320,7 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _loadConfig();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Настройки сброшены')),
+          SnackBar(content: Text(l10n.settingsResetDone)),
         );
       }
     }
@@ -328,9 +263,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Настройки'),
+        title: Text(l10n.settingsTitle),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -339,12 +276,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, 
-                        size: 48, 
-                        color: Colors.red,
-                      ),
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
                       const SizedBox(height: 16),
-                      Text('Ошибка загрузки настроек'),
+                      Text(l10n.settingsLoadError),
                       const SizedBox(height: 8),
                       Text(_error!, 
                         style: const TextStyle(color: Colors.grey),
@@ -354,27 +288,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       FilledButton.icon(
                         onPressed: _loadConfig,
                         icon: const Icon(Icons.refresh),
-                        label: const Text('Повторить'),
+                        label: Text(l10n.buttonRetry),
                       ),
                     ],
                   ),
                 )
-              : _buildContent(),
+              : _buildContent(l10n),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(AppLocalizations l10n) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // === Папка для наблюдения ===
           _buildSection(
-            title: 'Папка для наблюдения',
+            title: l10n.settingsSectionWatchFolder,
             children: [
-              _buildCurrentPathTile(),
-              _buildSelectFolderTile(),
-              _buildOpenFolderTile(),
+              _buildCurrentPathTile(l10n),
+              _buildSelectFolderTile(l10n),
+              _buildOpenFolderTile(l10n),
             ],
           ),
 
@@ -382,9 +316,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // === Уведомления ===
           _buildSection(
-            title: 'Уведомления',
+            title: l10n.settingsSectionNotifications,
             children: [
-              _buildNotificationsToggle(),
+              _buildNotificationsToggle(l10n),
             ],
           ),
 
@@ -392,9 +326,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // === Производительность ===
           _buildSection(
-            title: 'Производительность',
+            title: l10n.settingsSectionPerformance,
             children: [
-              _buildResourceSaverToggle(),
+              _buildResourceSaverToggle(l10n),
             ],
           ),
 
@@ -402,74 +336,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // === Обработка содержимого ===
           _buildSection(
-            title: 'Обработка содержимого',
+            title: l10n.settingsSectionContentProcessing,
             children: [
+              // --- Активные тумблеры ---
               _buildContentFeatureToggle(
                 icon: Icons.description_outlined,
-                title: 'Извлечение текста из документов',
-                subtitle: 'Поиск по содержимому PDF, DOCX и др.',
+                title: l10n.settingsTextExtraction,
+                subtitle: l10n.settingsTextExtractionHint,
                 value: _config.enableOfficeDocs,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs),
                 onChanged: _toggleOfficeDocs,
+                comingSoonLabel: l10n.settingsComingSoon,
+                disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
               _buildContentFeatureToggle(
                 icon: Icons.document_scanner_outlined,
-                title: 'Распознавание текста (OCR)',
-                subtitle: 'Текст со скриншотов, сканов и фото',
+                title: l10n.settingsOcr,
+                subtitle: l10n.settingsOcrHint,
                 value: _config.enableOcr,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.ocr),
                 onChanged: _toggleOcr,
-              ),
-              _buildContentFeatureToggle(
-                icon: Icons.mic_outlined,
-                title: 'Транскрибация медиа',
-                subtitle: 'Поиск по аудио и видео (Whisper)',
-                value: _config.enableTranscription,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.transcription),
-                onChanged: _toggleTranscription,
+                comingSoonLabel: l10n.settingsComingSoon,
+                disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
               _buildContentFeatureToggle(
                 icon: Icons.hub_outlined,
-                title: 'Семантический поиск',
-                subtitle: 'Поиск похожих документов по смыслу',
+                title: l10n.settingsSemanticSearch,
+                subtitle: l10n.settingsSemanticSearchHint,
                 value: _config.enableEmbeddings,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.embeddings),
                 onChanged: _toggleEmbeddings,
+                comingSoonLabel: l10n.settingsComingSoon,
+                disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
+
+              // --- Неактивные тумблеры (скоро) ---
               _buildContentFeatureToggle(
-                icon: Icons.find_replace_outlined,
-                title: 'Похожие файлы',
-                subtitle: 'Рекомендации похожих документов',
-                value: _config.enableSemanticSimilarity,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity),
-                onChanged: _toggleSemanticSimilarity,
+                icon: Icons.mic_outlined,
+                title: l10n.settingsTranscription,
+                subtitle: l10n.settingsTranscriptionHint,
+                value: _config.enableTranscription,
+                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.transcription),
+                onChanged: (_) {},
+                comingSoon: true,
+                comingSoonLabel: l10n.settingsComingSoon,
+                disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
               _buildContentFeatureToggle(
                 icon: Icons.chat_outlined,
-                title: 'Спроси свою папку (RAG)',
-                subtitle: 'Чат с ответами по файлам',
+                title: l10n.settingsRag,
+                subtitle: l10n.settingsRagHint,
                 value: _config.enableRag,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.rag),
-                onChanged: _toggleRag,
+                onChanged: (_) {},
                 comingSoon: true,
+                comingSoonLabel: l10n.settingsComingSoon,
+                disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
               _buildContentFeatureToggle(
                 icon: Icons.auto_awesome_outlined,
-                title: 'Автоматические описания',
-                subtitle: 'Автосаммари документов',
+                title: l10n.settingsAutoDescriptions,
+                subtitle: l10n.settingsAutoDescriptionsHint,
                 value: _config.enableAutoSummary,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary),
-                onChanged: _toggleAutoSummary,
+                onChanged: (_) {},
                 comingSoon: true,
+                comingSoonLabel: l10n.settingsComingSoon,
+                disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
               _buildContentFeatureToggle(
                 icon: Icons.label_outlined,
-                title: 'Автоматические теги',
-                subtitle: 'Автоприсвоение тегов по содержимому',
+                title: l10n.settingsAutoTags,
+                subtitle: l10n.settingsAutoTagsHint,
                 value: _config.enableAutoTags,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoTags),
-                onChanged: _toggleAutoTags,
+                onChanged: (_) {},
                 comingSoon: true,
+                comingSoonLabel: l10n.settingsComingSoon,
+                disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
             ],
           ),
@@ -478,10 +422,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // === Дополнительно ===
           _buildSection(
-            title: 'Дополнительно',
+            title: l10n.settingsSectionAdvanced,
             children: [
-              _buildResetTile(),
-              _buildVersionTile(),
+              _buildResetTile(l10n),
+              _buildVersionTile(l10n),
             ],
           ),
         ],
@@ -511,13 +455,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildCurrentPathTile() {
+  Widget _buildCurrentPathTile(AppLocalizations l10n) {
     final path = _config.watchPath;
-    final displayPath = path ?? 'Не настроена';
+    final displayPath = path ?? l10n.settingsNotConfigured;
     
     return ListTile(
       leading: const Icon(Icons.folder_outlined),
-      title: const Text('Текущий путь'),
+      title: Text(l10n.settingsCurrentPath),
       subtitle: Text(
         displayPath,
         maxLines: 2,
@@ -531,17 +475,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSelectFolderTile() {
+  Widget _buildSelectFolderTile(AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.create_new_folder_outlined),
-      title: const Text('Выбрать папку'),
-      subtitle: const Text('Укажите папку для отслеживания новых файлов'),
+      title: Text(l10n.settingsSelectFolder),
+      subtitle: Text(l10n.settingsSelectFolderHint),
       trailing: const Icon(Icons.chevron_right),
       onTap: _selectFolder,
     );
   }
 
-  Widget _buildOpenFolderTile() {
+  Widget _buildOpenFolderTile(AppLocalizations l10n) {
     final path = _config.watchPath;
     final canOpen = path != null && path.isNotEmpty && _folderExists;
     
@@ -551,15 +495,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: canOpen ? null : Theme.of(context).disabledColor,
       ),
       title: Text(
-        'Открыть в проводнике',
+        l10n.settingsOpenInExplorer,
         style: TextStyle(
           color: canOpen ? null : Theme.of(context).disabledColor,
         ),
       ),
       subtitle: Text(
         canOpen 
-          ? 'Открыть папку в файловом менеджере'
-          : 'Выберите папку для наблюдения',
+          ? l10n.settingsOpenInExplorerHint
+          : l10n.settingsSelectFolderFirst,
         style: TextStyle(
           color: Theme.of(context).colorScheme.outline,
         ),
@@ -570,17 +514,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildNotificationsToggle() {
+  Widget _buildNotificationsToggle(AppLocalizations l10n) {
     return SwitchListTile(
       secondary: const Icon(Icons.notifications_outlined),
-      title: const Text('Показывать уведомления'),
-      subtitle: const Text('Уведомления о новых файлах в папке'),
+      title: Text(l10n.settingsShowNotifications),
+      subtitle: Text(l10n.settingsShowNotificationsHint),
       value: _config.notificationsEnabled,
       onChanged: _toggleNotifications,
     );
   }
 
-  Widget _buildResourceSaverToggle() {
+  Widget _buildResourceSaverToggle(AppLocalizations l10n) {
     return SwitchListTile(
       secondary: Icon(
         Icons.battery_saver,
@@ -588,11 +532,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? Theme.of(context).colorScheme.tertiary
             : null,
       ),
-      title: const Text('Экономия ресурсов'),
+      title: Text(l10n.settingsResourceSaver),
       subtitle: Text(
         _config.resourceSaverEnabled
-            ? 'Тяжёлые функции отключены, лимиты уменьшены'
-            : 'Отключите ресурсоёмкие функции для слабых ПК',
+            ? l10n.settingsResourceSaverOnHint
+            : l10n.settingsResourceSaverOffHint,
       ),
       value: _config.resourceSaverEnabled,
       onChanged: _toggleResourceSaver,
@@ -600,9 +544,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// Переключатель контент-функции с учётом режима экономии.
-  ///
-  /// [comingSoon] — функция ещё не реализована (показать бейдж).
-  /// [effectiveValue] — реальное состояние с учётом режима экономии.
   Widget _buildContentFeatureToggle({
     required IconData icon,
     required String title,
@@ -610,6 +551,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool value,
     required bool effectiveValue,
     required ValueChanged<bool> onChanged,
+    required String comingSoonLabel,
+    required String disabledBySaverLabel,
     bool comingSoon = false,
   }) {
     final isOverriddenByResourceSaver =
@@ -632,7 +575,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                'скоро',
+                comingSoonLabel,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: Theme.of(context).colorScheme.outline,
                 ),
@@ -643,7 +586,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       subtitle: Text(
         isOverriddenByResourceSaver
-            ? '$subtitle • отключено режимом экономии'
+            ? '$subtitle \u2022 $disabledBySaverLabel'
             : subtitle,
         style: TextStyle(
           color: isOverriddenByResourceSaver
@@ -656,27 +599,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildResetTile() {
+  Widget _buildResetTile(AppLocalizations l10n) {
     return ListTile(
       leading: Icon(
         Icons.restore,
         color: Theme.of(context).colorScheme.error,
       ),
       title: Text(
-        'Сбросить настройки',
+        l10n.settingsResetSettings,
         style: TextStyle(
           color: Theme.of(context).colorScheme.error,
         ),
       ),
-      subtitle: const Text('Вернуть все настройки к значениям по умолчанию'),
+      subtitle: Text(l10n.settingsResetHint),
       onTap: _resetSettings,
     );
   }
 
-  Widget _buildVersionTile() {
+  Widget _buildVersionTile(AppLocalizations l10n) {
     return ListTile(
       leading: const Icon(Icons.info_outline),
-      title: const Text('Версия'),
+      title: Text(l10n.settingsVersion),
       subtitle: Text(_appVersion.isEmpty ? '...' : _appVersion),
     );
   }

@@ -279,6 +279,40 @@ class LocalNotificationsService implements NotificationsService {
     }
   }
 
+  @override
+  Future<void> showFileNeedsReview({required String fileName}) async {
+    await init();
+
+    final ctx = LogContext.withOperation('notification.showFileNeedsReview');
+
+    // Проверка троттлинга
+    if (!_shouldShowNotification('file_needs_review')) {
+      _log.debugWithContext('Notification throttled', ctx);
+      return;
+    }
+
+    try {
+      final id = _getNextNotificationId();
+
+      final details = _buildNotificationDetails();
+
+      await _plugin.show(
+        id: id,
+        title: 'Файл добавлен без распознавания',
+        body: 'Файл $fileName добавлен без распознавания. '
+            'Пожалуйста, добавьте описание вручную.',
+        notificationDetails: details,
+        payload: 'file_needs_review:$fileName',
+      );
+
+      _recordNotification('file_needs_review');
+      _log.infoWithContext('Needs-review notification shown: $fileName', ctx);
+    } catch (e, st) {
+      _log.errorWithContext('Failed to show needs-review notification', ctx, error: e, stackTrace: st);
+      // Не пробрасываем — это тихое уведомление, ошибка не должна прерывать поток
+    }
+  }
+
   /// Проверить, можно ли показать уведомление (троттлинг).
   bool _shouldShowNotification(String type) {
     final now = DateTime.now();

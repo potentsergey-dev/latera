@@ -22,3 +22,5 @@ certs/
 *.pfx
 *.cer
 base64-cert.txt
+# ...existing code...
+rust/test_data/models/**/*.onnx

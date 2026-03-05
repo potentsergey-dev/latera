@@ -1,0 +1,252 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Latera",
+  "@appTitle": { "description": "Application title" },
+
+  "buttonStart": "Start",
+  "@buttonStart": { "description": "Start button label" },
+
+  "buttonSave": "Save",
+  "@buttonSave": { "description": "Save button label" },
+
+  "buttonSearch": "Search",
+  "@buttonSearch": { "description": "Search button label" },
+
+  "buttonRetry": "Retry",
+  "@buttonRetry": { "description": "Retry button label" },
+
+  "onboardingTitle": "Welcome to Latera",
+  "@onboardingTitle": { "description": "Onboarding screen title" },
+
+  "onboardingSubtitle": "Your intelligent document assistant",
+  "@onboardingSubtitle": { "description": "Onboarding screen subtitle" },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": { "description": "Settings screen title" },
+
+  "needsAttentionTitle": "Needs Attention",
+  "@needsAttentionTitle": { "description": "Needs Attention section title" },
+
+  "initializationError": "Initialization error",
+  "@initializationError": { "description": "Error title shown when app fails to initialize" },
+
+  "onboardingDescription": "App for tracking new files in a folder.\nSelect a folder to watch:",
+  "@onboardingDescription": { "description": "Onboarding screen description" },
+
+  "onboardingWhatTracksTitle": "What the app tracks",
+  "@onboardingWhatTracksTitle": { "description": "Section title: what is monitored" },
+
+  "onboardingWhatTracksItem1": "Only new files in the selected folder",
+  "@onboardingWhatTracksItem1": { "description": "Tracking info bullet 1" },
+
+  "onboardingWhatTracksItem2": "File names and paths for search",
+  "@onboardingWhatTracksItem2": { "description": "Tracking info bullet 2" },
+
+  "onboardingWhatTracksItem3": "Content is processed locally",
+  "@onboardingWhatTracksItem3": { "description": "Tracking info bullet 3" },
+
+  "onboardingPrivacyTitle": "Privacy",
+  "@onboardingPrivacyTitle": { "description": "Section title: privacy" },
+
+  "onboardingPrivacyItem1": "Data does not leave your device",
+  "@onboardingPrivacyItem1": { "description": "Privacy bullet 1" },
+
+  "onboardingPrivacyItem2": "Files and their content are not sent to the internet",
+  "@onboardingPrivacyItem2": { "description": "Privacy bullet 2" },
+
+  "onboardingDataStorageTitle": "Where data is stored",
+  "@onboardingDataStorageTitle": { "description": "Section title: data storage" },
+
+  "onboardingIndexLocation": "Index:",
+  "@onboardingIndexLocation": { "description": "Label for index path" },
+
+  "onboardingSettingsStorage": "Settings: local storage",
+  "@onboardingSettingsStorage": { "description": "Settings storage info" },
+
+  "onboardingFolderSectionTitle": "Watch folder",
+  "@onboardingFolderSectionTitle": { "description": "Section title: folder selection" },
+
+  "onboardingSelectFolder": "Select folder...",
+  "@onboardingSelectFolder": { "description": "Button to pick a folder" },
+
+  "onboardingUseDefault": "Use default",
+  "@onboardingUseDefault": { "description": "Use default folder option" },
+
+  "onboardingStartButton": "Start working",
+  "@onboardingStartButton": { "description": "Onboarding accept/start button" },
+
+  "onboardingChangeLater": "You can change the folder later in settings",
+  "@onboardingChangeLater": { "description": "Hint below the start button" },
+
+  "onboardingLoading": "Loading...",
+  "@onboardingLoading": { "description": "Generic loading label" },
+
+  "onboardingLoadError": "Loading error: {error}",
+  "@onboardingLoadError": { "description": "Error loading default path", "placeholders": { "error": { "type": "String" } } },
+
+  "onboardingFolderPickError": "Error selecting folder: {error}",
+  "@onboardingFolderPickError": { "description": "Error picking folder", "placeholders": { "error": { "type": "String" } } },
+
+  "onboardingDefaultPathUnavailable": "Default path could not be loaded. Please select a folder manually.",
+  "@onboardingDefaultPathUnavailable": { "description": "Warning when default path fails" },
+
+  "onboardingSaveError": "Error saving settings: {error}",
+  "@onboardingSaveError": { "description": "Error saving onboarding config", "placeholders": { "error": { "type": "String" } } },
+
+  "settingsSectionWatchFolder": "Watch folder",
+  "@settingsSectionWatchFolder": { "description": "Settings section: watch folder" },
+
+  "settingsCurrentPath": "Current path",
+  "@settingsCurrentPath": { "description": "Label for current watch path" },
+
+  "settingsNotConfigured": "Not configured",
+  "@settingsNotConfigured": { "description": "Shown when watch folder is not set" },
+
+  "settingsSelectFolder": "Select folder",
+  "@settingsSelectFolder": { "description": "Button to select watch folder" },
+
+  "settingsSelectFolderHint": "Choose a folder to monitor for new files",
+  "@settingsSelectFolderHint": { "description": "Subtitle for select folder tile" },
+
+  "settingsOpenInExplorer": "Open in Explorer",
+  "@settingsOpenInExplorer": { "description": "Open folder in file manager" },
+
+  "settingsOpenInExplorerHint": "Open folder in file manager",
+  "@settingsOpenInExplorerHint": { "description": "Subtitle for open folder tile" },
+
+  "settingsSelectFolderFirst": "Select a watch folder first",
+  "@settingsSelectFolderFirst": { "description": "Hint when no folder is selected" },
+
+  "settingsSectionNotifications": "Notifications",
+  "@settingsSectionNotifications": { "description": "Settings section: notifications" },
+
+  "settingsShowNotifications": "Show notifications",
+  "@settingsShowNotifications": { "description": "Toggle label for notifications" },
+
+  "settingsShowNotificationsHint": "Notifications about new files in folder",
+  "@settingsShowNotificationsHint": { "description": "Subtitle for notifications toggle" },
+
+  "settingsSectionPerformance": "Performance",
+  "@settingsSectionPerformance": { "description": "Settings section: performance" },
+
+  "settingsResourceSaver": "Resource saving",
+  "@settingsResourceSaver": { "description": "Toggle label for resource saving mode" },
+
+  "settingsResourceSaverOnHint": "Heavy features disabled, limits reduced",
+  "@settingsResourceSaverOnHint": { "description": "Subtitle when resource saver is ON" },
+
+  "settingsResourceSaverOffHint": "Disable resource-intensive features for low-end PCs",
+  "@settingsResourceSaverOffHint": { "description": "Subtitle when resource saver is OFF" },
+
+  "settingsSectionContentProcessing": "Content processing",
+  "@settingsSectionContentProcessing": { "description": "Settings section: content processing" },
+
+  "settingsTextExtraction": "Text extraction",
+  "@settingsTextExtraction": { "description": "Toggle label for text extraction" },
+
+  "settingsTextExtractionHint": "Search by content of PDF, DOCX and others",
+  "@settingsTextExtractionHint": { "description": "Subtitle for text extraction toggle" },
+
+  "settingsOcr": "Text recognition (OCR)",
+  "@settingsOcr": { "description": "Toggle label for OCR" },
+
+  "settingsOcrHint": "Text from screenshots, scans and photos",
+  "@settingsOcrHint": { "description": "Subtitle for OCR toggle" },
+
+  "settingsSemanticSearch": "Semantic search",
+  "@settingsSemanticSearch": { "description": "Toggle label for semantic search" },
+
+  "settingsSemanticSearchHint": "Find similar documents by meaning",
+  "@settingsSemanticSearchHint": { "description": "Subtitle for semantic search toggle" },
+
+  "settingsTranscription": "Media transcription (Whisper)",
+  "@settingsTranscription": { "description": "Toggle label for media transcription" },
+
+  "settingsTranscriptionHint": "Search by audio and video content",
+  "@settingsTranscriptionHint": { "description": "Subtitle for transcription toggle" },
+
+  "settingsRag": "Ask your folder (RAG)",
+  "@settingsRag": { "description": "Toggle label for RAG" },
+
+  "settingsRagHint": "Chat with answers from your files",
+  "@settingsRagHint": { "description": "Subtitle for RAG toggle" },
+
+  "settingsAutoDescriptions": "Automatic descriptions",
+  "@settingsAutoDescriptions": { "description": "Toggle label for auto descriptions" },
+
+  "settingsAutoDescriptionsHint": "Auto-summary of documents",
+  "@settingsAutoDescriptionsHint": { "description": "Subtitle for auto descriptions toggle" },
+
+  "settingsAutoTags": "Automatic tags",
+  "@settingsAutoTags": { "description": "Toggle label for auto tags" },
+
+  "settingsAutoTagsHint": "Auto-assign tags by content",
+  "@settingsAutoTagsHint": { "description": "Subtitle for auto tags toggle" },
+
+  "settingsComingSoon": "soon",
+  "@settingsComingSoon": { "description": "Badge label for features not yet available" },
+
+  "settingsDisabledByResourceSaver": "disabled by resource saving mode",
+  "@settingsDisabledByResourceSaver": { "description": "Suffix when feature is overridden by resource saver" },
+
+  "settingsSectionAdvanced": "Advanced",
+  "@settingsSectionAdvanced": { "description": "Settings section: advanced" },
+
+  "settingsResetSettings": "Reset settings",
+  "@settingsResetSettings": { "description": "Button to reset all settings" },
+
+  "settingsResetHint": "Return all settings to defaults",
+  "@settingsResetHint": { "description": "Subtitle for reset button" },
+
+  "settingsResetConfirmTitle": "Reset settings?",
+  "@settingsResetConfirmTitle": { "description": "Reset confirmation dialog title" },
+
+  "settingsResetConfirmBody": "All settings will be returned to defaults. The watch folder will be reset.",
+  "@settingsResetConfirmBody": { "description": "Reset confirmation dialog body" },
+
+  "settingsResetDone": "Settings reset",
+  "@settingsResetDone": { "description": "Snackbar after settings reset" },
+
+  "settingsVersion": "Version",
+  "@settingsVersion": { "description": "App version label" },
+
+  "settingsFolderChanged": "Folder changed: {path}",
+  "@settingsFolderChanged": { "description": "Snackbar after folder change", "placeholders": { "path": { "type": "String" } } },
+
+  "settingsFolderPickError": "Error selecting folder: {error}",
+  "@settingsFolderPickError": { "description": "Error picking folder", "placeholders": { "error": { "type": "String" } } },
+
+  "settingsFolderNotSelected": "Folder not selected",
+  "@settingsFolderNotSelected": { "description": "Error when trying to open unselected folder" },
+
+  "settingsFolderNotExists": "Folder does not exist: {path}",
+  "@settingsFolderNotExists": { "description": "Error when folder does not exist", "placeholders": { "path": { "type": "String" } } },
+
+  "settingsPathDangerousChars": "Path contains invalid characters",
+  "@settingsPathDangerousChars": { "description": "Error for dangerous path chars" },
+
+  "settingsOpenFolderError": "Error opening folder: {error}",
+  "@settingsOpenFolderError": { "description": "Error opening folder", "placeholders": { "error": { "type": "String" } } },
+
+  "settingsLoadError": "Error loading settings",
+  "@settingsLoadError": { "description": "Error title when settings fail to load" },
+
+  "buttonCancel": "Cancel",
+  "@buttonCancel": { "description": "Cancel button label" },
+
+  "buttonReset": "Reset",
+  "@buttonReset": { "description": "Reset button label" },
+
+  "trayShowWindow": "Open Latera",
+  "@trayShowWindow": { "description": "Tray menu: show main window" },
+
+  "trayQuit": "Quit",
+  "@trayQuit": { "description": "Tray menu: quit application" },
+
+  "notificationFileNeedsReviewTitle": "File added without recognition",
+  "@notificationFileNeedsReviewTitle": { "description": "Notification title when file could not be parsed" },
+
+  "notificationFileNeedsReviewBody": "File {fileName} added without recognition. Please add a description manually.",
+  "@notificationFileNeedsReviewBody": { "description": "Notification body for unrecognized file", "placeholders": { "fileName": { "type": "String" } } }
+}

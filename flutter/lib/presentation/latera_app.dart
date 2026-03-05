@@ -1,9 +1,13 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 import '../infrastructure/di/app_composition_root.dart';
+import '../infrastructure/tray/tray_service.dart';
 import 'app_scope.dart';
+import 'inbox_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
 import 'rag_screen.dart';
@@ -23,6 +27,7 @@ class LateraApp extends StatefulWidget {
 
 class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
   AppCompositionRoot? _root;
+  TrayService? _trayService;
   bool _isLoading = true;
   bool _needsOnboarding = false;
   String? _error;
@@ -40,10 +45,15 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       
       // Проверяем, нужен ли онбординг
       final needsOnboarding = !root.configService.isOnboardingCompleted;
+
+      // Инициализируем системный трей
+      final tray = TrayService();
+      await tray.initialize(onQuitRequested: _onQuitRequested);
       
       if (mounted) {
         setState(() {
           _root = root;
+          _trayService = tray;
           _needsOnboarding = needsOnboarding;
           _isLoading = false;
         });
@@ -59,6 +69,21 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
     }
   }
 
+  /// Вызывается при выборе «Выход» в меню трея.
+  void _onQuitRequested() {
+    unawaited(_shutdown());
+  }
+
+  Future<void> _shutdown() async {
+    await _trayService?.destroy();
+    if (_root != null) {
+      await _root!.dispose().catchError((e, st) {
+        debugPrint('Error during AppCompositionRoot dispose: $e\n$st');
+      });
+    }
+    exit(0);
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // При полном отключении приложения освобождаем ресурсы
@@ -70,8 +95,11 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    // Освобождаем ресурсы при dispose виджета
-    // unawaited используется т.к. State.dispose() не может быть async
+    if (_trayService != null) {
+      unawaited(_trayService!.destroy().catchError((e, st) {
+        debugPrint('Error during TrayService destroy: $e\n$st');
+      }));
+    }
     if (_root != null) {
       unawaited(_root!.dispose().catchError((e, st) {
         debugPrint('Error during AppCompositionRoot dispose: $e\n$st');
@@ -89,6 +117,8 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       return MaterialApp(
         title: 'Latera',
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: ThemeData(
           colorScheme: colorScheme,
           useMaterial3: true,
@@ -106,6 +136,8 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       return MaterialApp(
         title: 'Latera',
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: ThemeData(
           colorScheme: colorScheme,
           useMaterial3: true,
@@ -155,6 +187,8 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       child: MaterialApp(
         title: 'Latera',
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: ThemeData(
           colorScheme: colorScheme,
           useMaterial3: true,
@@ -164,10 +198,26 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
           '/onboarding': (context) => const OnboardingScreen(),
           '/main': (context) => const MainScreen(),
           '/search': (context) => const SearchScreen(),
+          '/inbox': (context) => const InboxScreen(),
           '/rag': (context) => const RagScreen(),
           '/settings': (context) => const SettingsScreen(),
         },
+        builder: (context, child) {
+          // Обновляем меню трея после получения локализации
+          _updateTrayMenu(context);
+          return child!;
+        },
       ),
     );
+  }
+
+  void _updateTrayMenu(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n != null && _trayService != null) {
+      _trayService!.updateMenu(
+        showLabel: l10n.trayShowWindow,
+        quitLabel: l10n.trayQuit,
+      );
+    }
   }
 }

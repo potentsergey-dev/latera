@@ -229,6 +229,36 @@ class SqliteIndexService implements Indexer, SearchRepository {
       );
     }
 
+    // === Phase 4: Inbox (Требуют внимания) ===
+    // Миграция: добавляем needs_review и tags колонки
+    final hasNeedsReview =
+        db
+                .select(
+                  "SELECT COUNT(*) as cnt FROM pragma_table_info('files') WHERE name='needs_review'",
+                )
+                .first['cnt']
+            as int;
+    if (hasNeedsReview == 0) {
+      db.execute(
+        "ALTER TABLE files ADD COLUMN needs_review INTEGER NOT NULL DEFAULT 0;",
+      );
+      _log.i('Migrated: added needs_review column to files table');
+    }
+
+    final hasTagsCol =
+        db
+                .select(
+                  "SELECT COUNT(*) as cnt FROM pragma_table_info('files') WHERE name='tags'",
+                )
+                .first['cnt']
+            as int;
+    if (hasTagsCol == 0) {
+      db.execute(
+        "ALTER TABLE files ADD COLUMN tags TEXT DEFAULT '';",
+      );
+      _log.i('Migrated: added tags column to files table');
+    }
+
     _db = db;
     _log.i('Index database initialized at: $_dbPath');
   }
@@ -444,6 +474,102 @@ class SqliteIndexService implements Indexer, SearchRepository {
       [filePath],
     );
     return (rows.first['cnt'] as int) > 0;
+  }
+
+  // ====================================================================
+  // Indexer — Inbox (Phase 4)
+  // ====================================================================
+
+  @override
+  Future<bool> indexFileForReview(
+    String filePath, {
+    required String fileName,
+  }) async {
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final textContent = await _extractText(filePath);
+
+      if (textContent != null) {
+        _database.execute(
+          '''INSERT INTO files (file_path, file_name, description, text_content, needs_review, indexed_at)
+             VALUES (?, ?, '', ?, 1, ?)
+             ON CONFLICT(file_path) DO UPDATE SET
+                file_name = excluded.file_name,
+                text_content = excluded.text_content,
+                needs_review = 1,
+                indexed_at = excluded.indexed_at''',
+          [filePath, fileName, textContent, now],
+        );
+      } else {
+        _database.execute(
+          '''INSERT INTO files (file_path, file_name, description, text_content, needs_review, indexed_at)
+             VALUES (?, ?, '', '', 1, ?)
+             ON CONFLICT(file_path) DO UPDATE SET
+                file_name = excluded.file_name,
+                needs_review = 1,
+                indexed_at = excluded.indexed_at''',
+          [filePath, fileName, now],
+        );
+      }
+
+      _log.d('Indexed file for review: $fileName (path=$filePath)');
+      return true;
+    } catch (e, st) {
+      _log.e('Failed to index file for review: $filePath', error: e, stackTrace: st);
+      return false;
+    }
+  }
+
+  @override
+  Future<List<InboxFile>> getFilesNeedingReview() async {
+    final rows = _database.select(
+      '''SELECT file_path, file_name, description, tags, indexed_at
+         FROM files
+         WHERE needs_review = 1
+         ORDER BY indexed_at DESC''',
+    );
+    return rows.map((row) {
+      return InboxFile(
+        filePath: row['file_path'] as String,
+        fileName: row['file_name'] as String,
+        description: (row['description'] as String?) ?? '',
+        tags: (row['tags'] as String?) ?? '',
+        indexedAt: DateTime.fromMillisecondsSinceEpoch(
+          (row['indexed_at'] as int) * 1000,
+        ),
+      );
+    }).toList();
+  }
+
+  @override
+  Future<int> getFilesNeedingReviewCount() async {
+    final result = _database.select(
+      'SELECT COUNT(*) FROM files WHERE needs_review = 1',
+    );
+    return result.first.columnAt(0) as int;
+  }
+
+  @override
+  Future<void> saveFileReview(
+    String filePath, {
+    required String description,
+    required String tags,
+  }) async {
+    _database.execute(
+      '''UPDATE files SET description = ?, tags = ?, needs_review = 0
+         WHERE file_path = ?''',
+      [description, tags, filePath],
+    );
+    _log.i('Saved review for: $filePath (desc=${description.length} chars, tags=$tags)');
+  }
+
+  @override
+  Future<void> markFileEnriched(String filePath) async {
+    _database.execute(
+      'UPDATE files SET needs_review = 0 WHERE file_path = ? AND needs_review = 1',
+      [filePath],
+    );
+    _log.d('Marked file as enriched (cleared needs_review): $filePath');
   }
 
   /// Возвращает список файлов (filePath, fileName), у которых нет эмбеддингов.

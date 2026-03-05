@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import '../domain/app_config.dart';
 import '../domain/embeddings.dart';
 import '../domain/indexer.dart';
+import '../domain/notifications_service.dart';
 import '../domain/ocr.dart';
 import '../domain/text_extraction.dart';
 import '../domain/transcription.dart';
@@ -74,6 +75,27 @@ class EnrichmentJob {
 }
 
 // ============================================================================
+// Per-file enrichment tracker
+// ============================================================================
+
+/// Отслеживает результаты обогащения для одного файла.
+///
+/// Позволяет определить, когда все задачи для файла завершены,
+/// и было ли хотя бы одно успешное извлечение контента.
+class _FileEnrichmentTracker {
+  final String fileName;
+
+  /// Количество ожидающих/активных задач извлечения контента
+  /// (textExtraction, OCR, transcription — но НЕ embeddings).
+  int pendingContentJobs = 0;
+
+  /// Был ли контент успешно извлечён хотя бы одной задачей.
+  bool contentExtracted = false;
+
+  _FileEnrichmentTracker({required this.fileName});
+}
+
+// ============================================================================
 // Coordinator
 // ============================================================================
 
@@ -106,12 +128,16 @@ class ContentEnrichmentCoordinator {
   final AudioTranscriber _transcriber;
   final EmbeddingService _embeddingService;
   final OcrService _ocrService;
+  final NotificationsService _notifications;
 
   StreamSubscription<FileAddedUiEvent>? _fileEventSub;
   final Queue<EnrichmentJob> _queue = Queue<EnrichmentJob>();
   int _activeJobs = 0;
   final bool _isProcessing = false;
   bool _isDisposed = false;
+
+  /// Трекеры обогащения по filePath — отслеживают цикл обогащения для каждого файла.
+  final Map<String, _FileEnrichmentTracker> _trackers = {};
 
   /// Расширения, требующие rich text extraction.
   static const _richExtensions = {'pdf', 'docx'};
@@ -153,13 +179,15 @@ class ContentEnrichmentCoordinator {
     required AudioTranscriber transcriber,
     required EmbeddingService embeddingService,
     required OcrService ocrService,
+    required NotificationsService notifications,
   }) : _log = logger,
        _configService = configService,
        _indexer = indexer,
        _extractor = extractor,
        _transcriber = transcriber,
        _embeddingService = embeddingService,
-       _ocrService = ocrService;
+       _ocrService = ocrService,
+       _notifications = notifications;
 
   /// Stream завершённых (или проваленных) задач обогащения.
   Stream<EnrichmentJob> get completedJobs => _completedController.stream;
@@ -225,6 +253,11 @@ class ContentEnrichmentCoordinator {
 
     final config = _configService.currentConfig;
 
+    // Инициализируем трекер для файла — отслеживает,
+    // была ли хотя бы одна успешная экстракция контента.
+    final tracker = _FileEnrichmentTracker(fileName: event.fileName);
+    _trackers[event.fullPath!] = tracker;
+
     // Rich text extraction (PDF, DOCX)
     if (_richExtensions.contains(ext)) {
       if (!config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs)) {
@@ -236,6 +269,7 @@ class ContentEnrichmentCoordinator {
           type: EnrichmentJobType.textExtraction,
         );
         _queue.add(job);
+        tracker.pendingContentJobs++;
         _log.d('Enqueued text extraction job: ${event.fileName}');
       }
     }
@@ -251,6 +285,7 @@ class ContentEnrichmentCoordinator {
           type: EnrichmentJobType.transcription,
         );
         _queue.add(job);
+        tracker.pendingContentJobs++;
         _log.d('Enqueued transcription job: ${event.fileName}');
       }
     }
@@ -266,6 +301,7 @@ class ContentEnrichmentCoordinator {
           type: EnrichmentJobType.ocr,
         );
         _queue.add(job);
+        tracker.pendingContentJobs++;
         _log.d('Enqueued OCR job: ${event.fileName}');
       }
     }
@@ -294,7 +330,37 @@ class ContentEnrichmentCoordinator {
       _log.d('Enqueued embeddings job: ${event.fileName}');
     }
 
+    // Для текстовых файлов (txt, md, rs...) контент извлекается автоматически
+    // при indexFileForReview. Помечаем файл как обогащённый сразу.
+    if (!needsPreprocessing) {
+      unawaited(_markEnrichedIfTextFile(event.fullPath!, ext));
+    }
+
     _processQueue();
+  }
+
+  /// Помечает текстовый файл как обогащённый (убирает needs_review).
+  ///
+  /// Текстовые файлы (.txt, .md, .rs и т.д.) уже имеют свой контент
+  /// прочитанным при indexFileForReview, поэтому не требуют внимания.
+  Future<void> _markEnrichedIfTextFile(String filePath, String ext) async {
+    // Расширения из SqliteIndexService._textExtensions
+    const textExtensions = <String>{
+      'txt', 'md', 'markdown', 'rst', 'log', 'csv', 'tsv',
+      'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'properties',
+      'rs', 'dart', 'py', 'js', 'ts', 'java', 'kt', 'c', 'cpp', 'h', 'hpp',
+      'cs', 'go', 'rb', 'php', 'swift', 'sh', 'bash', 'ps1', 'bat', 'cmd',
+      'html', 'htm', 'css', 'scss', 'sass', 'less',
+      'sql', 'graphql', 'proto', 'env',
+    };
+    if (textExtensions.contains(ext)) {
+      try {
+        await _indexer.markFileEnriched(filePath);
+        _trackers.remove(filePath);
+      } catch (e) {
+        _log.w('Failed to mark text file as enriched: $filePath', error: e);
+      }
+    }
   }
 
   void _processQueue() {
@@ -306,6 +372,44 @@ class ContentEnrichmentCoordinator {
       final job = _queue.removeFirst();
       _activeJobs++;
       unawaited(_processJob(job));
+    }
+  }
+
+  /// Вызывается после завершения задачи извлечения контента (успех или неудача).
+  ///
+  /// Обновляет трекер и при завершении всех контент-задач для файла:
+  /// - если контент был извлечён → снимает needs_review
+  /// - если контент НЕ был извлечён → отправляет тихое уведомление
+  Future<void> _onContentJobCompleted(EnrichmentJob job, {required bool success}) async {
+    final tracker = _trackers[job.filePath];
+    if (tracker == null) return;
+
+    if (success) {
+      tracker.contentExtracted = true;
+    }
+    tracker.pendingContentJobs--;
+
+    // Все контент-задачи для файла завершились
+    if (tracker.pendingContentJobs <= 0) {
+      _trackers.remove(job.filePath);
+
+      if (tracker.contentExtracted) {
+        // Контент успешно извлечён → убираем из Inbox
+        try {
+          await _indexer.markFileEnriched(job.filePath);
+          _log.i('File enriched, removed from inbox: ${job.fileName}');
+        } catch (e) {
+          _log.w('Failed to mark file as enriched: ${job.filePath}', error: e);
+        }
+      } else {
+        // Контент НЕ извлечён → файл остаётся в Inbox, отправляем тихий Toast
+        _log.i('File not recognized, stays in inbox: ${job.fileName}');
+        try {
+          await _notifications.showFileNeedsReview(fileName: job.fileName);
+        } catch (e) {
+          _log.w('Failed to show needs-review notification: ${job.fileName}', error: e);
+        }
+      }
     }
   }
 
@@ -341,6 +445,20 @@ class ContentEnrichmentCoordinator {
     }
   }
 
+  /// Проверяет, является ли текст достаточно осмысленным, чтобы считать
+  /// процесс извлечения контента успешным (иначе файл останется в Inbox).
+  bool _isTextMeaningful(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return false;
+    
+    // Если текст слишком короткий - это наверняка мусор или пара цифр
+    if (trimmed.length <= 3) return false;
+
+    // Ищем хотя бы одну букву. Если только цифры/символы - считаем неосмысленным
+    final hasLetters = RegExp(r'[a-zA-Zа-яА-ЯёЁ]').hasMatch(text);
+    return hasLetters;
+  }
+
   Future<void> _processTextExtraction(EnrichmentJob job) async {
     final limits = _configService.currentConfig.effectiveLimits;
     final options = ExtractionOptions(
@@ -358,7 +476,13 @@ class ContentEnrichmentCoordinator {
         '(${result.contentType}, ${result.text.length} chars'
         '${result.pagesExtracted > 0 ? ", ${result.pagesExtracted} pages" : ""})',
       );
-      _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+      
+      final isMeaningful = _isTextMeaningful(result.text);
+      await _onContentJobCompleted(job, success: isMeaningful);
+      
+      if (isMeaningful) {
+        _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+      }
     } else {
       // Если PDF не содержит текстового слоя — возможно, это скан.
       // При включённом OCR отправляем его на распознавание.
@@ -374,7 +498,16 @@ class ContentEnrichmentCoordinator {
           type: EnrichmentJobType.ocr,
         );
         _queue.add(ocrJob);
+        // Трекер: переносим ожидание на OCR-задачу (не уменьшаем pending,
+        // а добавляем новую задачу)
+        final tracker = _trackers[job.filePath];
+        if (tracker != null) {
+          tracker.pendingContentJobs++; // +1 за новую OCR задачу
+        }
+        // Текущая задача считается завершённой (не failed),
+        // но контент не извлечён — отмечаем как «передано в OCR».
         job.status = EnrichmentJobStatus.completed;
+        await _onContentJobCompleted(job, success: false);
       } else {
         job.status = EnrichmentJobStatus.failed;
         job.errorCode = result.errorCode;
@@ -382,6 +515,7 @@ class ContentEnrichmentCoordinator {
           'Failed to enrich file: ${job.fileName} '
           '(error: ${result.errorCode})',
         );
+        await _onContentJobCompleted(job, success: false);
       }
     }
   }
@@ -403,7 +537,13 @@ class ContentEnrichmentCoordinator {
         '(${result.contentType}, ${result.text.length} chars, '
         '${result.durationSeconds}s)',
       );
-      _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+      
+      final isMeaningful = _isTextMeaningful(result.text);
+      await _onContentJobCompleted(job, success: isMeaningful);
+      
+      if (isMeaningful) {
+        _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+      }
     } else {
       job.status = EnrichmentJobStatus.failed;
       job.errorCode = result.errorCode;
@@ -411,6 +551,7 @@ class ContentEnrichmentCoordinator {
         'Failed to transcribe file: ${job.fileName} '
         '(error: ${result.errorCode})',
       );
+      await _onContentJobCompleted(job, success: false);
     }
   }
 
@@ -478,7 +619,13 @@ class ContentEnrichmentCoordinator {
         '${result.pagesProcessed > 0 ? ", ${result.pagesProcessed} pages" : ""}'
         '${result.confidence != null ? ", conf=${result.confidence!.toStringAsFixed(2)}" : ""})',
       );
-      _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+      
+      final isMeaningful = _isTextMeaningful(result.text);
+      await _onContentJobCompleted(job, success: isMeaningful);
+      
+      if (isMeaningful) {
+        _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+      }
     } else {
       job.status = EnrichmentJobStatus.failed;
       job.errorCode = result.errorCode;
@@ -486,6 +633,7 @@ class ContentEnrichmentCoordinator {
         'OCR failed: ${job.fileName} '
         '(error: ${result.errorCode})',
       );
+      await _onContentJobCompleted(job, success: false);
     }
   }
 

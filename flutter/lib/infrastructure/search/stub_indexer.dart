@@ -96,6 +96,45 @@ class StubIndexer implements Indexer {
   }
 
   @override
+  Future<bool> indexFileForReview(
+    String filePath, {
+    required String fileName,
+  }) async {
+    _log.w(
+      'SQLite is not connected yet. indexFileForReview(filePath=$filePath) ignored.',
+    );
+    return false;
+  }
+
+  @override
+  Future<List<InboxFile>> getFilesNeedingReview() async {
+    return [];
+  }
+
+  @override
+  Future<int> getFilesNeedingReviewCount() async {
+    return 0;
+  }
+
+  @override
+  Future<void> saveFileReview(
+    String filePath, {
+    required String description,
+    required String tags,
+  }) async {
+    _log.w(
+      'SQLite is not connected yet. saveFileReview(filePath=$filePath) ignored.',
+    );
+  }
+
+  @override
+  Future<void> markFileEnriched(String filePath) async {
+    _log.w(
+      'SQLite is not connected yet. markFileEnriched(filePath=$filePath) ignored.',
+    );
+  }
+
+  @override
   void dispose() {
     // No-op
   }

@@ -95,6 +95,9 @@ class MockNotificationsService implements NotificationsService {
   }
 
   @override
+  Future<void> showFileNeedsReview({required String fileName}) async {}
+
+  @override
   Future<void> init() async {}
 }
 
@@ -271,6 +274,32 @@ class MockIndexer implements Indexer {
 
   @override
   Future<bool> hasEmbeddings(String filePath) async => false;
+
+  @override
+  Future<bool> indexFileForReview(
+    String filePath, {
+    required String fileName,
+  }) async {
+    indexedFilePaths.add(filePath);
+    _indexedCount++;
+    return true;
+  }
+
+  @override
+  Future<List<InboxFile>> getFilesNeedingReview() async => [];
+
+  @override
+  Future<int> getFilesNeedingReviewCount() async => 0;
+
+  @override
+  Future<void> saveFileReview(
+    String filePath, {
+    required String description,
+    required String tags,
+  }) async {}
+
+  @override
+  Future<void> markFileEnriched(String filePath) async {}
 
   @override
   void dispose() {}

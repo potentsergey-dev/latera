@@ -18,7 +18,7 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 
 # Semantic embeddings: ONNX Runtime + Hugging Face tokenizer
 ort = { version = "2.0.0-rc.11", features = ["download-binaries"] }
-tokenizers = { version = "0.21", default-features = false, features = ["progressbar", "onig"] }
+tokenizers = { version = "0.21", default-features = false, features = ["progressbar", "fancy-regex"] }
 ureq = "2.12"
 
 # PDF text extraction (text layer, без OCR)

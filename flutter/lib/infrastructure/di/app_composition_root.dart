@@ -197,6 +197,7 @@ class AppCompositionRoot {
       transcriber: audioTranscriber,
       embeddingService: embeddingService,
       ocrService: ocrService,
+      notifications: notifications,
     );
     // Подключаем к потоку событий добавления файлов
     contentEnrichmentCoordinator.start(

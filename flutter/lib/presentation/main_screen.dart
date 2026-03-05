@@ -6,13 +6,12 @@ import '../application/file_events_coordinator.dart';
 import '../domain/app_config.dart';
 import '../domain/core_error.dart';
 import 'app_scope.dart';
-import 'file_description_dialog.dart';
 
 /// Главный экран.
 ///
 /// Показывает статус наблюдения за папкой, количество проиндексированных
 /// файлов и предоставляет доступ к поиску и настройкам.
-/// При получении события о новом файле показывает диалог ввода описания.
+/// Новые файлы тихо индексируются в Inbox (без всплывающих окон).
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -29,9 +28,8 @@ class _MainScreenState extends State<MainScreen> {
   String _status = 'Инициализация…';
   String? _lastFileName;
   int _indexedCount = 0;
+  int _inboxCount = 0;
   bool _initialized = false;
-  bool _isDescriptionDialogOpen = false;
-  final List<FileAddedUiEvent> _pendingFiles = [];
 
   @override
   void didChangeDependencies() {
@@ -62,8 +60,9 @@ class _MainScreenState extends State<MainScreen> {
       await root.notifications.init();
       if (!mounted) return;
 
-      // Загружаем количество проиндексированных файлов
+      // Загружаем количество проиндексированных файлов и inbox
       await _refreshIndexedCount();
+      await _refreshInboxCount();
       if (!mounted) return;
 
       final startResult = await coordinator.start();
@@ -86,8 +85,8 @@ class _MainScreenState extends State<MainScreen> {
             _status = 'Новый файл обнаружен';
           });
 
-          // Показываем диалог описания файла
-          _showDescriptionDialog(event);
+          // Тихо индексируем файл в Inbox (без всплывающих окон)
+          unawaited(_silentlyIndexForReview(event));
         },
         onError: (Object error, StackTrace st) {
           root.logger.e('Stream error in UI', error: error, stackTrace: st);
@@ -132,11 +131,13 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  /// Показывает диалог ввода описания для нового файла.
-  Future<void> _showDescriptionDialog(FileAddedUiEvent event) async {
+  /// Тихо индексирует файл для последующего ревью в Inbox.
+  ///
+  /// Никаких всплывающих окон — файл сразу попадает в индекс
+  /// с пометкой «требует внимания».
+  Future<void> _silentlyIndexForReview(FileAddedUiEvent event) async {
     if (!mounted) return;
 
-    // Не индексируем файлы без пути
     final filePath = event.fullPath;
     if (filePath == null || filePath.isEmpty) {
       final root = AppScope.of(context);
@@ -144,74 +145,34 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    // Если диалог уже открыт, добавляем файл в очередь
-    if (_isDescriptionDialogOpen) {
-      _pendingFiles.add(event);
-      return;
-    }
-    _isDescriptionDialogOpen = true;
-
     final root = AppScope.of(context);
     try {
-      final result = await FileDescriptionDialog.show(
-        context,
+      final success = await root.indexer.indexFileForReview(
+        filePath,
         fileName: event.fileName,
-        filePath: filePath,
-      );
-
-      if (result == null) {
-        // Пользователь закрыл диалог — индексируем с пустым описанием
-        root.logger.d('Description dialog dismissed for ${event.fileName}');
-        return;
-      }
-
-      // Индексируем файл с описанием
-      final success = await root.indexer.indexFile(
-        result.filePath,
-        fileName: result.fileName,
-        description: result.description,
       );
 
       if (!mounted) return;
 
       if (success) {
-        root.logger.i('File indexed: ${result.fileName}');
-        // Запускаем обогащение после индексации — гарантируем, что строка
-        // в БД уже существует, и updateTextContent не потеряет текст.
+        root.logger.i('File indexed for review: ${event.fileName}');
+        // Запускаем обогащение контента (text extraction, embeddings и т.д.)
         root.contentEnrichmentCoordinator.enqueueFile(
-          result.filePath,
-          result.fileName,
+          filePath,
+          event.fileName,
         );
         await _refreshIndexedCount();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Файл проиндексирован: ${result.fileName}'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        await _refreshInboxCount();
       } else {
-        root.logger.w('Failed to index file: ${result.fileName}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка индексации: ${result.fileName}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        root.logger.w('Failed to index file for review: ${event.fileName}');
       }
-    } finally {
-      _isDescriptionDialogOpen = false;
-      // Обрабатываем следующий файл из очереди
-      _processNextPendingFile();
+    } catch (e, st) {
+      root.logger.e(
+        'Error indexing file for review: ${event.fileName}',
+        error: e,
+        stackTrace: st,
+      );
     }
-  }
-
-  /// Обрабатывает следующий файл из очереди ожидающих.
-  void _processNextPendingFile() {
-    if (_pendingFiles.isEmpty) return;
-    final nextEvent = _pendingFiles.removeAt(0);
-    _showDescriptionDialog(nextEvent);
   }
 
   /// Обрабатывает событие удаления файла — удаляет из индекса.
@@ -226,6 +187,7 @@ class _MainScreenState extends State<MainScreen> {
       await root.indexer.removeFromIndex(filePath);
       root.logger.i('File removed from index: ${event.fileName}');
       await _refreshIndexedCount();
+      await _refreshInboxCount();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -255,6 +217,22 @@ class _MainScreenState extends State<MainScreen> {
       }
     } catch (e) {
       root.logger.w('Failed to get indexed count', error: e);
+    }
+  }
+
+  /// Обновить счётчик файлов, требующих внимания.
+  Future<void> _refreshInboxCount() async {
+    if (!mounted) return;
+    final root = AppScope.of(context);
+    try {
+      final count = await root.indexer.getFilesNeedingReviewCount();
+      if (mounted) {
+        setState(() {
+          _inboxCount = count;
+        });
+      }
+    } catch (e) {
+      root.logger.w('Failed to get inbox count', error: e);
     }
   }
 
@@ -324,6 +302,33 @@ class _MainScreenState extends State<MainScreen> {
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: theme.textTheme.titleMedium,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Кнопка Inbox — «Требуют внимания»
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await Navigator.pushNamed(context, '/inbox');
+                  // Обновляем счётчики после возврата из Inbox
+                  unawaited(_refreshIndexedCount());
+                  unawaited(_refreshInboxCount());
+                },
+                icon: const Icon(Icons.inbox_outlined),
+                label: Text(
+                  _inboxCount > 0
+                      ? 'Требуют внимания ($_inboxCount)'
+                      : 'Требуют внимания',
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: theme.textTheme.titleSmall,
+                  side: _inboxCount > 0
+                      ? BorderSide(color: theme.colorScheme.primary, width: 2)
+                      : null,
                 ),
               ),
             ),

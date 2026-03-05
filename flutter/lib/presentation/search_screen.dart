@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../domain/app_config.dart';
 import '../domain/search_repository.dart';
 import 'app_scope.dart';
+import 'file_description_dialog.dart';
 
 /// Экран поиска файлов.
 ///
@@ -173,6 +174,42 @@ class _SearchScreenState extends State<SearchScreen> {
         _isSearching = false;
         _hasSearched = true;
       });
+    }
+  }
+
+  Future<void> _editDescription(SearchResult result) async {
+    final newDesc = await FileDescriptionDialog.show(
+      context,
+      fileName: result.fileName,
+      filePath: result.filePath,
+      initialDescription: result.description,
+    );
+
+    if (newDesc != null && mounted) {
+      final root = AppScope.of(context);
+      try {
+        await root.indexer.saveFileReview(
+          result.filePath,
+          description: newDesc.description,
+          tags: '', // Заглушка, если теги не редактируются в этом диалоге
+        );
+        
+        // Показываем toast
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Описание сохранено')),
+          );
+        }
+
+        // Обновляем результаты поиска
+        _performSearch(_searchController.text);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка сохранения: $e')),
+          );
+        }
+      }
     }
   }
 
@@ -358,6 +395,7 @@ class _SearchScreenState extends State<SearchScreen> {
           onTap: () => _openFile(result.filePath),
           onOpenFolder: () => _openContainingFolder(result.filePath),
           onFindSimilar: () => _findSimilarFiles(result.filePath),
+          onEditDescription: () => _editDescription(result),
           showSimilarButton: _useSemanticSearch,
         );
       },
@@ -371,6 +409,7 @@ class _SearchResultCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onOpenFolder;
   final VoidCallback onFindSimilar;
+  final VoidCallback onEditDescription;
   final bool showSimilarButton;
 
   const _SearchResultCard({
@@ -378,6 +417,7 @@ class _SearchResultCard extends StatelessWidget {
     required this.onTap,
     required this.onOpenFolder,
     required this.onFindSimilar,
+    required this.onEditDescription,
     this.showSimilarButton = false,
   });
 
@@ -422,6 +462,12 @@ class _SearchResultCard extends StatelessWidget {
                       onPressed: onFindSimilar,
                       visualDensity: VisualDensity.compact,
                     ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    tooltip: 'Редактировать описание',
+                    onPressed: onEditDescription,
+                    visualDensity: VisualDensity.compact,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.folder_open_outlined, size: 18),
                     tooltip: 'Открыть папку',

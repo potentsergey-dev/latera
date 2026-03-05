@@ -77,8 +77,55 @@ abstract interface class Indexer {
   /// Проверяет, вычислены ли эмбеддинги для файла.
   Future<bool> hasEmbeddings(String filePath);
 
+  // === Phase 4: Inbox (Требуют внимания) ===
+
+  /// Индексирует файл без описания с пометкой «требует внимания».
+  ///
+  /// Файл сразу попадает в индекс (и FTS5), но помечается как нераспознанный.
+  /// Пользователь позже добавит описание и теги через экран Inbox.
+  Future<bool> indexFileForReview(
+    String filePath, {
+    required String fileName,
+  });
+
+  /// Возвращает файлы, требующие внимания (без описания).
+  Future<List<InboxFile>> getFilesNeedingReview();
+
+  /// Возвращает количество файлов, требующих внимания.
+  Future<int> getFilesNeedingReviewCount();
+
+  /// Сохраняет описание и теги, убирает файл из списка «требуют внимания».
+  Future<void> saveFileReview(
+    String filePath, {
+    required String description,
+    required String tags,
+  });
+
+  /// Убирает флаг «требует внимания» для файла, успешно обогащённого контентом.
+  ///
+  /// Вызывается из ContentEnrichmentCoordinator когда текст или OCR
+  /// успешно извлечены и сохранены в базу.
+  Future<void> markFileEnriched(String filePath);
+
   /// Освобождает ресурсы (закрывает БД).
   void dispose();
+}
+
+/// Файл, требующий внимания (Inbox).
+class InboxFile {
+  final String filePath;
+  final String fileName;
+  final String description;
+  final String tags;
+  final DateTime indexedAt;
+
+  const InboxFile({
+    required this.filePath,
+    required this.fileName,
+    required this.description,
+    required this.tags,
+    required this.indexedAt,
+  });
 }
 
 /// Результат операции индексации.

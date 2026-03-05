@@ -6,6 +6,7 @@ import 'package:latera/application/file_events_coordinator.dart';
 import 'package:latera/domain/app_config.dart';
 import 'package:latera/domain/embeddings.dart';
 import 'package:latera/domain/indexer.dart';
+import 'package:latera/domain/notifications_service.dart';
 import 'package:latera/domain/ocr.dart';
 import 'package:latera/domain/text_extraction.dart';
 import 'package:latera/domain/transcription.dart';
@@ -189,6 +190,35 @@ class MockIndexer implements Indexer {
       filesWithEmbeddings.contains(filePath);
 
   @override
+  Future<bool> indexFileForReview(
+    String filePath, {
+    required String fileName,
+  }) async {
+    indexedFiles.add(filePath);
+    return true;
+  }
+
+  @override
+  Future<List<InboxFile>> getFilesNeedingReview() async => [];
+
+  @override
+  Future<int> getFilesNeedingReviewCount() async => 0;
+
+  @override
+  Future<void> saveFileReview(
+    String filePath, {
+    required String description,
+    required String tags,
+  }) async {}
+
+  final Set<String> enrichedFiles = {};
+
+  @override
+  Future<void> markFileEnriched(String filePath) async {
+    enrichedFiles.add(filePath);
+  }
+
+  @override
   void dispose() {}
 }
 
@@ -367,6 +397,29 @@ class MockOcrService implements OcrService {
   }
 }
 
+/// Мок для [NotificationsService].
+class MockNotificationsService implements NotificationsService {
+  int showFileAddedCallCount = 0;
+  List<String> shownFileNames = [];
+  int showFileNeedsReviewCallCount = 0;
+  List<String> needsReviewFileNames = [];
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> showFileAdded({required String fileName}) async {
+    showFileAddedCallCount++;
+    shownFileNames.add(fileName);
+  }
+
+  @override
+  Future<void> showFileNeedsReview({required String fileName}) async {
+    showFileNeedsReviewCallCount++;
+    needsReviewFileNames.add(fileName);
+  }
+}
+
 // ============================================================================
 // Helper
 // ============================================================================
@@ -388,6 +441,7 @@ void main() {
     late MockAudioTranscriber transcriber;
     late MockEmbeddingService embeddingService;
     late MockOcrService ocrService;
+    late MockNotificationsService notifications;
     late ContentEnrichmentCoordinator coordinator;
     late StreamController<FileAddedUiEvent> fileEventsController;
 
@@ -401,6 +455,7 @@ void main() {
       transcriber = MockAudioTranscriber();
       embeddingService = MockEmbeddingService();
       ocrService = MockOcrService();
+      notifications = MockNotificationsService();
       fileEventsController = StreamController<FileAddedUiEvent>.broadcast();
 
       coordinator = ContentEnrichmentCoordinator(
@@ -411,6 +466,7 @@ void main() {
         transcriber: transcriber,
         embeddingService: embeddingService,
         ocrService: ocrService,
+        notifications: notifications,
       );
     });
 
