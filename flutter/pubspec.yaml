@@ -84,6 +84,9 @@ dev_dependencies:
   # MSIX packaging for Windows Store / sideloading
   msix: ^3.16.8
 
+  # App icon generation
+  flutter_launcher_icons: ^0.14.3
+
 # NOTE:
 # flutter_rust_bridge codegen is a Rust CLI (`flutter_rust_bridge_codegen`),
 # installed via `cargo install flutter_rust_bridge_codegen`.
