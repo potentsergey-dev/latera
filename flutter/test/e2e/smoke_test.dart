@@ -263,6 +263,12 @@ class E2EMockIndexer implements Indexer {
   Future<void> markFileEnriched(String filePath) async {}
 
   @override
+  Future<void> updateDescription(String filePath, String description) async {}
+
+  @override
+  Future<void> updateTags(String filePath, String tags) async {}
+
+  @override
   void dispose() {}
 }
 

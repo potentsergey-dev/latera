@@ -1,0 +1,224 @@
+﻿cargo :     Checking latera_rust v0.1.0 
+(C:\Users\voron\Documents\Projects\latera\rust)
+строка:1 знак:1
++ cargo check 2>&1 | Out-File -FilePath C:\Users\voron\Documents\Projec ...
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Checking la...ts\latera\rust) 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+error[E0308]: mismatched types
+   --> src\frb_generated.rs:216:25
+    |
+214 |                     let output_ok = Result::<_, 
+()>::Ok(crate::api::extract_text_from_file(
+    |                                                         
+---------------------------------- arguments to this function are incorrect
+215 |                         api_path,
+216 |                         api_options,
+    |                         ^^^^^^^^^^^ expected `api::ExtractionOptions`, 
+found `text_extractor::ExtractionOptions`
+    |
+    = note: `text_extractor::ExtractionOptions` and `api::ExtractionOptions` 
+have similar names, but are actually distinct types
+note: `text_extractor::ExtractionOptions` is defined in module 
+`crate::indexer::text_extractor` of the current crate
+   --> src\indexer\text_extractor.rs:46:1
+    |
+ 46 | pub struct ExtractionOptions {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `api::ExtractionOptions` is defined in module `crate::api` of the 
+current crate
+   --> src\..\api.rs:377:1
+    |
+377 | pub struct ExtractionOptions {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: function defined here
+   --> src\..\api.rs:409:8
+    |
+409 | pub fn extract_text_from_file(path: String, options: ExtractionOptions) 
+-> ExtractionResult {
+    |        ^^^^^^^^^^^^^^^^^^^^^^               --------------------------
+
+error[E0277]: the trait bound `api::ExtractionResult: SseEncode` is not 
+satisfied
+   --> src\frb_generated.rs:213:40
+    |
+213 |                 transform_result_sse::<_, ()>((move || {
+    |                                        ^ unsatisfied trait bound
+    |
+help: the trait `SseEncode` is not implemented for `api::ExtractionResult`
+   --> src\..\api.rs:386:1
+    |
+386 | pub struct ExtractionResult {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `SseEncode`:
+              ()
+              ApiEmbeddingVector
+              ApiRagSource
+              ApiSimilarityResult
+              ApiTextChunk
+              FileAddedEvent
+              FileRemovedEvent
+              Option<f64>
+            and 29 others
+note: required by a bound in `transform_result_sse`
+   --> src\frb_generated.rs:35:1
+    |
+ 35 | / flutter_rust_bridge::frb_generated_boilerplate!(
+ 36 | |     default_stream_sink_codec = SseCodec,
+ 37 | |     default_rust_opaque = RustOpaqueMoi,
+ 38 | |     default_rust_auto_opaque = RustAutoOpaqueMoi,
+ 39 | | );
+    | | ^
+    | | |
+    | |_required by a bound in this function
+    |   required by this bound in `transform_result_sse`
+    = note: this error originates in the macro 
+`$crate::frb_generated_sse_codec` which comes from the expansion of the macro 
+`flutter_rust_bridge::frb_generated_boilerplate` (in Nightly builds, run with 
+-Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> src\frb_generated.rs:748:84
+    |
+748 |                         Result::<_, 
+()>::Ok(crate::api::ocr_extract_text(api_path, api_options))?;
+    |                                             ---------------------------- 
+          ^^^^^^^^^^^ expected `api::OcrOptions`, found `ocr::OcrOptions`
+    |                                             |
+    |                                             arguments to this function 
+are incorrect
+    |
+    = note: `ocr::OcrOptions` and `api::OcrOptions` have similar names, but 
+are actually distinct types
+note: `ocr::OcrOptions` is defined in module `crate::indexer::ocr` of the 
+current crate
+   --> src\indexer\ocr.rs:38:1
+    |
+ 38 | pub struct OcrOptions {
+    | ^^^^^^^^^^^^^^^^^^^^^
+note: `api::OcrOptions` is defined in module `crate::api` of the current crate
+   --> src\..\api.rs:796:1
+    |
+796 | pub struct OcrOptions {
+    | ^^^^^^^^^^^^^^^^^^^^^
+note: function defined here
+   --> src\..\api.rs:838:8
+    |
+838 | pub fn ocr_extract_text(path: String, options: OcrOptions) -> OcrResult {
+    |        ^^^^^^^^^^^^^^^^               -------------------
+
+error[E0277]: the trait bound `api::OcrResult: SseEncode` is not satisfied
+   --> src\frb_generated.rs:746:40
+    |
+746 |                 transform_result_sse::<_, ()>((move || {
+    |                                        ^ unsatisfied trait bound
+    |
+help: the trait `SseEncode` is not implemented for `api::OcrResult`
+   --> src\..\api.rs:808:1
+    |
+808 | pub struct OcrResult {
+    | ^^^^^^^^^^^^^^^^^^^^
+    = help: the following other types implement trait `SseEncode`:
+              ()
+              ApiEmbeddingVector
+              ApiRagSource
+              ApiSimilarityResult
+              ApiTextChunk
+              FileAddedEvent
+              FileRemovedEvent
+              Option<f64>
+            and 29 others
+note: required by a bound in `transform_result_sse`
+   --> src\frb_generated.rs:35:1
+    |
+ 35 | / flutter_rust_bridge::frb_generated_boilerplate!(
+ 36 | |     default_stream_sink_codec = SseCodec,
+ 37 | |     default_rust_opaque = RustOpaqueMoi,
+ 38 | |     default_rust_auto_opaque = RustAutoOpaqueMoi,
+ 39 | | );
+    | | ^
+    | | |
+    | |_required by a bound in this function
+    |   required by this bound in `transform_result_sse`
+    = note: this error originates in the macro 
+`$crate::frb_generated_sse_codec` which comes from the expansion of the macro 
+`flutter_rust_bridge::frb_generated_boilerplate` (in Nightly builds, run with 
+-Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+    --> src\frb_generated.rs:1100:84
+     |
+1100 |                         Result::<_, 
+()>::Ok(crate::api::transcribe_audio(api_path, api_options))?;
+     |                                             
+----------------------------           ^^^^^^^^^^^ expected 
+`api::TranscriptionOptions`, found `transcriber::TranscriptionOptions`
+     |                                             |
+     |                                             arguments to this function 
+are incorrect
+     |
+     = note: `transcriber::TranscriptionOptions` and 
+`api::TranscriptionOptions` have similar names, but are actually distinct types
+note: `transcriber::TranscriptionOptions` is defined in module 
+`crate::indexer::transcriber` of the current crate
+    --> src\indexer\transcriber.rs:37:1
+     |
+  37 | pub struct TranscriptionOptions {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: `api::TranscriptionOptions` is defined in module `crate::api` of the 
+current crate
+    --> src\..\api.rs:436:1
+     |
+ 436 | pub struct TranscriptionOptions {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: function defined here
+    --> src\..\api.rs:474:8
+     |
+ 474 | pub fn transcribe_audio(path: String, options: TranscriptionOptions) -> 
+TranscriptionResult {
+     |        ^^^^^^^^^^^^^^^^               -----------------------------
+
+error[E0277]: the trait bound `api::TranscriptionResult: SseEncode` is not 
+satisfied
+    --> src\frb_generated.rs:1098:40
+     |
+1098 |                 transform_result_sse::<_, ()>((move || {
+     |                                        ^ unsatisfied trait bound
+     |
+help: the trait `SseEncode` is not implemented for `api::TranscriptionResult`
+    --> src\..\api.rs:449:1
+     |
+ 449 | pub struct TranscriptionResult {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = help: the following other types implement trait `SseEncode`:
+               ()
+               ApiEmbeddingVector
+               ApiRagSource
+               ApiSimilarityResult
+               ApiTextChunk
+               FileAddedEvent
+               FileRemovedEvent
+               Option<f64>
+             and 29 others
+note: required by a bound in `transform_result_sse`
+    --> src\frb_generated.rs:35:1
+     |
+  35 | / flutter_rust_bridge::frb_generated_boilerplate!(
+  36 | |     default_stream_sink_codec = SseCodec,
+  37 | |     default_rust_opaque = RustOpaqueMoi,
+  38 | |     default_rust_auto_opaque = RustAutoOpaqueMoi,
+  39 | | );
+     | | ^
+     | | |
+     | |_required by a bound in this function
+     |   required by this bound in `transform_result_sse`
+     = note: this error originates in the macro 
+`$crate::frb_generated_sse_codec` which comes from the expansion of the macro 
+`flutter_rust_bridge::frb_generated_boilerplate` (in Nightly builds, run with 
+-Z macro-backtrace for more info)
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `latera_rust` (lib) due to 6 previous errors

@@ -229,6 +229,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  Future<void> _toggleTranscription(bool value) async {
+    await _configService.updateValue(enableTranscription: value);
+    setState(() {
+      _config = _config.copyWith(enableTranscription: value);
+    });
+  }
+
+  Future<void> _toggleRag(bool value) async {
+    await _configService.updateValue(enableRag: value);
+    setState(() {
+      _config = _config.copyWith(enableRag: value);
+    });
+  }
+
+  Future<void> _toggleAutoSummary(bool value) async {
+    await _configService.updateValue(enableAutoSummary: value);
+    setState(() {
+      _config = _config.copyWith(enableAutoSummary: value);
+    });
+  }
+
+  Future<void> _toggleAutoTags(bool value) async {
+    await _configService.updateValue(enableAutoTags: value);
+    setState(() {
+      _config = _config.copyWith(enableAutoTags: value);
+    });
+  }
+
   Future<void> _resetSettings() async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
@@ -338,7 +366,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSection(
             title: l10n.settingsSectionContentProcessing,
             children: [
-              // --- Активные тумблеры ---
               _buildContentFeatureToggle(
                 icon: Icons.description_outlined,
                 title: l10n.settingsTextExtraction,
@@ -370,15 +397,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
 
-              // --- Неактивные тумблеры (скоро) ---
               _buildContentFeatureToggle(
                 icon: Icons.mic_outlined,
                 title: l10n.settingsTranscription,
                 subtitle: l10n.settingsTranscriptionHint,
                 value: _config.enableTranscription,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.transcription),
-                onChanged: (_) {},
-                comingSoon: true,
+                onChanged: _toggleTranscription,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
@@ -388,8 +413,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: l10n.settingsRagHint,
                 value: _config.enableRag,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.rag),
-                onChanged: (_) {},
-                comingSoon: true,
+                onChanged: _toggleRag,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
@@ -399,8 +423,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: l10n.settingsAutoDescriptionsHint,
                 value: _config.enableAutoSummary,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary),
-                onChanged: (_) {},
-                comingSoon: true,
+                onChanged: _toggleAutoSummary,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),
@@ -410,8 +433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: l10n.settingsAutoTagsHint,
                 value: _config.enableAutoTags,
                 effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoTags),
-                onChanged: (_) {},
-                comingSoon: true,
+                onChanged: _toggleAutoTags,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
               ),

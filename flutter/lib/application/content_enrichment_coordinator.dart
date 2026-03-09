@@ -5,6 +5,8 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 
 import '../domain/app_config.dart';
+import '../domain/auto_summary.dart';
+import '../domain/auto_tags.dart';
 import '../domain/embeddings.dart';
 import '../domain/indexer.dart';
 import '../domain/notifications_service.dart';
@@ -45,6 +47,12 @@ enum EnrichmentJobType {
 
   /// Оптическое распознавание символов (OCR).
   ocr,
+
+  /// Автоматическая генерация описания.
+  autoSummary,
+
+  /// Автоматическая генерация тегов.
+  autoTags,
 }
 
 /// Задача обогащения контента.
@@ -128,6 +136,8 @@ class ContentEnrichmentCoordinator {
   final AudioTranscriber _transcriber;
   final EmbeddingService _embeddingService;
   final OcrService _ocrService;
+  final AutoSummaryService _autoSummaryService;
+  final AutoTagsService _autoTagsService;
   final NotificationsService _notifications;
 
   StreamSubscription<FileAddedUiEvent>? _fileEventSub;
@@ -179,6 +189,8 @@ class ContentEnrichmentCoordinator {
     required AudioTranscriber transcriber,
     required EmbeddingService embeddingService,
     required OcrService ocrService,
+    required AutoSummaryService autoSummaryService,
+    required AutoTagsService autoTagsService,
     required NotificationsService notifications,
   }) : _log = logger,
        _configService = configService,
@@ -187,6 +199,8 @@ class ContentEnrichmentCoordinator {
        _transcriber = transcriber,
        _embeddingService = embeddingService,
        _ocrService = ocrService,
+       _autoSummaryService = autoSummaryService,
+       _autoTagsService = autoTagsService,
        _notifications = notifications;
 
   /// Stream завершённых (или проваленных) задач обогащения.
@@ -223,6 +237,11 @@ class ContentEnrichmentCoordinator {
     );
   }
 
+  /// Пересчитать только эмбеддинги для файла (описание/теги уже сохранены).
+  void enqueueReEmbedding(String filePath, String fileName) {
+    _enqueueEmbeddingsIfEnabled(filePath, fileName);
+  }
+
   // --------------------------------------------------------------------------
   // Private
   // --------------------------------------------------------------------------
@@ -240,6 +259,30 @@ class ContentEnrichmentCoordinator {
       _log.d('Enqueued embeddings job (post-enrichment): $fileName');
       _processQueue();
     }
+  }
+
+  /// Добавляет задачи автоописания и автотегов в очередь после успешного извлечения контента.
+  void _enqueueMetadataJobsIfEnabled(String filePath, String fileName) {
+    final config = _configService.currentConfig;
+    if (config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary)) {
+      final job = EnrichmentJob(
+        filePath: filePath,
+        fileName: fileName,
+        type: EnrichmentJobType.autoSummary,
+      );
+      _queue.add(job);
+      _log.d('Enqueued auto-summary job (post-enrichment): $fileName');
+    }
+    if (config.isFeatureEffectivelyEnabled(ContentFeature.autoTags)) {
+      final job = EnrichmentJob(
+        filePath: filePath,
+        fileName: fileName,
+        type: EnrichmentJobType.autoTags,
+      );
+      _queue.add(job);
+      _log.d('Enqueued auto-tags job (post-enrichment): $fileName');
+    }
+    _processQueue();
   }
 
   void _onFileAdded(FileAddedUiEvent event) {
@@ -328,6 +371,12 @@ class ContentEnrichmentCoordinator {
       );
       _queue.add(job);
       _log.d('Enqueued embeddings job: ${event.fileName}');
+    }
+
+    // Auto-summary и auto-tags для текстовых файлов (не нуждающихся в предобработке)
+    // Для файлов с предобработкой — метаданные добавятся после экстракции.
+    if (!needsPreprocessing) {
+      _enqueueMetadataJobsIfEnabled(event.fullPath!, event.fileName);
     }
 
     // Для текстовых файлов (txt, md, rs...) контент извлекается автоматически
@@ -427,6 +476,10 @@ class ContentEnrichmentCoordinator {
           await _processEmbeddings(job);
         case EnrichmentJobType.ocr:
           await _processOcr(job);
+        case EnrichmentJobType.autoSummary:
+          await _processAutoSummary(job);
+        case EnrichmentJobType.autoTags:
+          await _processAutoTags(job);
       }
     } catch (e, st) {
       job.status = EnrichmentJobStatus.failed;
@@ -482,6 +535,7 @@ class ContentEnrichmentCoordinator {
       
       if (isMeaningful) {
         _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+        _enqueueMetadataJobsIfEnabled(job.filePath, job.fileName);
       }
     } else {
       // Если PDF не содержит текстового слоя — возможно, это скан.
@@ -543,6 +597,7 @@ class ContentEnrichmentCoordinator {
       
       if (isMeaningful) {
         _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+        _enqueueMetadataJobsIfEnabled(job.filePath, job.fileName);
       }
     } else {
       job.status = EnrichmentJobStatus.failed;
@@ -556,15 +611,7 @@ class ContentEnrichmentCoordinator {
   }
 
   Future<void> _processEmbeddings(EnrichmentJob job) async {
-    // Проверяем, есть ли уже эмбеддинги для этого файла
-    final alreadyHas = await _indexer.hasEmbeddings(job.filePath);
-    if (alreadyHas) {
-      job.status = EnrichmentJobStatus.completed;
-      _log.d('Embeddings already exist for: ${job.fileName}');
-      return;
-    }
-
-    // Читаем текстовое содержимое файла (берём из БД: description, text, transcript, либо fallback на чтение с диска)
+    // Читаем текстовое содержимое файла (берём из БД: description, tags, text, transcript, либо fallback на чтение с диска)
     final textContent = await _indexer.getTextContent(job.filePath);
 
     if (textContent == null || textContent.trim().isEmpty) {
@@ -625,6 +672,7 @@ class ContentEnrichmentCoordinator {
       
       if (isMeaningful) {
         _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
+        _enqueueMetadataJobsIfEnabled(job.filePath, job.fileName);
       }
     } else {
       job.status = EnrichmentJobStatus.failed;
@@ -634,6 +682,68 @@ class ContentEnrichmentCoordinator {
         '(error: ${result.errorCode})',
       );
       await _onContentJobCompleted(job, success: false);
+    }
+  }
+
+  Future<void> _processAutoSummary(EnrichmentJob job) async {
+    final textContent = await _indexer.getTextContent(job.filePath);
+
+    if (textContent == null || textContent.trim().isEmpty) {
+      job.status = EnrichmentJobStatus.completed;
+      _log.d('No text content, skipping auto-summary: ${job.fileName}');
+      return;
+    }
+
+    final result = await _autoSummaryService.generateSummary(
+      textContent,
+      fileName: job.fileName,
+    );
+
+    if (result.hasSummary) {
+      await _indexer.updateDescription(job.filePath, result.summary);
+      job.status = EnrichmentJobStatus.completed;
+      _log.i(
+        'Auto-summary generated: ${job.fileName} '
+        '(${result.summary.length} chars)',
+      );
+    } else {
+      job.status = EnrichmentJobStatus.failed;
+      job.errorCode = result.errorCode;
+      _log.w(
+        'Auto-summary failed: ${job.fileName} '
+        '(error: ${result.errorCode})',
+      );
+    }
+  }
+
+  Future<void> _processAutoTags(EnrichmentJob job) async {
+    final textContent = await _indexer.getTextContent(job.filePath);
+
+    if (textContent == null || textContent.trim().isEmpty) {
+      job.status = EnrichmentJobStatus.completed;
+      _log.d('No text content, skipping auto-tags: ${job.fileName}');
+      return;
+    }
+
+    final result = await _autoTagsService.generateTags(
+      textContent,
+      fileName: job.fileName,
+    );
+
+    if (result.hasTags) {
+      await _indexer.updateTags(job.filePath, result.tagsAsString);
+      job.status = EnrichmentJobStatus.completed;
+      _log.i(
+        'Auto-tags generated: ${job.fileName} '
+        '(${result.tags.length} tags: ${result.tagsAsString})',
+      );
+    } else {
+      job.status = EnrichmentJobStatus.failed;
+      job.errorCode = result.errorCode;
+      _log.w(
+        'Auto-tags failed: ${job.fileName} '
+        '(error: ${result.errorCode})',
+      );
     }
   }
 

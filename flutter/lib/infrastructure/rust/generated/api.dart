@@ -5,9 +5,13 @@
 
 import 'error.dart';
 import 'frb_generated.dart';
+import 'indexer/ocr.dart';
+import 'indexer/text_extractor.dart';
+import 'indexer/transcriber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `fmt`
+// These functions are ignored because they are not marked as `pub`: `close_file_added_stream`, `close_file_removed_stream`, `with_index_db`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 /// Инициализация логирования в Rust.
 ///
@@ -17,8 +21,19 @@ Future<void> initLogging() => RustCore.instance.api.crateApiInitLogging();
 /// Stream событий добавления файла.
 ///
 /// В Dart это будет выглядеть как `Stream<FileAddedEvent> onFileAdded()`.
+///
+/// Контракт:
+/// - один активный подписчик;
+/// - при вызове [`stop_watching`](crate::api::stop_watching) стрим закрывается (onDone во Flutter);
+/// - при повторном старте подписка создаётся заново.
 Stream<FileAddedEvent> onFileAdded() =>
     RustCore.instance.api.crateApiOnFileAdded();
+
+/// Stream событий удаления файла.
+///
+/// В Dart это будет выглядеть как `Stream<FileRemovedEvent> onFileRemoved()`.
+Stream<FileRemovedEvent> onFileRemoved() =>
+    RustCore.instance.api.crateApiOnFileRemoved();
 
 /// Запуск мониторинга.
 ///
@@ -28,9 +43,6 @@ Stream<FileAddedEvent> onFileAdded() =>
 /// Возвращает фактический путь директории наблюдения (для отображения в UI).
 Future<String> startWatching({String? overridePath}) =>
     RustCore.instance.api.crateApiStartWatching(overridePath: overridePath);
-
-/// Остановить мониторинг (graceful shutdown).
-Future<void> stopWatching() => RustCore.instance.api.crateApiStopWatching();
 
 /// Получить дефолтный путь наблюдения (Desktop/Latera).
 ///
@@ -45,38 +57,368 @@ Future<String> getDefaultWatchPath() =>
 
 /// Получить дефолтный путь наблюдения (Desktop/Latera) **без** создания директории.
 ///
+/// Важно: функция не трогает файловую систему и не создаёт папку.
 /// Используется в онбординге для preview до явного согласия пользователя.
 Future<String> getDefaultWatchPathPreview() =>
     RustCore.instance.api.crateApiGetDefaultWatchPathPreview();
 
 /// Получить путь, где будет храниться индекс (локально на устройстве).
 ///
-/// Важно: функция не создаёт директорию, только возвращает путь.
-Future<String> getIndexPath() =>
-    RustCore.instance.api.crateApiGetIndexPath();
-
-/// Инициализировать семантическую модель (all-MiniLM-L6-v2 ONNX).
+/// Важно: функция **не** создаёт директорию.
+/// Нужна, чтобы прозрачно показать пользователю, где лежат служебные данные.
 ///
-/// [dataDir] — папка, в которой искать файлы модели (model.onnx, tokenizer.json и др.).
-/// Вызывается один раз при старте приложения; блокирует поток Rust, не Dart.
+/// Путь вычисляется через OS-provided local app data directory (MSIX/sandbox safe).
+Future<String> getIndexPath() => RustCore.instance.api.crateApiGetIndexPath();
+
+/// Остановить мониторинг (graceful shutdown).
+Future<void> stopWatching() => RustCore.instance.api.crateApiStopWatching();
+
+/// Инициализировать индексную БД.
+///
+/// Вызывается один раз при старте приложения.
+/// `db_path` — путь к файлу SQLite (будет создан вместе с директорией).
+///
+/// Безопасен для повторного вызова — если БД уже открыта, вернёт Ok.
+Future<void> initIndex({required String dbPath}) =>
+    RustCore.instance.api.crateApiInitIndex(dbPath: dbPath);
+
+/// Индексировать файл с описанием пользователя.
+///
+/// Автоматически извлекает текстовое содержимое из поддерживаемых форматов
+/// (.txt, .md и др.) и добавляет его в FTS5 индекс.
+///
+/// Если файл уже есть в индексе — обновляет описание и содержимое.
+Future<void> indexFileWithDescription({
+  required String filePath,
+  required String fileName,
+  required String description,
+}) => RustCore.instance.api.crateApiIndexFileWithDescription(
+  filePath: filePath,
+  fileName: fileName,
+  description: description,
+);
+
+/// Поиск файлов по запросу.
+///
+/// Использует FTS5 полнотекстовый поиск по имени, описанию и содержимому.
+/// Результаты упорядочены по BM25 рангу (наиболее релевантные первыми).
+Future<List<SearchResultItem>> searchFiles({
+  required String query,
+  required int limit,
+}) => RustCore.instance.api.crateApiSearchFiles(query: query, limit: limit);
+
+/// Удалить файл из индекса.
+Future<bool> removeFromIndex({required String filePath}) =>
+    RustCore.instance.api.crateApiRemoveFromIndex(filePath: filePath);
+
+/// Проверить, проиндексирован ли файл.
+Future<bool> isFileIndexed({required String filePath}) =>
+    RustCore.instance.api.crateApiIsFileIndexed(filePath: filePath);
+
+/// Получить количество проиндексированных файлов.
+Future<int> getIndexedFileCount() =>
+    RustCore.instance.api.crateApiGetIndexedFileCount();
+
+/// Очистить весь индекс.
+Future<void> clearFileIndex() => RustCore.instance.api.crateApiClearFileIndex();
+
+/// Извлечь текст из файла (PDF text layer, DOCX, plain-text).
+///
+/// Использует Rust-side extraction с уважением лимитов из `options`.
+///
+/// В Dart: `ExtractionResult extractTextFromFile(String path, ExtractionOptions options)`.
+Future<ExtractionResult> extractTextFromFile({
+  required String path,
+  required ExtractionOptions options,
+}) => RustCore.instance.api.crateApiExtractTextFromFile(
+  path: path,
+  options: options,
+);
+
+/// Транскрибировать аудио/видео файл.
+///
+/// Использует Rust-side транскрибацию (Whisper.cpp) с уважением лимитов.
+///
+/// В Dart: `TranscriptionResult transcribeAudio(String path, TranscriptionOptions options)`.
+Future<TranscriptionResult> transcribeAudio({
+  required String path,
+  required TranscriptionOptions options,
+}) =>
+    RustCore.instance.api.crateApiTranscribeAudio(path: path, options: options);
+
+/// Обновить транскрипт файла в индексе.
+///
+/// Записывает текст транскрибации в отдельную колонку `transcript_text`.
+/// Если файл не найден в индексе — операция игнорируется.
+Future<void> updateTranscript({
+  required String filePath,
+  required String transcript,
+}) => RustCore.instance.api.crateApiUpdateTranscript(
+  filePath: filePath,
+  transcript: transcript,
+);
+
+/// Разбить текст на чанки.
+///
+/// В Dart: `List<ApiTextChunk> chunkText(String text, int chunkSize, int chunkOverlap)`.
+Future<List<ApiTextChunk>> chunkText({
+  required String text,
+  required int chunkSize,
+  required int chunkOverlap,
+}) => RustCore.instance.api.crateApiChunkText(
+  text: text,
+  chunkSize: chunkSize,
+  chunkOverlap: chunkOverlap,
+);
+
+/// Вычислить эмбеддинги для набора чанков.
+///
+/// **Stub**: возвращает детерминированные псевдо-эмбеддинги (hash-based).
+/// Полноценная модель будет подключена в будущем.
+///
+/// В Dart: `List<ApiEmbeddingVector> computeEmbeddings(List<ApiTextChunk> chunks)`.
+Future<List<ApiEmbeddingVector>> computeEmbeddings({
+  required List<ApiTextChunk> chunks,
+}) => RustCore.instance.api.crateApiComputeEmbeddings(chunks: chunks);
+
+/// Сохранить чанки и эмбеддинги для файла в БД.
+///
+/// Удаляет предыдущие эмбеддинги файла перед вставкой.
+///
+/// В Dart: `void storeChunksAndEmbeddings(String filePath, List<ApiTextChunk> chunks, List<ApiEmbeddingVector> embeddings)`.
+Future<void> storeChunksAndEmbeddings({
+  required String filePath,
+  required List<ApiTextChunk> chunks,
+  required List<ApiEmbeddingVector> embeddings,
+}) => RustCore.instance.api.crateApiStoreChunksAndEmbeddings(
+  filePath: filePath,
+  chunks: chunks,
+  embeddings: embeddings,
+);
+
+/// Семантический поиск по запросу.
+///
+/// Вычисляет эмбеддинг запроса и ищет ближайшие чанки в БД.
+///
+/// В Dart: `List<ApiSimilarityResult> semanticSearch(String query, int topK)`.
+Future<List<ApiSimilarityResult>> semanticSearch({
+  required String query,
+  required int topK,
+}) => RustCore.instance.api.crateApiSemanticSearch(query: query, topK: topK);
+
+/// Поиск файлов, похожих на указанный.
+///
+/// Берёт средний эмбеддинг чанков файла и ищет ближайшие в БД.
+///
+/// В Dart: `List<ApiSimilarityResult> findSimilarFiles(String filePath, int topK)`.
+Future<List<ApiSimilarityResult>> findSimilarFiles({
+  required String filePath,
+  required int topK,
+}) => RustCore.instance.api.crateApiFindSimilarFiles(
+  filePath: filePath,
+  topK: topK,
+);
+
+/// Проверить наличие эмбеддингов для файла.
+Future<bool> hasEmbeddings({required String filePath}) =>
+    RustCore.instance.api.crateApiHasEmbeddings(filePath: filePath);
+
+/// Получить общее количество эмбеддингов в БД.
+Future<int> getEmbeddingCount() =>
+    RustCore.instance.api.crateApiGetEmbeddingCount();
+
+/// Инициализировать semantic-модель (ONNX all-MiniLM-L6-v2).
+///
+/// Скачивает модель при первом вызове и загружает в память.
+/// `data_dir` — путь к папке данных приложения (модель сохраняется
+/// в `{data_dir}/models/all-MiniLM-L6-v2/`).
+///
+/// Тяжёлая операция — рекомендуется вызывать в background isolate.
 Future<void> initSemanticModel({required String dataDir}) =>
     RustCore.instance.api.crateApiInitSemanticModel(dataDir: dataDir);
 
-/// Проверить, загружена ли семантическая модель.
+/// Проверить, загружена ли semantic-модель.
 Future<bool> isSemanticModelReady() =>
     RustCore.instance.api.crateApiIsSemanticModelReady();
 
-/// Выгрузить семантическую модель из памяти.
+/// Выгрузить semantic-модель из памяти.
 Future<void> unloadSemanticModel() =>
     RustCore.instance.api.crateApiUnloadSemanticModel();
 
-/// Вернуть размерность эмбеддингов (384 для MiniLM-L6-v2).
+/// Получить текущую размерность эмбеддингов.
+///
+/// 384 если модель загружена, 64 (stub) если нет.
 Future<int> getEmbeddingDim() =>
     RustCore.instance.api.crateApiGetEmbeddingDim();
 
-/// Удалить все эмбеддинги из индекса.
+/// Очистить все эмбеддинги из БД.
+///
+/// Используется при переключении режима (stub → ONNX) для пересчёта
+/// с новой размерностью.
 Future<void> clearAllEmbeddings() =>
     RustCore.instance.api.crateApiClearAllEmbeddings();
+
+/// Выполнить RAG-запрос «Спроси свою папку».
+///
+/// Ищет релевантные чанки через similarity search и формирует ответ.
+///
+/// **Stub**: ответ — конкатенация найденных фрагментов.
+/// Полноценная LLM-генерация будет подключена в будущем.
+///
+/// В Dart: `RagQueryResult ragQuery(String question, int topK)`.
+Future<RagQueryResult> ragQuery({
+  required String question,
+  required int topK,
+}) => RustCore.instance.api.crateApiRagQuery(question: question, topK: topK);
+
+/// Извлечь текст из изображения или скан-PDF через OCR.
+///
+/// Использует Rust-side OCR (Tesseract C FFI / ONNX) с уважением лимитов.
+///
+/// **Stub**: выполняет валидацию входных данных, но возвращает
+/// `error_code = "not_implemented"` до подключения OCR-движка.
+///
+/// В Dart: `OcrResult ocrExtractText(String path, OcrOptions options)`.
+Future<OcrResult> ocrExtractText({
+  required String path,
+  required OcrOptions options,
+}) =>
+    RustCore.instance.api.crateApiOcrExtractText(path: path, options: options);
+
+/// Проверить, поддерживается ли файл для OCR.
+///
+/// В Dart: `bool isOcrSupported(String path)`.
+Future<bool> isOcrSupported({required String path}) =>
+    RustCore.instance.api.crateApiIsOcrSupported(path: path);
+
+/// Результат вычисления эмбеддинга (FRB bridge type).
+class ApiEmbeddingVector {
+  /// Индекс чанка.
+  final int chunkIndex;
+
+  /// Вектор эмбеддинга (f32).
+  final Float32List vector;
+
+  const ApiEmbeddingVector({required this.chunkIndex, required this.vector});
+
+  @override
+  int get hashCode => chunkIndex.hashCode ^ vector.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ApiEmbeddingVector &&
+          runtimeType == other.runtimeType &&
+          chunkIndex == other.chunkIndex &&
+          vector == other.vector;
+}
+
+/// Источник ответа RAG (FRB bridge type).
+class ApiRagSource {
+  /// Путь к файлу-источнику.
+  final String filePath;
+
+  /// Фрагмент текста чанка (обрезанный сниппет).
+  final String chunkSnippet;
+
+  /// Смещение (байтовое) чанка в документе.
+  final int chunkOffset;
+
+  const ApiRagSource({
+    required this.filePath,
+    required this.chunkSnippet,
+    required this.chunkOffset,
+  });
+
+  @override
+  int get hashCode =>
+      filePath.hashCode ^ chunkSnippet.hashCode ^ chunkOffset.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ApiRagSource &&
+          runtimeType == other.runtimeType &&
+          filePath == other.filePath &&
+          chunkSnippet == other.chunkSnippet &&
+          chunkOffset == other.chunkOffset;
+}
+
+/// Результат similarity search (FRB bridge type).
+class ApiSimilarityResult {
+  /// Путь к файлу.
+  final String filePath;
+
+  /// Имя файла.
+  final String fileName;
+
+  /// Текст чанка, наиболее похожего на запрос.
+  final String chunkSnippet;
+
+  /// Смещение чанка в документе.
+  final int chunkOffset;
+
+  /// Косинусное сходство (0.0 – 1.0).
+  final double score;
+
+  const ApiSimilarityResult({
+    required this.filePath,
+    required this.fileName,
+    required this.chunkSnippet,
+    required this.chunkOffset,
+    required this.score,
+  });
+
+  @override
+  int get hashCode =>
+      filePath.hashCode ^
+      fileName.hashCode ^
+      chunkSnippet.hashCode ^
+      chunkOffset.hashCode ^
+      score.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ApiSimilarityResult &&
+          runtimeType == other.runtimeType &&
+          filePath == other.filePath &&
+          fileName == other.fileName &&
+          chunkSnippet == other.chunkSnippet &&
+          chunkOffset == other.chunkOffset &&
+          score == other.score;
+}
+
+/// Текстовый чанк (FRB bridge type).
+class ApiTextChunk {
+  /// Текст чанка.
+  final String text;
+
+  /// Индекс чанка в документе (0-based).
+  final int chunkIndex;
+
+  /// Смещение (байтовое) от начала документа.
+  final int chunkOffset;
+
+  const ApiTextChunk({
+    required this.text,
+    required this.chunkIndex,
+    required this.chunkOffset,
+  });
+
+  @override
+  int get hashCode =>
+      text.hashCode ^ chunkIndex.hashCode ^ chunkOffset.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ApiTextChunk &&
+          runtimeType == other.runtimeType &&
+          text == other.text &&
+          chunkIndex == other.chunkIndex &&
+          chunkOffset == other.chunkOffset;
+}
 
 /// Событие: добавлен новый файл.
 ///
@@ -104,4 +446,101 @@ class FileAddedEvent {
           fileName == other.fileName &&
           fullPath == other.fullPath &&
           occurredAtMs == other.occurredAtMs;
+}
+
+/// Событие: файл удалён.
+class FileRemovedEvent {
+  final String fileName;
+  final String fullPath;
+  final int occurredAtMs;
+
+  const FileRemovedEvent({
+    required this.fileName,
+    required this.fullPath,
+    required this.occurredAtMs,
+  });
+
+  @override
+  int get hashCode =>
+      fileName.hashCode ^ fullPath.hashCode ^ occurredAtMs.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FileRemovedEvent &&
+          runtimeType == other.runtimeType &&
+          fileName == other.fileName &&
+          fullPath == other.fullPath &&
+          occurredAtMs == other.occurredAtMs;
+}
+
+/// Результат RAG-запроса (FRB bridge type).
+class RagQueryResult {
+  /// Сгенерированный ответ.
+  final String answer;
+
+  /// Код ошибки (None = успех).
+  ///
+  /// Возможные значения:
+  /// - `"no_relevant_chunks"` — не найдено релевантных чанков
+  /// - `"empty_question"` — пустой вопрос
+  /// - `"query_failed"` — ошибка при выполнении запроса
+  final String? errorCode;
+
+  /// Источники (чанки, из которых сформирован ответ).
+  final List<ApiRagSource> sources;
+
+  const RagQueryResult({
+    required this.answer,
+    this.errorCode,
+    required this.sources,
+  });
+
+  @override
+  int get hashCode => answer.hashCode ^ errorCode.hashCode ^ sources.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RagQueryResult &&
+          runtimeType == other.runtimeType &&
+          answer == other.answer &&
+          errorCode == other.errorCode &&
+          sources == other.sources;
+}
+
+/// Результат поиска, экспортируемый через FRB в Dart.
+class SearchResultItem {
+  final String filePath;
+  final String fileName;
+  final String description;
+  final String snippet;
+  final double rank;
+
+  const SearchResultItem({
+    required this.filePath,
+    required this.fileName,
+    required this.description,
+    required this.snippet,
+    required this.rank,
+  });
+
+  @override
+  int get hashCode =>
+      filePath.hashCode ^
+      fileName.hashCode ^
+      description.hashCode ^
+      snippet.hashCode ^
+      rank.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SearchResultItem &&
+          runtimeType == other.runtimeType &&
+          filePath == other.filePath &&
+          fileName == other.fileName &&
+          description == other.description &&
+          snippet == other.snippet &&
+          rank == other.rank;
 }

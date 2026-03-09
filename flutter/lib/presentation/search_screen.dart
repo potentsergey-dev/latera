@@ -193,7 +193,13 @@ class _SearchScreenState extends State<SearchScreen> {
           description: newDesc.description,
           tags: '', // Заглушка, если теги не редактируются в этом диалоге
         );
-        
+
+        // Пересчитываем эмбеддинги по обновлённому описанию
+        root.contentEnrichmentCoordinator.enqueueReEmbedding(
+          result.filePath,
+          result.fileName,
+        );
+
         // Показываем toast
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

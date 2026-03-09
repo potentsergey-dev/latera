@@ -25,6 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   StreamSubscription<FileAddedUiEvent>? _sub;
   StreamSubscription<FileRemovedUiEvent>? _removedSub;
   StreamSubscription<String>? _watchPathChangedSub;
+  StreamSubscription<AppConfig>? _configSub;
   String _status = 'Инициализация…';
   String? _lastFileName;
   int _indexedCount = 0;
@@ -38,6 +39,13 @@ class _MainScreenState extends State<MainScreen> {
     _initialized = true;
 
     _coordinator = AppScope.of(context).fileEventsCoordinator;
+
+    // Подписываемся на изменения конфигурации, чтобы UI обновлялся
+    // при переключении фич (напр. RAG) в настройках.
+    _configSub = AppScope.of(context).configService.configChanges.listen((_) {
+      if (mounted) setState(() {});
+    });
+
     unawaited(_init().catchError((Object error, StackTrace st) {
       debugPrint('Unexpected error in _init(): $error\n$st');
       if (mounted) {
@@ -244,6 +252,8 @@ class _MainScreenState extends State<MainScreen> {
     _removedSub = null;
     _watchPathChangedSub?.cancel();
     _watchPathChangedSub = null;
+    _configSub?.cancel();
+    _configSub = null;
 
     final coordinator = _coordinator;
     if (coordinator != null) {

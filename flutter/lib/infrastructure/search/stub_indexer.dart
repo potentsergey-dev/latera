@@ -135,6 +135,20 @@ class StubIndexer implements Indexer {
   }
 
   @override
+  Future<void> updateDescription(String filePath, String description) async {
+    _log.w(
+      'SQLite is not connected yet. updateDescription(filePath=$filePath) ignored.',
+    );
+  }
+
+  @override
+  Future<void> updateTags(String filePath, String tags) async {
+    _log.w(
+      'SQLite is not connected yet. updateTags(filePath=$filePath) ignored.',
+    );
+  }
+
+  @override
   void dispose() {
     // No-op
   }

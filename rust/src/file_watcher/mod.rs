@@ -122,12 +122,68 @@ impl WatcherHandle {
     }
 }
 
+/// Установить иконку папки через desktop.ini (только Windows).
+/// Иконка берётся из текущего .exe приложения (индекс 0).
+#[cfg(target_os = "windows")]
+fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
+    use windows::Win32::Storage::FileSystem::{
+        SetFileAttributesW, FILE_ATTRIBUTE_HIDDEN,
+        FILE_ATTRIBUTE_SYSTEM, FILE_ATTRIBUTE_READONLY,
+    };
+    use windows::core::HSTRING;
+
+    let ini_path = folder.join("desktop.ini");
+
+    // Если desktop.ini уже существует — не перезаписываем
+    if ini_path.exists() {
+        return Ok(());
+    }
+
+    // Путь к текущему .exe — содержит нашу иконку (индекс 0)
+    let exe_path = std::env::current_exe()?;
+    let exe_str = exe_path.to_string_lossy();
+
+    let ini_content = format!(
+        "[.ShellClassInfo]\r\nIconResource={exe_str},0\r\n"
+    );
+
+    std::fs::write(&ini_path, &ini_content)?;
+
+    // Атрибуты desktop.ini: HIDDEN + SYSTEM (иначе Windows игнорирует файл)
+    unsafe {
+        let _ = SetFileAttributesW(
+            &HSTRING::from(ini_path.as_os_str()),
+            FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM,
+        );
+
+        // Атрибуты самой папки: READONLY (активирует чтение desktop.ini)
+        let _ = SetFileAttributesW(
+            &HSTRING::from(folder.as_os_str()),
+            FILE_ATTRIBUTE_READONLY,
+        );
+    }
+
+    info!("Folder icon set via desktop.ini in {}", folder.display());
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn set_folder_icon(_folder: &Path) -> Result<(), LateraError> {
+    Ok(())
+}
+
 /// Определить дефолтную директорию наблюдения: `Desktop/Latera`.
 /// Если директории нет — создать.
 pub fn ensure_default_watch_dir() -> Result<PathBuf, LateraError> {
     let desktop = dirs::desktop_dir().ok_or(LateraError::DesktopDirNotFound)?;
     let watch_dir = desktop.join(DEFAULT_WATCH_FOLDER_NAME);
     std::fs::create_dir_all(&watch_dir)?;
+
+    // Установить иконку папки (тихо игнорируем ошибку)
+    if let Err(e) = set_folder_icon(&watch_dir) {
+        warn!("Failed to set folder icon: {e}");
+    }
+
     Ok(watch_dir)
 }
 

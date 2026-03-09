@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latera/application/content_enrichment_coordinator.dart';
 import 'package:latera/application/file_events_coordinator.dart';
 import 'package:latera/domain/app_config.dart';
+import 'package:latera/domain/auto_summary.dart';
+import 'package:latera/domain/auto_tags.dart';
 import 'package:latera/domain/embeddings.dart';
 import 'package:latera/domain/indexer.dart';
 import 'package:latera/domain/notifications_service.dart';
@@ -218,6 +220,19 @@ class MockIndexer implements Indexer {
     enrichedFiles.add(filePath);
   }
 
+  final Map<String, String> updatedDescriptions = {};
+  final Map<String, String> updatedTagsMap = {};
+
+  @override
+  Future<void> updateDescription(String filePath, String description) async {
+    updatedDescriptions[filePath] = description;
+  }
+
+  @override
+  Future<void> updateTags(String filePath, String tags) async {
+    updatedTagsMap[filePath] = tags;
+  }
+
   @override
   void dispose() {}
 }
@@ -397,6 +412,44 @@ class MockOcrService implements OcrService {
   }
 }
 
+/// Мок для [AutoSummaryService].
+class MockAutoSummaryService implements AutoSummaryService {
+  AutoSummaryResult? resultToReturn;
+  final List<String> generatedForFiles = [];
+
+  @override
+  Future<AutoSummaryResult> generateSummary(
+    String textContent, {
+    required String fileName,
+  }) async {
+    generatedForFiles.add(fileName);
+    return resultToReturn ??
+        const AutoSummaryResult(
+          summary: '',
+          errorCode: 'not_implemented',
+        );
+  }
+}
+
+/// Мок для [AutoTagsService].
+class MockAutoTagsService implements AutoTagsService {
+  AutoTagsResult? resultToReturn;
+  final List<String> generatedForFiles = [];
+
+  @override
+  Future<AutoTagsResult> generateTags(
+    String textContent, {
+    required String fileName,
+  }) async {
+    generatedForFiles.add(fileName);
+    return resultToReturn ??
+        const AutoTagsResult(
+          tags: [],
+          errorCode: 'not_implemented',
+        );
+  }
+}
+
 /// Мок для [NotificationsService].
 class MockNotificationsService implements NotificationsService {
   int showFileAddedCallCount = 0;
@@ -441,6 +494,8 @@ void main() {
     late MockAudioTranscriber transcriber;
     late MockEmbeddingService embeddingService;
     late MockOcrService ocrService;
+    late MockAutoSummaryService autoSummaryService;
+    late MockAutoTagsService autoTagsService;
     late MockNotificationsService notifications;
     late ContentEnrichmentCoordinator coordinator;
     late StreamController<FileAddedUiEvent> fileEventsController;
@@ -455,6 +510,8 @@ void main() {
       transcriber = MockAudioTranscriber();
       embeddingService = MockEmbeddingService();
       ocrService = MockOcrService();
+      autoSummaryService = MockAutoSummaryService();
+      autoTagsService = MockAutoTagsService();
       notifications = MockNotificationsService();
       fileEventsController = StreamController<FileAddedUiEvent>.broadcast();
 
@@ -466,6 +523,8 @@ void main() {
         transcriber: transcriber,
         embeddingService: embeddingService,
         ocrService: ocrService,
+        autoSummaryService: autoSummaryService,
+        autoTagsService: autoTagsService,
         notifications: notifications,
       );
     });

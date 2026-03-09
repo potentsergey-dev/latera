@@ -93,8 +93,8 @@ class _InboxScreenState extends State<InboxScreen> {
         tags: _tagsController.text.trim(),
       );
 
-      // Запускаем обогащение контента после ревью
-      root.contentEnrichmentCoordinator.enqueueFile(
+      // Пересчитываем только эмбеддинги (описание/теги уже сохранены)
+      root.contentEnrichmentCoordinator.enqueueReEmbedding(
         selected.filePath,
         selected.fileName,
       );

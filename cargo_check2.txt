@@ -1,0 +1,10 @@
+﻿cargo :     Checking latera_rust v0.1.0 
+(C:\Users\voron\Documents\Projects\latera\rust)
+строка:1 знак:1
++ cargo check 2>&1 | Out-File -FilePath C:\Users\voron\Documents\Projec ...
++ ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Checking la...ts\latera\rust) 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.05s

@@ -9,6 +9,9 @@ import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'error.dart';
 import 'frb_generated.dart';
+import 'indexer/ocr.dart';
+import 'indexer/text_extractor.dart';
+import 'indexer/transcriber.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
 
 abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
@@ -47,19 +50,110 @@ abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
   );
 
   @protected
+  RustStreamSink<FileRemovedEvent> dco_decode_StreamSink_file_removed_event_Sse(
+    dynamic raw,
+  );
+
+  @protected
   String dco_decode_String(dynamic raw);
+
+  @protected
+  ApiEmbeddingVector dco_decode_api_embedding_vector(dynamic raw);
+
+  @protected
+  ApiRagSource dco_decode_api_rag_source(dynamic raw);
+
+  @protected
+  ApiSimilarityResult dco_decode_api_similarity_result(dynamic raw);
+
+  @protected
+  ApiTextChunk dco_decode_api_text_chunk(dynamic raw);
+
+  @protected
+  bool dco_decode_bool(dynamic raw);
+
+  @protected
+  ExtractionOptions dco_decode_box_autoadd_extraction_options(dynamic raw);
+
+  @protected
+  double dco_decode_box_autoadd_f_64(dynamic raw);
+
+  @protected
+  OcrOptions dco_decode_box_autoadd_ocr_options(dynamic raw);
+
+  @protected
+  TranscriptionOptions dco_decode_box_autoadd_transcription_options(
+    dynamic raw,
+  );
+
+  @protected
+  ExtractionOptions dco_decode_extraction_options(dynamic raw);
+
+  @protected
+  ExtractionResult dco_decode_extraction_result(dynamic raw);
+
+  @protected
+  double dco_decode_f_32(dynamic raw);
+
+  @protected
+  double dco_decode_f_64(dynamic raw);
 
   @protected
   FileAddedEvent dco_decode_file_added_event(dynamic raw);
 
   @protected
+  FileRemovedEvent dco_decode_file_removed_event(dynamic raw);
+
+  @protected
   PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
+  List<ApiEmbeddingVector> dco_decode_list_api_embedding_vector(dynamic raw);
+
+  @protected
+  List<ApiRagSource> dco_decode_list_api_rag_source(dynamic raw);
+
+  @protected
+  List<ApiSimilarityResult> dco_decode_list_api_similarity_result(dynamic raw);
+
+  @protected
+  List<ApiTextChunk> dco_decode_list_api_text_chunk(dynamic raw);
+
+  @protected
+  Float32List dco_decode_list_prim_f_32_strict(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<SearchResultItem> dco_decode_list_search_result_item(dynamic raw);
+
+  @protected
+  OcrOptions dco_decode_ocr_options(dynamic raw);
+
+  @protected
+  OcrResult dco_decode_ocr_result(dynamic raw);
+
+  @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  double? dco_decode_opt_box_autoadd_f_64(dynamic raw);
+
+  @protected
+  RagQueryResult dco_decode_rag_query_result(dynamic raw);
+
+  @protected
+  SearchResultItem dco_decode_search_result_item(dynamic raw);
+
+  @protected
+  TranscriptionOptions dco_decode_transcription_options(dynamic raw);
+
+  @protected
+  TranscriptionResult dco_decode_transcription_result(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -94,25 +188,133 @@ abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
   );
 
   @protected
+  RustStreamSink<FileRemovedEvent> sse_decode_StreamSink_file_removed_event_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   String sse_decode_String(SseDeserializer deserializer);
+
+  @protected
+  ApiEmbeddingVector sse_decode_api_embedding_vector(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiRagSource sse_decode_api_rag_source(SseDeserializer deserializer);
+
+  @protected
+  ApiSimilarityResult sse_decode_api_similarity_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ApiTextChunk sse_decode_api_text_chunk(SseDeserializer deserializer);
+
+  @protected
+  bool sse_decode_bool(SseDeserializer deserializer);
+
+  @protected
+  ExtractionOptions sse_decode_box_autoadd_extraction_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  double sse_decode_box_autoadd_f_64(SseDeserializer deserializer);
+
+  @protected
+  OcrOptions sse_decode_box_autoadd_ocr_options(SseDeserializer deserializer);
+
+  @protected
+  TranscriptionOptions sse_decode_box_autoadd_transcription_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExtractionOptions sse_decode_extraction_options(SseDeserializer deserializer);
+
+  @protected
+  ExtractionResult sse_decode_extraction_result(SseDeserializer deserializer);
+
+  @protected
+  double sse_decode_f_32(SseDeserializer deserializer);
+
+  @protected
+  double sse_decode_f_64(SseDeserializer deserializer);
 
   @protected
   FileAddedEvent sse_decode_file_added_event(SseDeserializer deserializer);
 
   @protected
+  FileRemovedEvent sse_decode_file_removed_event(SseDeserializer deserializer);
+
+  @protected
   PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
+  List<ApiEmbeddingVector> sse_decode_list_api_embedding_vector(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ApiRagSource> sse_decode_list_api_rag_source(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ApiSimilarityResult> sse_decode_list_api_similarity_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ApiTextChunk> sse_decode_list_api_text_chunk(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Float32List sse_decode_list_prim_f_32_strict(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<SearchResultItem> sse_decode_list_search_result_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OcrOptions sse_decode_ocr_options(SseDeserializer deserializer);
+
+  @protected
+  OcrResult sse_decode_ocr_result(SseDeserializer deserializer);
+
+  @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
 
   @protected
-  int sse_decode_u_8(SseDeserializer deserializer);
+  double? sse_decode_opt_box_autoadd_f_64(SseDeserializer deserializer);
+
+  @protected
+  RagQueryResult sse_decode_rag_query_result(SseDeserializer deserializer);
+
+  @protected
+  SearchResultItem sse_decode_search_result_item(SseDeserializer deserializer);
+
+  @protected
+  TranscriptionOptions sse_decode_transcription_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  TranscriptionResult sse_decode_transcription_result(
+    SseDeserializer deserializer,
+  );
 
   @protected
   int sse_decode_u_32(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_8(SseDeserializer deserializer);
 
   @protected
   void sse_decode_unit(SseDeserializer deserializer);
@@ -122,9 +324,6 @@ abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
-
-  @protected
-  bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
   void sse_encode_AnyhowException(
@@ -156,7 +355,73 @@ abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
   );
 
   @protected
+  void sse_encode_StreamSink_file_removed_event_Sse(
+    RustStreamSink<FileRemovedEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_String(String self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_api_embedding_vector(
+    ApiEmbeddingVector self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_api_rag_source(ApiRagSource self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_api_similarity_result(
+    ApiSimilarityResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_api_text_chunk(ApiTextChunk self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_extraction_options(
+    ExtractionOptions self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_f_64(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_ocr_options(
+    OcrOptions self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_transcription_options(
+    TranscriptionOptions self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_extraction_options(
+    ExtractionOptions self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_extraction_result(
+    ExtractionResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_f_32(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_f_64(double self, SseSerializer serializer);
 
   @protected
   void sse_encode_file_added_event(
@@ -165,7 +430,43 @@ abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
   );
 
   @protected
+  void sse_encode_file_removed_event(
+    FileRemovedEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_api_embedding_vector(
+    List<ApiEmbeddingVector> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_api_rag_source(
+    List<ApiRagSource> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_api_similarity_result(
+    List<ApiSimilarityResult> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_api_text_chunk(
+    List<ApiTextChunk> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_prim_f_32_strict(
+    Float32List self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_prim_u_8_strict(
@@ -174,7 +475,49 @@ abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
   );
 
   @protected
+  void sse_encode_list_search_result_item(
+    List<SearchResultItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_ocr_options(OcrOptions self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_ocr_result(OcrResult self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_String(String? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_f_64(double? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_rag_query_result(
+    RagQueryResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_search_result_item(
+    SearchResultItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_transcription_options(
+    TranscriptionOptions self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_transcription_result(
+    TranscriptionResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
@@ -187,9 +530,6 @@ abstract class RustCoreApiImplPlatform extends BaseApiImpl<RustCoreWire> {
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_bool(bool self, SseSerializer serializer);
 }
 
 // Section: wire_class

@@ -6,6 +6,7 @@
 //! - CRUD операции индекса
 
 pub mod embeddings;
+pub mod llm;
 pub mod ocr;
 pub mod rag;
 mod text_extractor;
@@ -27,6 +28,7 @@ pub use embeddings::{
     DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, EMBEDDING_DIM,
 };
 pub use ocr::{is_ocr_supported, ocr_content_type, ocr_extract_text, OcrOptions, OcrResult};
+pub use llm::{generate_summary, generate_tags, is_llm_ready, LlmSummaryResult, LlmTagsResult};
 pub use rag::{rag_query, rag_query_full_context, RagResult, RagSource};
 pub use text_extractor::extract_text;
 pub use text_extractor::{extract_rich_content, ExtractionOptions, ExtractionResult};

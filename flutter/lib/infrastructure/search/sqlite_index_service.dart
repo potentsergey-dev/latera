@@ -127,13 +127,13 @@ class SqliteIndexService implements Indexer, SearchRepository {
                 .first['cnt']
             as int;
     if (ftsExists > 0) {
-      // Проверяем наличие колонки transcript_text в FTS-таблице
+      // Проверяем наличие колонок transcript_text и tags в FTS-таблице
       // FTS5 не поддерживает pragma_table_info, поэтому пробуем SELECT
       try {
-        db.execute('SELECT transcript_text FROM files_fts LIMIT 0');
+        db.execute('SELECT transcript_text, tags FROM files_fts LIMIT 0');
       } catch (_) {
         _log.i(
-          'Migrating files_fts: adding transcript_text column (drop + recreate)',
+          'Migrating files_fts: adding transcript_text/tags columns (drop + recreate)',
         );
         db.execute('DROP TABLE files_fts;');
         ftsRecreated = true;
@@ -146,6 +146,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
         description,
         text_content,
         transcript_text,
+        tags,
         content='files',
         content_rowid='id'
       );
@@ -156,26 +157,26 @@ class SqliteIndexService implements Indexer, SearchRepository {
     db.execute('DROP TRIGGER IF EXISTS files_ai;');
     db.execute('''
       CREATE TRIGGER files_ai AFTER INSERT ON files BEGIN
-        INSERT INTO files_fts(rowid, file_name, description, text_content, transcript_text)
-        VALUES (new.id, new.file_name, new.description, new.text_content, new.transcript_text);
+        INSERT INTO files_fts(rowid, file_name, description, text_content, transcript_text, tags)
+        VALUES (new.id, new.file_name, new.description, new.text_content, new.transcript_text, new.tags);
       END;
     ''');
 
     db.execute('DROP TRIGGER IF EXISTS files_ad;');
     db.execute('''
       CREATE TRIGGER files_ad AFTER DELETE ON files BEGIN
-        INSERT INTO files_fts(files_fts, rowid, file_name, description, text_content, transcript_text)
-        VALUES('delete', old.id, old.file_name, old.description, old.text_content, old.transcript_text);
+        INSERT INTO files_fts(files_fts, rowid, file_name, description, text_content, transcript_text, tags)
+        VALUES('delete', old.id, old.file_name, old.description, old.text_content, old.transcript_text, old.tags);
       END;
     ''');
 
     db.execute('DROP TRIGGER IF EXISTS files_au;');
     db.execute('''
       CREATE TRIGGER files_au AFTER UPDATE ON files BEGIN
-        INSERT INTO files_fts(files_fts, rowid, file_name, description, text_content, transcript_text)
-        VALUES('delete', old.id, old.file_name, old.description, old.text_content, old.transcript_text);
-        INSERT INTO files_fts(rowid, file_name, description, text_content, transcript_text)
-        VALUES (new.id, new.file_name, new.description, new.text_content, new.transcript_text);
+        INSERT INTO files_fts(files_fts, rowid, file_name, description, text_content, transcript_text, tags)
+        VALUES('delete', old.id, old.file_name, old.description, old.text_content, old.transcript_text, old.tags);
+        INSERT INTO files_fts(rowid, file_name, description, text_content, transcript_text, tags)
+        VALUES (new.id, new.file_name, new.description, new.text_content, new.transcript_text, new.tags);
       END;
     ''');
 
@@ -368,7 +369,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
   @override
   Future<String?> getTextContent(String filePath) async {
     final result = _database.select(
-      'SELECT description, text_content, transcript_text FROM files WHERE file_path = ? LIMIT 1',
+      'SELECT description, text_content, transcript_text, tags FROM files WHERE file_path = ? LIMIT 1',
       [filePath],
     );
 
@@ -378,10 +379,14 @@ class SqliteIndexService implements Indexer, SearchRepository {
     final description = row['description'] as String?;
     final textContent = row['text_content'] as String?;
     final transcript = row['transcript_text'] as String?;
+    final tags = row['tags'] as String?;
 
     final buffer = StringBuffer();
     if (description != null && description.isNotEmpty) {
       buffer.writeln(description);
+    }
+    if (tags != null && tags.isNotEmpty) {
+      buffer.writeln(tags);
     }
     if (textContent != null && textContent.isNotEmpty) {
       buffer.writeln(textContent);
@@ -409,6 +414,30 @@ class SqliteIndexService implements Indexer, SearchRepository {
     }
 
     return fullText;
+  }
+
+  @override
+  Future<void> updateDescription(String filePath, String description) async {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    _database.execute(
+      '''UPDATE files SET description = ?, indexed_at = ?
+         WHERE file_path = ?''',
+      [description, now, filePath],
+    );
+    _log.d('Updated description for: $filePath (${description.length} chars)');
+  }
+
+  @override
+  Future<void> updateTags(String filePath, String tags) async {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+    _database.execute(
+      '''UPDATE files SET tags = ?, indexed_at = ?
+         WHERE file_path = ?''',
+      [tags, now, filePath],
+    );
+    _log.d('Updated tags for: $filePath (tags=$tags)');
   }
 
   // ====================================================================
@@ -615,7 +644,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
               f.file_name,
               f.description,
               snippet(files_fts, 2, '<b>', '</b>', '...', 32) as snippet,
-              bm25(files_fts, 5.0, 10.0, 1.0, 1.0) as rank,
+              bm25(files_fts, 5.0, 10.0, 1.0, 1.0, 8.0) as rank,
               f.indexed_at
            FROM files_fts
            JOIN files f ON f.id = files_fts.rowid

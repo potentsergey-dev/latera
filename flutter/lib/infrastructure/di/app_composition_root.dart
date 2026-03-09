@@ -8,6 +8,8 @@ import '../../application/content_enrichment_coordinator.dart';
 import '../../application/file_events_coordinator.dart';
 import '../../application/license_coordinator.dart';
 import '../../domain/app_config.dart';
+import '../../domain/auto_summary.dart';
+import '../../domain/auto_tags.dart';
 import '../../domain/feature_flags.dart';
 import '../../domain/file_watcher.dart';
 import '../../domain/indexer.dart';
@@ -25,11 +27,15 @@ import '../logging/app_logger.dart';
 import '../notifications/local_notifications_service.dart';
 import '../rust/rust_file_watcher_frb.dart';
 import '../rust/stub_audio_transcriber.dart';
+import '../rust/stub_auto_summary_service.dart';
+import '../rust/stub_auto_tags_service.dart';
+import '../rust/rust_ffi_auto_summary_service.dart';
+import '../rust/rust_ffi_auto_tags_service.dart';
 import '../rust/rust_ffi_embedding_service.dart';
 import '../rust/stub_embedding_service.dart';
 import '../rust/rust_ocr_service.dart';
 import '../rust/stub_ocr_service.dart';
-import '../rust/stub_rag_service.dart';
+import '../rust/rust_rag_service.dart';
 import '../rust/generated/api.dart' as rust_api;
 import '../rust/rust_core.dart';
 import '../extraction/dart_rich_text_extractor.dart';
@@ -136,6 +142,10 @@ class AppCompositionRoot {
     );
     await sqliteIndexService.initialize();
 
+    // Инициализация Rust-стороны индексной БД (используется для RAG-запросов и эмбеддингов).
+    // Открывает тот же файл SQLite, что и Dart-сторона, в WAL-режиме.
+    await rust_api.initIndex(dbPath: dbPath);
+
     // Инициализация семантической модели в фоне (ONNX all-MiniLM-L6-v2).
     // Загрузка занимает ~1-3 сек; выполняется асинхронно, не блокирует UI.
     final modelDataDir = p.join(appDataDir.path, 'Latera');
@@ -186,8 +196,30 @@ class AppCompositionRoot {
     }
 
     // RAG service (Phase 4: «Спроси папку»)
-    // Использует Stub-реализацию до подключения Rust FRB bindings.
-    final RagService ragService = StubRagService();
+    // Теперь использует Rust-реализацию через FRB.
+    final RagService ragService = RustRagService(logger: logger);
+
+    // Auto-summary и Auto-tags (Phase 5)
+    // Используем Rust FFI если DLL доступна, иначе stub.
+    final rustAutoSummary = RustFfiAutoSummaryService();
+    final AutoSummaryService autoSummaryService;
+    if (rustAutoSummary.isAvailable) {
+      autoSummaryService = rustAutoSummary;
+      logger.i('Auto-summary: using Rust LLM (via FFI)');
+    } else {
+      autoSummaryService = StubAutoSummaryService();
+      logger.w('Auto-summary: Rust DLL not found, using stub');
+    }
+
+    final rustAutoTags = RustFfiAutoTagsService();
+    final AutoTagsService autoTagsService;
+    if (rustAutoTags.isAvailable) {
+      autoTagsService = rustAutoTags;
+      logger.i('Auto-tags: using Rust LLM (via FFI)');
+    } else {
+      autoTagsService = StubAutoTagsService();
+      logger.w('Auto-tags: Rust DLL not found, using stub');
+    }
 
     final contentEnrichmentCoordinator = ContentEnrichmentCoordinator(
       logger: logger,
@@ -197,6 +229,8 @@ class AppCompositionRoot {
       transcriber: audioTranscriber,
       embeddingService: embeddingService,
       ocrService: ocrService,
+      autoSummaryService: autoSummaryService,
+      autoTagsService: autoTagsService,
       notifications: notifications,
     );
     // Подключаем к потоку событий добавления файлов

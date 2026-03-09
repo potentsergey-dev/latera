@@ -57,6 +57,18 @@ abstract interface class Indexer {
   /// Используется для генерации эмбеддингов после того, как файл был обогащен.
   Future<String?> getTextContent(String filePath);
 
+  /// Обновляет автоматически сгенерированное описание файла.
+  ///
+  /// Используется при фоновом обогащении контента (AutoSummaryService).
+  /// Если файл не найден в индексе — операция игнорируется.
+  Future<void> updateDescription(String filePath, String description);
+
+  /// Обновляет автоматически сгенерированные теги файла.
+  ///
+  /// Используется при фоновом обогащении контента (AutoTagsService).
+  /// Если файл не найден в индексе — операция игнорируется.
+  Future<void> updateTags(String filePath, String tags);
+
   // === Phase 3: Embeddings ===
 
   /// Сохраняет чанки и их эмбеддинги для файла.
