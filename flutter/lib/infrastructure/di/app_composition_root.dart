@@ -238,6 +238,29 @@ class AppCompositionRoot {
       fileEventsCoordinator.fileAddedEvents,
     );
 
+    // Реконсиляция индекса с файловой системой.
+    // Удаляет из БД файлы, которых больше нет на диске, и обнаруживает новые.
+    try {
+      final watchPath = configService.currentConfig.watchPath ??
+          await rust_api.getDefaultWatchPathPreview();
+      final syncResult =
+          await sqliteIndexService.syncWithFilesystem(watchPath);
+
+      // Новые файлы: индексируем для review и ставим в очередь обогащения
+      for (final f in syncResult.newFiles) {
+        await sqliteIndexService.indexFileForReview(
+          f['filePath']!,
+          fileName: f['fileName']!,
+        );
+        contentEnrichmentCoordinator.enqueueFile(
+          f['filePath']!,
+          f['fileName']!,
+        );
+      }
+    } catch (e, st) {
+      logger.w('Filesystem sync failed (non-fatal)', error: e, stackTrace: st);
+    }
+
     // Пересчитываем эмбеддинги для файлов, у которых их нет
     // (после миграции stub → ONNX или первой инициализации)
     final filesToReEmbed = sqliteIndexService.getFilesWithoutEmbeddings();

@@ -887,6 +887,40 @@ fn tokenize_for_lexical_match(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// Минимальный стеммер для русского языка.
+///
+/// Отсекает типичные падежные/числовые окончания существительных,
+/// прилагательных и глаголов, оставляя корень длиной >= 3 символа.
+/// Для нерусских слов возвращает без изменений.
+fn stem_russian(word: &str) -> String {
+    // Проверяем, что слово содержит кириллицу
+    if !word.chars().any(|c| matches!(c, '\u{0400}'..='\u{04FF}')) {
+        return word.to_string();
+    }
+    let char_count = word.chars().count();
+    if char_count <= 3 {
+        return word.to_string();
+    }
+    // Окончания от длинных к коротким
+    static SUFFIXES: &[&str] = &[
+        "ями", "ого", "его", "ому", "ему", "ами", "ыми", "ими",
+        "ние", "ний", "ные", "ный", "ная", "ное", "ную", "ной",
+        "ном", "ных",
+        "ях", "ам", "ом", "ем", "ей", "ов", "ые", "ие",
+        "ую", "юю", "ой", "им", "ым", "ах",
+        "а", "я", "о", "е", "и", "ы", "у", "ю",
+    ];
+    let lower = word.to_lowercase();
+    for suffix in SUFFIXES {
+        if let Some(stem) = lower.strip_suffix(suffix) {
+            if stem.chars().count() >= 3 {
+                return stem.to_string();
+            }
+        }
+    }
+    lower
+}
+
 /// Лёгкий лексический сигнал (0.0..1.0) для гибридного ранжирования.
 ///
 /// Приоритет:
@@ -912,17 +946,20 @@ fn lexical_match_score(
             continue;
         }
 
-        if file_name_l.contains(token) {
+        // Пробуем точное совпадение, затем по стемму (корню слова)
+        let stemmed = stem_russian(token);
+        if file_name_l.contains(token) || file_name_l.contains(&stemmed) {
             score += 0.8;
-        } else if chunk_text_l.contains(token) {
+        } else if chunk_text_l.contains(token) || chunk_text_l.contains(&stemmed) {
             score += 0.4;
         }
     }
 
+    let query_stemmed = stem_russian(query_clean);
     if query_clean.chars().count() >= 4 {
-        if file_name_l.contains(query_clean) {
+        if file_name_l.contains(query_clean) || file_name_l.contains(&query_stemmed) {
             score += 0.3;
-        } else if chunk_text_l.contains(query_clean) {
+        } else if chunk_text_l.contains(query_clean) || chunk_text_l.contains(&query_stemmed) {
             score += 0.15;
         }
     }
@@ -1509,5 +1546,140 @@ mod tests {
         assert_eq!(avg.len(), 2);
         let norm: f32 = avg.iter().map(|v| v * v).sum::<f32>().sqrt();
         assert!((norm - 1.0).abs() < 0.01);
+    }
+
+    // ------------------------------------------------------------------
+    // Russian stemmer
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_stem_russian_basic_nouns() {
+        // папка / папки / папку → папк
+        assert_eq!(stem_russian("папка"), "папк");
+        assert_eq!(stem_russian("папки"), "папк");
+        assert_eq!(stem_russian("папку"), "папк");
+        assert_eq!(stem_russian("папкой"), "папк");
+        assert_eq!(stem_russian("папками"), "папк");
+    }
+
+    #[test]
+    fn test_stem_russian_various_words() {
+        // документ / документы / документов
+        assert_eq!(stem_russian("документы"), "документ");
+        assert_eq!(stem_russian("документов"), "документ");
+        assert_eq!(stem_russian("документами"), "документ");
+        // файл / файлы
+        assert_eq!(stem_russian("файлы"), "файл");
+        assert_eq!(stem_russian("файле"), "файл");
+    }
+
+    #[test]
+    fn test_stem_russian_short_words_untouched() {
+        // Слова ≤3 символов не трогаем
+        assert_eq!(stem_russian("да"), "да");
+        assert_eq!(stem_russian("нет"), "нет");
+        assert_eq!(stem_russian("кот"), "кот");
+    }
+
+    #[test]
+    fn test_stem_russian_preserves_min_root() {
+        // «доме» → «дом» (3 символа — допустимый корень)
+        assert_eq!(stem_russian("доме"), "дом");
+        // «мяч» — 3 chars, no suffix to strip
+        assert_eq!(stem_russian("мяч"), "мяч");
+        // Слово, где обрезка оставит < 3 символов — не обрезаем
+        assert_eq!(stem_russian("оно"), "оно");
+    }
+
+    #[test]
+    fn test_stem_russian_latin_passthrough() {
+        // Латинские слова не трогаем
+        assert_eq!(stem_russian("hello"), "hello");
+        assert_eq!(stem_russian("document"), "document");
+        assert_eq!(stem_russian("files"), "files");
+    }
+
+    #[test]
+    fn test_stem_russian_mixed_case() {
+        // Стеммер делает lowercase
+        assert_eq!(stem_russian("Папка"), "папк");
+        assert_eq!(stem_russian("ФАЙЛЫ"), "файл");
+    }
+
+    // ------------------------------------------------------------------
+    // Lexical match with stemming
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_lexical_match_finds_stemmed_forms() {
+        let query_clean = normalize_for_lexical_match("папка");
+        let query_tokens = tokenize_for_lexical_match(&query_clean);
+
+        // Текст чанка содержит «папки» — другую словоформу
+        let score = lexical_match_score(
+            &query_clean,
+            &query_tokens,
+            "readme.txt",
+            "Создайте новые папки для документов",
+        );
+        assert!(score > 0.0, "Stemmed search for 'папка' should match 'папки' in chunk");
+    }
+
+    #[test]
+    fn test_lexical_match_finds_stemmed_in_filename() {
+        let query_clean = normalize_for_lexical_match("документ");
+        let query_tokens = tokenize_for_lexical_match(&query_clean);
+
+        let score = lexical_match_score(
+            &query_clean,
+            &query_tokens,
+            "Документы.txt",
+            "some random content",
+        );
+        assert!(score > 0.0, "Stemmed search for 'документ' should match 'Документы' in filename");
+    }
+
+    #[test]
+    fn test_similarity_search_russian_stemming() {
+        let conn = create_test_db();
+
+        // Файл с «папки» в тексте
+        indexer::index_file(
+            &conn,
+            "/folders.txt",
+            "folders.txt",
+            "",
+            Some("Создайте новые папки для хранения документов"),
+        ).unwrap();
+        let info = indexer::get_indexed_file(&conn, "/folders.txt").unwrap().unwrap();
+        let chunks = chunk_text(
+            "Создайте новые папки для хранения документов",
+            DEFAULT_CHUNK_SIZE,
+            DEFAULT_CHUNK_OVERLAP,
+        );
+        let embs = compute_embeddings(&chunks);
+        store_chunks_and_embeddings(&conn, info.id, &chunks, &embs).unwrap();
+
+        // Файл без «папки»
+        indexer::index_file(
+            &conn,
+            "/other.txt",
+            "other.txt",
+            "",
+            Some("рецепт приготовления борща"),
+        ).unwrap();
+        let other_info = indexer::get_indexed_file(&conn, "/other.txt").unwrap().unwrap();
+        let other_chunks = chunk_text(
+            "рецепт приготовления борща",
+            DEFAULT_CHUNK_SIZE,
+            DEFAULT_CHUNK_OVERLAP,
+        );
+        let other_embs = compute_embeddings(&other_chunks);
+        store_chunks_and_embeddings(&conn, other_info.id, &other_chunks, &other_embs).unwrap();
+
+        // Ищем «папка» — должен найтись файл с «папки»
+        let results = similarity_search(&conn, "папка", 5).unwrap();
+        assert!(!results.is_empty(), "Search for 'папка' should find file with 'папки'");
+        assert_eq!(results[0].file_path, "/folders.txt");
     }
 }

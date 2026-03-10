@@ -601,6 +601,76 @@ class SqliteIndexService implements Indexer, SearchRepository {
     _log.d('Marked file as enriched (cleared needs_review): $filePath');
   }
 
+  /// Синхронизирует индекс с файловой системой.
+  ///
+  /// 1. Удаляет из индекса файлы, которых больше нет на диске.
+  /// 2. Обнаруживает новые файлы в [watchDir], отсутствующие в индексе.
+  ///
+  /// Возвращает `SyncResult` со статистикой.
+  /// Вызывать один раз при старте приложения (после initialize).
+  Future<SyncResult> syncWithFilesystem(String watchDir) async {
+    final stopwatch = Stopwatch()..start();
+    var removedCount = 0;
+    final newFiles = <Map<String, String>>[];
+
+    try {
+      // --- Шаг 1: удаляем из индекса файлы, которых нет на диске ---
+      final indexed = _database.select(
+        'SELECT file_path FROM files',
+      );
+
+      for (final row in indexed) {
+        final filePath = row['file_path'] as String;
+        if (!File(filePath).existsSync()) {
+          _database.execute(
+            'DELETE FROM files WHERE file_path = ?',
+            [filePath],
+          );
+          removedCount++;
+          _log.d('Sync: removed stale file from index: $filePath');
+        }
+      }
+
+      // --- Шаг 2: ищем новые файлы в watch-директории ---
+      final dir = Directory(watchDir);
+      if (dir.existsSync()) {
+        final entities = dir.listSync();
+        for (final entity in entities) {
+          if (entity is File) {
+            final path = entity.path;
+            final isIndexed = _database.select(
+              'SELECT COUNT(*) as cnt FROM files WHERE file_path = ?',
+              [path],
+            );
+            if ((isIndexed.first['cnt'] as int) == 0) {
+              final fileName = p.basename(path);
+              // Пропускаем desktop.ini и системные файлы
+              if (fileName == 'desktop.ini') continue;
+              newFiles.add({
+                'filePath': path,
+                'fileName': fileName,
+              });
+              _log.d('Sync: discovered new file: $fileName');
+            }
+          }
+        }
+      }
+
+      stopwatch.stop();
+      _log.i(
+        'Filesystem sync completed in ${stopwatch.elapsedMilliseconds}ms: '
+        'removed $removedCount stale, found ${newFiles.length} new',
+      );
+    } catch (e, st) {
+      _log.e('Filesystem sync error', error: e, stackTrace: st);
+    }
+
+    return SyncResult(
+      removedCount: removedCount,
+      newFiles: newFiles,
+    );
+  }
+
   /// Возвращает список файлов (filePath, fileName), у которых нет эмбеддингов.
   ///
   /// Используется для пересчёта эмбеддингов после миграции stub → ONNX.
@@ -777,6 +847,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
   /// Подготавливает пользовательский запрос для FTS5.
   ///
   /// - Разбивает на токены
+  /// - Простой стемминг русских окончаний для поиска по корню слова
   /// - Добавляет `*` для prefix-match
   /// - Экранирует специальные символы FTS5
   String _prepareFtsQuery(String query) {
@@ -786,11 +857,15 @@ class SqliteIndexService implements Indexer, SearchRepository {
         .map((token) {
           // Убираем FTS5 спецсимволы, сохраняя Unicode-буквы и цифры
           // (\p{L} — любая буква, включая кириллицу; \p{N} — цифры)
-          final clean = token.replaceAll(
+          var clean = token.replaceAll(
             RegExp(r'[^\p{L}\p{N}_\-]', unicode: true),
             '',
           );
           if (clean.isEmpty) return '';
+          // Простой стемминг для русского языка: отсекаем типичные окончания,
+          // чтобы «папка», «папки», «папку» все превратились в «папк»
+          // и prefix-match «папк*» нашёл все словоформы.
+          clean = _stemRussian(clean);
           // Оборачиваем в кавычки и добавляем * для prefix-match
           return '"$clean"*';
         })
@@ -798,6 +873,30 @@ class SqliteIndexService implements Indexer, SearchRepository {
         .toList();
 
     return tokens.join(' ');
+  }
+
+  /// Минимальный стеммер для русского языка.
+  ///
+  /// Отсекает типичные падежные/числовые окончания существительных,
+  /// прилагательных и глаголов, оставляя корень длиной ≥ 3 символа.
+  /// Для латинских слов возвращает без изменений (FTS prefix-match
+  /// и так хорошо работает для английского).
+  static final _cyrillicRe = RegExp(r'[\u0400-\u04FF]');
+  // Окончания отсортированы от длинных к коротким, чтобы самое длинное
+  // совпадение сработало первым.
+  static final _ruSuffixRe = RegExp(
+    r'(ями|ого|его|ому|ему|ами|ыми|ими|ние|ний|ные|ный|ная|ное|ную|ной|ном|ных|ому|ях|ам|ом|ем|ей|ов|ые|ие|ую|юю|ой|им|ым|ах|а|я|о|е|и|ы|у|ю)$',
+    caseSensitive: false,
+  );
+
+  static String _stemRussian(String word) {
+    if (!_cyrillicRe.hasMatch(word)) return word;
+    // Не трогаем слишком короткие слова (корень должен быть ≥ 3 символа)
+    if (word.length <= 3) return word;
+    final stemmed = word.replaceFirst(_ruSuffixRe, '');
+    // Гарантируем минимальную длину корня
+    if (stemmed.length < 3) return word;
+    return stemmed;
   }
 
   // ====================================================================
@@ -895,6 +994,21 @@ class SqliteIndexService implements Indexer, SearchRepository {
     _db = null;
     _log.i('Index database closed');
   }
+}
+
+/// Результат синхронизации индекса с файловой системой.
+class SyncResult {
+  /// Количество удалённых из индекса файлов (не найдены на диске).
+  final int removedCount;
+
+  /// Новые файлы, обнаруженные в watch-папке, но отсутствующие в индексе.
+  /// Каждый элемент содержит 'filePath' и 'fileName'.
+  final List<Map<String, String>> newFiles;
+
+  const SyncResult({
+    required this.removedCount,
+    required this.newFiles,
+  });
 }
 
 // ======================================================================

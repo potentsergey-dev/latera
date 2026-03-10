@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ffi';
+import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 import 'package:logger/logger.dart';
@@ -32,9 +33,7 @@ typedef _FreeCStringDart = void Function(Pointer<Utf8> ptr);
 class RustFfiAutoTagsService implements AutoTagsService {
   static final _log = Logger(printer: PrettyPrinter(methodCount: 0));
 
-  _GenerateTagsDart? _generateTagsFfi;
   _IsLlmReadyDart? _isLlmReadyFfi;
-  _FreeCStringDart? _freeCStringFfi;
   bool _initialized = false;
   bool _available = false;
 
@@ -54,17 +53,9 @@ class RustFfiAutoTagsService implements AutoTagsService {
     try {
       final lib = DynamicLibrary.open(libPath);
 
-      _generateTagsFfi =
-          lib.lookupFunction<_GenerateTagsC, _GenerateTagsDart>(
-        'latera_generate_tags',
-      );
       _isLlmReadyFfi =
           lib.lookupFunction<_IsLlmReadyC, _IsLlmReadyDart>(
         'latera_is_llm_ready',
-      );
-      _freeCStringFfi =
-          lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
-        'latera_free_cstring',
       );
 
       _available = true;
@@ -109,14 +100,21 @@ class RustFfiAutoTagsService implements AutoTagsService {
       );
     }
 
-    final textPtr = textContent.toNativeUtf8();
-    final fileNamePtr = fileName.toNativeUtf8();
-    Pointer<Utf8> resultPtr = Pointer.fromAddress(0);
+    // Захватываем путь к DLL — DynamicLibrary нельзя передать в Isolate.
+    final libPath = RustOcrService.resolveLibraryPath()!;
 
+    // Выполняем тяжёлый TF-IDF + embedding inference в отдельном Isolate,
+    // чтобы не блокировать UI thread.
     try {
-      resultPtr = _generateTagsFfi!(textPtr, fileNamePtr);
+      final jsonStr = await Isolate.run(() {
+        return _doGenerateTags(
+          libraryPath: libPath,
+          textContent: textContent,
+          fileName: fileName,
+        );
+      });
 
-      if (resultPtr.address == 0) {
+      if (jsonStr == null) {
         _log.w('RustFfiAutoTagsService: FFI returned null');
         return const AutoTagsResult(
           tags: [],
@@ -124,7 +122,6 @@ class RustFfiAutoTagsService implements AutoTagsService {
         );
       }
 
-      final jsonStr = resultPtr.toDartString();
       final Map<String, dynamic> data =
           json.decode(jsonStr) as Map<String, dynamic>;
 
@@ -142,11 +139,36 @@ class RustFfiAutoTagsService implements AutoTagsService {
         tags: [],
         errorCode: 'generation_failed',
       );
+    }
+  }
+
+  /// Статический метод для выполнения в Isolate (не может использовать this).
+  static String? _doGenerateTags({
+    required String libraryPath,
+    required String textContent,
+    required String fileName,
+  }) {
+    final lib = DynamicLibrary.open(libraryPath);
+    final generateTags = lib.lookupFunction<
+      _GenerateTagsC,
+      _GenerateTagsDart
+    >('latera_generate_tags');
+    final freeCString = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
+      'latera_free_cstring',
+    );
+
+    final textPtr = textContent.toNativeUtf8();
+    final fileNamePtr = fileName.toNativeUtf8();
+    Pointer<Utf8> resultPtr = Pointer.fromAddress(0);
+    try {
+      resultPtr = generateTags(textPtr, fileNamePtr);
+      if (resultPtr.address == 0) return null;
+      return resultPtr.toDartString();
     } finally {
       calloc.free(textPtr);
       calloc.free(fileNamePtr);
       if (resultPtr.address != 0) {
-        _freeCStringFfi!(resultPtr);
+        freeCString(resultPtr);
       }
     }
   }

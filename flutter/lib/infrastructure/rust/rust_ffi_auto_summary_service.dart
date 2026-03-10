@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ffi';
+import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 import 'package:logger/logger.dart';
@@ -32,9 +33,7 @@ typedef _FreeCStringDart = void Function(Pointer<Utf8> ptr);
 class RustFfiAutoSummaryService implements AutoSummaryService {
   static final _log = Logger(printer: PrettyPrinter(methodCount: 0));
 
-  _GenerateSummaryDart? _generateSummaryFfi;
   _IsLlmReadyDart? _isLlmReadyFfi;
-  _FreeCStringDart? _freeCStringFfi;
   bool _initialized = false;
   bool _available = false;
 
@@ -54,17 +53,9 @@ class RustFfiAutoSummaryService implements AutoSummaryService {
     try {
       final lib = DynamicLibrary.open(libPath);
 
-      _generateSummaryFfi =
-          lib.lookupFunction<_GenerateSummaryC, _GenerateSummaryDart>(
-        'latera_generate_summary',
-      );
       _isLlmReadyFfi =
           lib.lookupFunction<_IsLlmReadyC, _IsLlmReadyDart>(
         'latera_is_llm_ready',
-      );
-      _freeCStringFfi =
-          lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
-        'latera_free_cstring',
       );
 
       _available = true;
@@ -109,14 +100,21 @@ class RustFfiAutoSummaryService implements AutoSummaryService {
       );
     }
 
-    final textPtr = textContent.toNativeUtf8();
-    final fileNamePtr = fileName.toNativeUtf8();
-    Pointer<Utf8> resultPtr = Pointer.fromAddress(0);
+    // Захватываем путь к DLL — DynamicLibrary нельзя передать в Isolate.
+    final libPath = RustOcrService.resolveLibraryPath()!;
 
+    // Выполняем тяжёлый ONNX-инференс в отдельном Isolate,
+    // чтобы не блокировать UI thread.
     try {
-      resultPtr = _generateSummaryFfi!(textPtr, fileNamePtr);
+      final jsonStr = await Isolate.run(() {
+        return _doGenerateSummary(
+          libraryPath: libPath,
+          textContent: textContent,
+          fileName: fileName,
+        );
+      });
 
-      if (resultPtr.address == 0) {
+      if (jsonStr == null) {
         _log.w('RustFfiAutoSummaryService: FFI returned null');
         return const AutoSummaryResult(
           summary: '',
@@ -124,7 +122,6 @@ class RustFfiAutoSummaryService implements AutoSummaryService {
         );
       }
 
-      final jsonStr = resultPtr.toDartString();
       final Map<String, dynamic> data =
           json.decode(jsonStr) as Map<String, dynamic>;
 
@@ -141,11 +138,36 @@ class RustFfiAutoSummaryService implements AutoSummaryService {
         summary: '',
         errorCode: 'generation_failed',
       );
+    }
+  }
+
+  /// Статический метод для выполнения в Isolate (не может использовать this).
+  static String? _doGenerateSummary({
+    required String libraryPath,
+    required String textContent,
+    required String fileName,
+  }) {
+    final lib = DynamicLibrary.open(libraryPath);
+    final generateSummary = lib.lookupFunction<
+      _GenerateSummaryC,
+      _GenerateSummaryDart
+    >('latera_generate_summary');
+    final freeCString = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
+      'latera_free_cstring',
+    );
+
+    final textPtr = textContent.toNativeUtf8();
+    final fileNamePtr = fileName.toNativeUtf8();
+    Pointer<Utf8> resultPtr = Pointer.fromAddress(0);
+    try {
+      resultPtr = generateSummary(textPtr, fileNamePtr);
+      if (resultPtr.address == 0) return null;
+      return resultPtr.toDartString();
     } finally {
       calloc.free(textPtr);
       calloc.free(fileNamePtr);
       if (resultPtr.address != 0) {
-        _freeCStringFfi!(resultPtr);
+        freeCString(resultPtr);
       }
     }
   }

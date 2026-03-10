@@ -6,6 +6,7 @@ import '../application/file_events_coordinator.dart';
 import '../domain/app_config.dart';
 import '../domain/core_error.dart';
 import 'app_scope.dart';
+import 'processing_status_bar.dart';
 
 /// Главный экран.
 ///
@@ -31,6 +32,7 @@ class _MainScreenState extends State<MainScreen> {
   int _indexedCount = 0;
   int _inboxCount = 0;
   bool _initialized = false;
+  Timer? _refreshDebounce;
 
   @override
   void didChangeDependencies() {
@@ -169,8 +171,7 @@ class _MainScreenState extends State<MainScreen> {
           filePath,
           event.fileName,
         );
-        await _refreshIndexedCount();
-        await _refreshInboxCount();
+        _scheduleCounterRefresh();
       } else {
         root.logger.w('Failed to index file for review: ${event.fileName}');
       }
@@ -194,8 +195,7 @@ class _MainScreenState extends State<MainScreen> {
     try {
       await root.indexer.removeFromIndex(filePath);
       root.logger.i('File removed from index: ${event.fileName}');
-      await _refreshIndexedCount();
-      await _refreshInboxCount();
+      _scheduleCounterRefresh();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -244,8 +244,22 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  /// Дебаунс обновления счётчиков при массовом добавлении/удалении файлов.
+  ///
+  /// При burst-событиях (11 файлов за раз) запускает один refresh
+  /// через 300 мс после последнего события, вместо 22 синхронных запросов.
+  void _scheduleCounterRefresh() {
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 300), () async {
+      await _refreshIndexedCount();
+      await _refreshInboxCount();
+    });
+  }
+
   @override
   void dispose() {
+    _refreshDebounce?.cancel();
+    _refreshDebounce = null;
     _sub?.cancel();
     _sub = null;
     _removedSub?.cancel();
@@ -371,6 +385,15 @@ class _MainScreenState extends State<MainScreen> {
             Text(_status, style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             )),
+            const SizedBox(height: 12),
+
+            // Прогресс обработки файлов (pill + status bar)
+            ProcessingStatusBar(
+              progressStream:
+                  root.contentEnrichmentCoordinator.progressStream,
+              initialProgress:
+                  root.contentEnrichmentCoordinator.currentProgress,
+            ),
             const SizedBox(height: 12),
 
             // Карточки с информацией

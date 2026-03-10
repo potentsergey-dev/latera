@@ -55,6 +55,46 @@ enum EnrichmentJobType {
   autoTags,
 }
 
+/// Снимок прогресса обработки очереди обогащения.
+///
+/// Публикуется через [ContentEnrichmentCoordinator.progressStream]
+/// при каждом изменении состояния очереди (добавление, завершение, старт).
+class EnrichmentProgress {
+  /// Общее количество задач, добавленных с момента начала текущей «волны».
+  final int totalEnqueued;
+
+  /// Количество завершённых (или проваленных) задач.
+  final int completedCount;
+
+  /// Количество задач, обрабатываемых прямо сейчас.
+  final int activeCount;
+
+  /// Количество задач, ожидающих в очереди.
+  final int pendingCount;
+
+  /// Имя файла, обрабатываемого прямо сейчас (первый из активных).
+  final String? currentFileName;
+
+  /// Тип текущей задачи.
+  final EnrichmentJobType? currentJobType;
+
+  const EnrichmentProgress({
+    this.totalEnqueued = 0,
+    this.completedCount = 0,
+    this.activeCount = 0,
+    this.pendingCount = 0,
+    this.currentFileName,
+    this.currentJobType,
+  });
+
+  /// Есть ли сейчас активные или ожидающие задачи.
+  bool get isProcessing => activeCount > 0 || pendingCount > 0;
+
+  /// Прогресс от 0.0 до 1.0. Null, если нет задач.
+  double? get progress =>
+      totalEnqueued > 0 ? completedCount / totalEnqueued : null;
+}
+
 /// Задача обогащения контента.
 ///
 /// Отслеживает статус обработки одного файла.
@@ -146,6 +186,13 @@ class ContentEnrichmentCoordinator {
   final bool _isProcessing = false;
   bool _isDisposed = false;
 
+  /// Счётчики для прогресс-трекинга текущей «волны» обработки.
+  int _totalEnqueued = 0;
+  int _completedCount = 0;
+  String? _currentFileName;
+  EnrichmentJobType? _currentJobType;
+  Timer? _idleResetTimer;
+
   /// Трекеры обогащения по filePath — отслеживают цикл обогащения для каждого файла.
   final Map<String, _FileEnrichmentTracker> _trackers = {};
 
@@ -181,6 +228,10 @@ class ContentEnrichmentCoordinator {
   final StreamController<EnrichmentJob> _completedController =
       StreamController<EnrichmentJob>.broadcast();
 
+  /// Stream прогресса обработки очереди.
+  final StreamController<EnrichmentProgress> _progressController =
+      StreamController<EnrichmentProgress>.broadcast();
+
   ContentEnrichmentCoordinator({
     required Logger logger,
     required ConfigService configService,
@@ -205,6 +256,19 @@ class ContentEnrichmentCoordinator {
 
   /// Stream завершённых (или проваленных) задач обогащения.
   Stream<EnrichmentJob> get completedJobs => _completedController.stream;
+
+  /// Stream прогресса обработки (для UI).
+  Stream<EnrichmentProgress> get progressStream => _progressController.stream;
+
+  /// Текущий снимок прогресса.
+  EnrichmentProgress get currentProgress => EnrichmentProgress(
+        totalEnqueued: _totalEnqueued,
+        completedCount: _completedCount,
+        activeCount: _activeJobs,
+        pendingCount: _queue.length,
+        currentFileName: _currentFileName,
+        currentJobType: _currentJobType,
+      );
 
   /// Количество активных (in-progress) задач.
   int get activeJobCount => _activeJobs;
@@ -246,6 +310,18 @@ class ContentEnrichmentCoordinator {
   // Private
   // --------------------------------------------------------------------------
 
+  /// Эмитит текущий снимок прогресса в поток.
+  void _emitProgress() {
+    if (_isDisposed) return;
+    _progressController.add(currentProgress);
+  }
+
+  /// Вызывается при добавлении каждой задачи в очередь.
+  void _onJobEnqueued() {
+    _idleResetTimer?.cancel();
+    _totalEnqueued++;
+  }
+
   void _enqueueEmbeddingsIfEnabled(String filePath, String fileName) {
     final config = _configService.currentConfig;
     if (config.isFeatureEffectivelyEnabled(ContentFeature.embeddings) ||
@@ -256,6 +332,7 @@ class ContentEnrichmentCoordinator {
         type: EnrichmentJobType.embeddings,
       );
       _queue.add(embeddingsJob);
+      _onJobEnqueued();
       _log.d('Enqueued embeddings job (post-enrichment): $fileName');
       _processQueue();
     }
@@ -271,6 +348,7 @@ class ContentEnrichmentCoordinator {
         type: EnrichmentJobType.autoSummary,
       );
       _queue.add(job);
+      _onJobEnqueued();
       _log.d('Enqueued auto-summary job (post-enrichment): $fileName');
     }
     if (config.isFeatureEffectivelyEnabled(ContentFeature.autoTags)) {
@@ -280,6 +358,7 @@ class ContentEnrichmentCoordinator {
         type: EnrichmentJobType.autoTags,
       );
       _queue.add(job);
+      _onJobEnqueued();
       _log.d('Enqueued auto-tags job (post-enrichment): $fileName');
     }
     _processQueue();
@@ -312,6 +391,7 @@ class ContentEnrichmentCoordinator {
           type: EnrichmentJobType.textExtraction,
         );
         _queue.add(job);
+        _onJobEnqueued();
         tracker.pendingContentJobs++;
         _log.d('Enqueued text extraction job: ${event.fileName}');
       }
@@ -328,6 +408,7 @@ class ContentEnrichmentCoordinator {
           type: EnrichmentJobType.transcription,
         );
         _queue.add(job);
+        _onJobEnqueued();
         tracker.pendingContentJobs++;
         _log.d('Enqueued transcription job: ${event.fileName}');
       }
@@ -344,6 +425,7 @@ class ContentEnrichmentCoordinator {
           type: EnrichmentJobType.ocr,
         );
         _queue.add(job);
+        _onJobEnqueued();
         tracker.pendingContentJobs++;
         _log.d('Enqueued OCR job: ${event.fileName}');
       }
@@ -370,6 +452,7 @@ class ContentEnrichmentCoordinator {
         type: EnrichmentJobType.embeddings,
       );
       _queue.add(job);
+      _onJobEnqueued();
       _log.d('Enqueued embeddings job: ${event.fileName}');
     }
 
@@ -386,6 +469,7 @@ class ContentEnrichmentCoordinator {
     }
 
     _processQueue();
+    _emitProgress();
   }
 
   /// Помечает текстовый файл как обогащённый (убирает needs_review).
@@ -420,6 +504,9 @@ class ContentEnrichmentCoordinator {
     while (_queue.isNotEmpty && _activeJobs < limits.maxConcurrentJobs) {
       final job = _queue.removeFirst();
       _activeJobs++;
+      _currentFileName = job.fileName;
+      _currentJobType = job.type;
+      _emitProgress();
       unawaited(_processJob(job));
     }
   }
@@ -491,9 +578,22 @@ class ContentEnrichmentCoordinator {
       );
     } finally {
       _activeJobs--;
+      _completedCount++;
       if (!_isDisposed) {
         _completedController.add(job);
+        _emitProgress();
         _processQueue();
+        // Если очередь опустела — сбрасываем счётчики «волны» через 2 с.
+        if (_activeJobs == 0 && _queue.isEmpty) {
+          _currentFileName = null;
+          _currentJobType = null;
+          _emitProgress();
+          _idleResetTimer?.cancel();
+          _idleResetTimer = Timer(const Duration(seconds: 2), () {
+            _totalEnqueued = 0;
+            _completedCount = 0;
+          });
+        }
       }
     }
   }
@@ -552,6 +652,7 @@ class ContentEnrichmentCoordinator {
           type: EnrichmentJobType.ocr,
         );
         _queue.add(ocrJob);
+        _onJobEnqueued();
         // Трекер: переносим ожидание на OCR-задачу (не уменьшаем pending,
         // а добавляем новую задачу)
         final tracker = _trackers[job.filePath];
@@ -763,9 +864,11 @@ class ContentEnrichmentCoordinator {
     if (_isDisposed) return;
     _isDisposed = true;
 
+    _idleResetTimer?.cancel();
     await stop();
     _queue.clear();
     await _completedController.close();
+    await _progressController.close();
     _log.i('ContentEnrichmentCoordinator disposed');
   }
 }

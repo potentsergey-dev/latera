@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ffi';
+import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
 import 'package:logger/logger.dart';
@@ -27,9 +28,7 @@ typedef _FreeCStringDart = void Function(Pointer<Utf8> ptr);
 class RustFfiEmbeddingService implements EmbeddingService {
   static final _log = Logger(printer: PrettyPrinter(methodCount: 0));
 
-  _ComputeEmbeddingsBatchDart? _computeEmbeddingsBatchFfi;
   _IsModelReadyDart? _isModelReadyFfi;
-  _FreeCStringDart? _freeCStringFfi;
   bool _initialized = false;
   bool _available = false;
 
@@ -49,16 +48,8 @@ class RustFfiEmbeddingService implements EmbeddingService {
     try {
       final lib = DynamicLibrary.open(libPath);
 
-      _computeEmbeddingsBatchFfi = lib
-          .lookupFunction<
-            _ComputeEmbeddingsBatchC,
-            _ComputeEmbeddingsBatchDart
-          >('latera_compute_embeddings_batch');
       _isModelReadyFfi = lib.lookupFunction<_IsModelReadyC, _IsModelReadyDart>(
         'latera_is_semantic_model_ready',
-      );
-      _freeCStringFfi = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
-        'latera_free_cstring',
       );
 
       _available = true;
@@ -128,21 +119,27 @@ class RustFfiEmbeddingService implements EmbeddingService {
           .toList();
     }
 
-    // Используем batch API для эффективности
-    final texts = chunks.map((c) => c.text).toList();
-    final textsJson = json.encode(texts);
-    final textsPtr = textsJson.toNativeUtf8();
-    Pointer<Utf8> resultPtr = Pointer.fromAddress(0);
+    // Захватываем путь к DLL — DynamicLibrary нельзя передать в Isolate.
+    final libPath = RustOcrService.resolveLibraryPath()!;
+    final textsJson = json.encode(chunks.map((c) => c.text).toList());
+    final chunkIndices = chunks.map((c) => c.chunkIndex).toList();
 
+    // Выполняем тяжёлый ONNX-инференс в отдельном Isolate,
+    // чтобы не блокировать UI thread.
     try {
-      resultPtr = _computeEmbeddingsBatchFfi!(textsPtr);
-      if (resultPtr.address == 0) {
+      final result = await Isolate.run(() {
+        return _doComputeEmbeddings(
+          libraryPath: libPath,
+          textsJson: textsJson,
+        );
+      });
+
+      if (result == null) {
         _log.w('RustFfiEmbeddingService: batch returned null');
         return _fallbackEmbeddings(chunks);
       }
 
-      final jsonStr = resultPtr.toDartString();
-      final outerList = json.decode(jsonStr) as List<dynamic>;
+      final outerList = json.decode(result) as List<dynamic>;
 
       if (outerList.length != chunks.length) {
         _log.w(
@@ -154,17 +151,40 @@ class RustFfiEmbeddingService implements EmbeddingService {
       return List.generate(chunks.length, (i) {
         final vecData = outerList[i] as List<dynamic>;
         return EmbeddingVector(
-          chunkIndex: chunks[i].chunkIndex,
+          chunkIndex: chunkIndices[i],
           vector: vecData.map((v) => (v as num).toDouble()).toList(),
         );
       });
     } catch (e) {
       _log.e('RustFfiEmbeddingService: computeEmbeddings error: $e');
       return _fallbackEmbeddings(chunks);
+    }
+  }
+
+  /// Статический метод для выполнения в Isolate (не может использовать this).
+  static String? _doComputeEmbeddings({
+    required String libraryPath,
+    required String textsJson,
+  }) {
+    final lib = DynamicLibrary.open(libraryPath);
+    final computeBatch = lib.lookupFunction<
+      _ComputeEmbeddingsBatchC,
+      _ComputeEmbeddingsBatchDart
+    >('latera_compute_embeddings_batch');
+    final freeCString = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
+      'latera_free_cstring',
+    );
+
+    final textsPtr = textsJson.toNativeUtf8();
+    Pointer<Utf8> resultPtr = Pointer.fromAddress(0);
+    try {
+      resultPtr = computeBatch(textsPtr);
+      if (resultPtr.address == 0) return null;
+      return resultPtr.toDartString();
     } finally {
       calloc.free(textsPtr);
       if (resultPtr.address != 0) {
-        _freeCStringFfi!(resultPtr);
+        freeCString(resultPtr);
       }
     }
   }

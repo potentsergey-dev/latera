@@ -1153,5 +1153,110 @@ void main() {
 
       expect(ocrService.ocrPaths.length, 7);
     });
+
+    // ------------------------------------------------------------------
+    // Progress tracking
+    // ------------------------------------------------------------------
+
+    test('progressStream emits progress when job enqueued', () async {
+      coordinator.start(fileEventsController.stream);
+
+      final progressEvents = <EnrichmentProgress>[];
+      final sub = coordinator.progressStream.listen(progressEvents.add);
+
+      fileEventsController.add(FileAddedUiEvent(
+        fileName: 'report.pdf',
+        fullPath: '/docs/report.pdf',
+        occurredAt: DateTime.now(),
+      ));
+
+      // Ждём обработку
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await sub.cancel();
+
+      // Должны быть события прогресса: enqueue + processing start + completion
+      expect(progressEvents, isNotEmpty);
+      // Первый event: задача добавлена
+      expect(progressEvents.first.totalEnqueued, greaterThan(0));
+    });
+
+    test('progressStream shows completion after job finishes', () async {
+      coordinator.start(fileEventsController.stream);
+
+      final progressEvents = <EnrichmentProgress>[];
+      final sub = coordinator.progressStream.listen(progressEvents.add);
+
+      fileEventsController.add(FileAddedUiEvent(
+        fileName: 'report.pdf',
+        fullPath: '/docs/report.pdf',
+        occurredAt: DateTime.now(),
+      ));
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await sub.cancel();
+
+      // Последний event: задача завершена, activeCount == 0
+      final last = progressEvents.last;
+      expect(last.activeCount, 0);
+      expect(last.pendingCount, 0);
+      expect(last.completedCount, last.totalEnqueued);
+      expect(last.isProcessing, isFalse);
+    });
+
+    test('currentProgress returns snapshot', () async {
+      coordinator.start(fileEventsController.stream);
+
+      // До добавления задач — пустой прогресс
+      final initial = coordinator.currentProgress;
+      expect(initial.totalEnqueued, 0);
+      expect(initial.isProcessing, isFalse);
+      expect(initial.progress, isNull);
+    });
+
+    test('EnrichmentProgress.progress returns correct ratio', () {
+      const p = EnrichmentProgress(
+        totalEnqueued: 10,
+        completedCount: 3,
+        activeCount: 1,
+        pendingCount: 6,
+      );
+      expect(p.progress, closeTo(0.3, 0.001));
+      expect(p.isProcessing, isTrue);
+    });
+
+    test('EnrichmentProgress.progress is null when no jobs', () {
+      const p = EnrichmentProgress();
+      expect(p.progress, isNull);
+      expect(p.isProcessing, isFalse);
+    });
+
+    test('progress tracks multiple files correctly', () async {
+      extractor.delay = const Duration(milliseconds: 50);
+      configService.setConfig(const AppConfig(maxConcurrentJobs: 1));
+
+      coordinator.start(fileEventsController.stream);
+
+      final progressEvents = <EnrichmentProgress>[];
+      final sub = coordinator.progressStream.listen(progressEvents.add);
+
+      fileEventsController.add(FileAddedUiEvent(
+        fileName: 'file1.pdf',
+        fullPath: '/docs/file1.pdf',
+        occurredAt: DateTime.now(),
+      ));
+      fileEventsController.add(FileAddedUiEvent(
+        fileName: 'file2.pdf',
+        fullPath: '/docs/file2.pdf',
+        occurredAt: DateTime.now(),
+      ));
+
+      // Ждём завершения обоих
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await sub.cancel();
+
+      // Должен быть progress с totalEnqueued == 2
+      final withTwo = progressEvents.where((p) => p.totalEnqueued == 2);
+      expect(withTwo, isNotEmpty);
+    });
   });
 }
