@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
 import '../infrastructure/di/app_composition_root.dart';
 import '../infrastructure/tray/tray_service.dart';
 import 'app_scope.dart';
+import 'core/platform_info.dart';
+import 'core/theme/app_theme.dart';
+import 'core/windows/windows_navigation_shell.dart';
 import 'inbox_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
@@ -110,46 +114,113 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = ColorScheme.fromSeed(seedColor: const Color(0xFF3B82F6));
-
     // Показываем загрузку
     if (_isLoading) {
-      return MaterialApp(
-        title: 'Latera',
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        theme: ThemeData(
-          colorScheme: colorScheme,
-          useMaterial3: true,
-        ),
-        home: const Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
-      );
+      return _buildLoadingApp();
     }
 
     // Показываем ошибку
     if (_error != null) {
-      return MaterialApp(
+      return _buildErrorApp();
+    }
+
+    // Нормальное состояние — разветвление по платформе
+    return AppScope(
+      root: _root!,
+      child: PlatformInfo.isWindows
+          ? _buildWindowsApp()
+          : _buildMaterialApp(),
+    );
+  }
+
+  // ─── Windows (Fluent UI) ───
+
+  Widget _buildWindowsApp() {
+    return fluent.FluentApp(
+      title: 'Latera',
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: AppTheme.fluentTheme,
+      darkTheme: AppTheme.fluentDarkTheme,
+      themeMode: ThemeMode.system,
+      home: Builder(
+        builder: (context) {
+          _updateTrayMenu(context);
+          if (_needsOnboarding) {
+            return const OnboardingScreen();
+          }
+          return const WindowsNavigationShell();
+        },
+      ),
+    );
+  }
+
+  // ─── Material (Linux / macOS / fallback) ───
+
+  Widget _buildMaterialApp() {
+    return MaterialApp(
+      title: 'Latera',
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: AppTheme.materialTheme,
+      darkTheme: AppTheme.materialDarkTheme,
+      themeMode: ThemeMode.system,
+      initialRoute: _needsOnboarding ? '/onboarding' : '/main',
+      routes: {
+        '/onboarding': (context) => const OnboardingScreen(),
+        '/main': (context) => const MainScreen(),
+        '/search': (context) => const SearchScreen(),
+        '/inbox': (context) => const InboxScreen(),
+        '/rag': (context) => const RagScreen(),
+        '/settings': (context) => const SettingsScreen(),
+      },
+      builder: (context, child) {
+        _updateTrayMenu(context);
+        return child!;
+      },
+    );
+  }
+
+  // ─── Loading / Error (используют Material для простоты) ───
+
+  Widget _buildLoadingApp() {
+    if (PlatformInfo.isWindows) {
+      return fluent.FluentApp(
         title: 'Latera',
         debugShowCheckedModeBanner: false,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        theme: ThemeData(
-          colorScheme: colorScheme,
-          useMaterial3: true,
+        theme: AppTheme.fluentTheme,
+        home: const fluent.ScaffoldPage(
+          content: Center(child: fluent.ProgressRing()),
         ),
-        home: Scaffold(
-          body: Center(
+      );
+    }
+
+    return MaterialApp(
+      title: 'Latera',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.materialTheme,
+      home: const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+    );
+  }
+
+  Widget _buildErrorApp() {
+    if (PlatformInfo.isWindows) {
+      return fluent.FluentApp(
+        title: 'Latera',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.fluentTheme,
+        home: fluent.ScaffoldPage(
+          content: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const Icon(fluent.FluentIcons.error, size: 48),
                   const SizedBox(height: 16),
                   const Text(
                     'Ошибка инициализации',
@@ -159,10 +230,10 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
                   Text(
                     _error!,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(color: fluent.Colors.grey[120]),
                   ),
                   const SizedBox(height: 24),
-                  FilledButton.icon(
+                  fluent.FilledButton(
                     onPressed: () {
                       setState(() {
                         _isLoading = true;
@@ -170,8 +241,14 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
                       });
                       _initRoot();
                     },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Повторить'),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(fluent.FluentIcons.refresh, size: 16),
+                        SizedBox(width: 8),
+                        Text('Повторить'),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -181,32 +258,48 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       );
     }
 
-    // Нормальное состояние с навигацией
-    return AppScope(
-      root: _root!,
-      child: MaterialApp(
-        title: 'Latera',
-        debugShowCheckedModeBanner: false,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        theme: ThemeData(
-          colorScheme: colorScheme,
-          useMaterial3: true,
+    final colorScheme = ColorScheme.fromSeed(seedColor: AppTheme.accentColor);
+    return MaterialApp(
+      title: 'Latera',
+      debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: ThemeData(colorScheme: colorScheme, useMaterial3: true),
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text(
+                  'Ошибка инициализации',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isLoading = true;
+                      _error = null;
+                    });
+                    _initRoot();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Повторить'),
+                ),
+              ],
+            ),
+          ),
         ),
-        initialRoute: _needsOnboarding ? '/onboarding' : '/main',
-        routes: {
-          '/onboarding': (context) => const OnboardingScreen(),
-          '/main': (context) => const MainScreen(),
-          '/search': (context) => const SearchScreen(),
-          '/inbox': (context) => const InboxScreen(),
-          '/rag': (context) => const RagScreen(),
-          '/settings': (context) => const SettingsScreen(),
-        },
-        builder: (context, child) {
-          // Обновляем меню трея после получения локализации
-          _updateTrayMenu(context);
-          return child!;
-        },
       ),
     );
   }
