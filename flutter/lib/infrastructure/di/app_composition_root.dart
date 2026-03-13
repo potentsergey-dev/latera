@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../application/content_enrichment_coordinator.dart';
 import '../../application/file_events_coordinator.dart';
@@ -21,6 +23,8 @@ import '../../domain/search_repository.dart';
 import '../../domain/text_extraction.dart';
 import '../../domain/transcription.dart';
 import '../config/shared_preferences_config_service.dart';
+import '../licensing/local_license_service.dart';
+import '../licensing/store_purchase_service.dart';
 import '../licensing/stub_feature_flags.dart';
 import '../licensing/stub_license_service.dart';
 import '../logging/app_logger.dart';
@@ -32,6 +36,7 @@ import '../rust/stub_auto_tags_service.dart';
 import '../rust/rust_ffi_auto_summary_service.dart';
 import '../rust/rust_ffi_auto_tags_service.dart';
 import '../rust/rust_ffi_embedding_service.dart';
+import '../rust/rust_ffi_system_service.dart';
 import '../rust/stub_embedding_service.dart';
 import '../rust/rust_ocr_service.dart';
 import '../rust/stub_ocr_service.dart';
@@ -39,6 +44,7 @@ import '../rust/rust_rag_service.dart';
 import '../rust/generated/api.dart' as rust_api;
 import '../rust/rust_core.dart';
 import '../extraction/dart_rich_text_extractor.dart';
+import '../llm/llm_download_service.dart';
 import '../search/sqlite_index_service.dart';
 
 /// Конфигурация окружения приложения.
@@ -69,6 +75,15 @@ class AppCompositionRoot {
 
   // === Infrastructure ===
   final Logger logger;
+  final StorePurchaseService storePurchaseService;
+
+  /// Общий объём физической оперативной памяти в мегабайтах (0 если Rust DLL недоступна).
+  final int totalRamMb;
+
+  /// Флаг аппаратных ограничений (RAM < 6 ГБ).
+  ///
+  /// Когда true — лицензия ограничена до Basic, ResourceSaver включён принудительно.
+  final bool isHardwareConstrained;
 
   /// Ссылка на SqliteIndexService для dispose.
   final SqliteIndexService? _sqliteIndexService;
@@ -88,6 +103,9 @@ class AppCompositionRoot {
     required this.licenseCoordinator,
     required this.contentEnrichmentCoordinator,
     required this.logger,
+    required this.storePurchaseService,
+    required this.totalRamMb,
+    required this.isHardwareConstrained,
     SqliteIndexService? sqliteIndexService,
   }) : _sqliteIndexService = sqliteIndexService;
 
@@ -121,8 +139,20 @@ class AppCompositionRoot {
     final notifications = LocalNotificationsService(logger: logger);
     final watcher = RustFileWatcherFrb(logger: logger);
 
-    // Licensing (stub implementations)
-    final licenseService = StubLicenseService(logger: logger);
+    // Licensing (local implementation with trial support)
+    final prefs = await SharedPreferences.getInstance();
+    final licenseService = LocalLicenseService(logger: logger, prefs: prefs);
+    await licenseService.initialize();
+
+    // Microsoft Store IAP: sync purchase status (handles reinstall scenario)
+    final storePurchaseService = StorePurchaseService(logger: logger);
+    try {
+      final isStorePurchased = await storePurchaseService.isProPurchased();
+      await licenseService.syncStoreStatus(isStorePurchased);
+    } catch (e) {
+      logger.w('Store purchase sync failed (non-fatal)', error: e);
+    }
+
     final featureFlags = StubFeatureFlags(
       logger: logger,
       licenseService: licenseService,
@@ -132,6 +162,30 @@ class AppCompositionRoot {
     final configService = SharedPreferencesConfigService(logger: logger);
     await configService.initialize();
     await configService.load();
+
+    // System info: определяем объём RAM через Rust FFI (нужно до создания координаторов)
+    final rustSystemService = RustFfiSystemService();
+    int totalRamMb = 0;
+    if (rustSystemService.isAvailable) {
+      totalRamMb = await rustSystemService.getTotalRamMb();
+      logger.i('System: total RAM = $totalRamMb MB');
+    } else {
+      logger.w('System info: Rust DLL not found, RAM unknown');
+    }
+
+    // Порог RAM для аппаратных ограничений (6 ГБ).
+    const int lowRamThresholdMb = 6144;
+    final bool isHardwareConstrained =
+        totalRamMb > 0 && totalRamMb < lowRamThresholdMb;
+
+    if (isHardwareConstrained) {
+      logger.w('Hardware constrained: RAM $totalRamMb MB < $lowRamThresholdMb MB. '
+          'Forcing Basic mode and ResourceSaver.');
+      // Принудительно включаем ResourceSaver если ещё не включён
+      if (!configService.currentConfig.resourceSaverEnabled) {
+        await configService.updateValue(resourceSaverEnabled: true);
+      }
+    }
 
     // SQLite FTS5 Index Service (implements both Indexer and SearchRepository)
     final appDataDir = await getApplicationSupportDirectory();
@@ -146,15 +200,8 @@ class AppCompositionRoot {
     // Открывает тот же файл SQLite, что и Dart-сторона, в WAL-режиме.
     await rust_api.initIndex(dbPath: dbPath);
 
-    // Инициализация семантической модели в фоне (ONNX all-MiniLM-L6-v2).
-    // Загрузка занимает ~1-3 сек; выполняется асинхронно, не блокирует UI.
+    // Путь к данным модели (используется ниже для загрузки и инициализации).
     final modelDataDir = p.join(appDataDir.path, 'Latera');
-    unawaited(
-      rust_api
-          .initSemanticModel(dataDir: modelDataDir)
-          .then((_) => logger.i('Semantic model loaded from $modelDataDir'))
-          .catchError((Object e) => logger.w('Semantic model init failed: $e')),
-    );
 
     // === Application Layer ===
     final fileEventsCoordinator = FileEventsCoordinator(
@@ -169,6 +216,7 @@ class AppCompositionRoot {
       logger: logger,
       licenseService: licenseService,
       featureFlags: featureFlags,
+      isHardwareConstrained: isHardwareConstrained,
     );
 
     // Content enrichment (PDF/DOCX text extraction + audio transcription + embeddings)
@@ -232,10 +280,21 @@ class AppCompositionRoot {
       autoSummaryService: autoSummaryService,
       autoTagsService: autoTagsService,
       notifications: notifications,
+      licenseCoordinator: licenseCoordinator,
     );
     // Подключаем к потоку событий добавления файлов
     contentEnrichmentCoordinator.start(
       fileEventsCoordinator.fileAddedEvents,
+    );
+
+    // Проверка и фоновая загрузка LLM-модели с прогрессом в статус-баре.
+    // Не блокирует запуск приложения — выполняется асинхронно.
+    unawaited(
+      _checkAndDownloadLlmModel(
+        modelDataDir,
+        logger,
+        contentEnrichmentCoordinator,
+      ),
     );
 
     // Реконсиляция индекса с файловой системой.
@@ -284,8 +343,70 @@ class AppCompositionRoot {
       licenseCoordinator: licenseCoordinator,
       contentEnrichmentCoordinator: contentEnrichmentCoordinator,
       logger: logger,
+      storePurchaseService: storePurchaseService,
+      totalRamMb: totalRamMb,
+      isHardwareConstrained: isHardwareConstrained,
       sqliteIndexService: sqliteIndexService,
     );
+  }
+
+  /// Проверяет готовность LLM-модели и запускает загрузку при необходимости.
+  ///
+  /// Если модель уже загружена — инициализирует её в Rust.
+  /// Если нет — скачивает с HuggingFace, показывая прогресс в статус-баре,
+  /// затем инициализирует.
+  static Future<void> _checkAndDownloadLlmModel(
+    String modelDataDir,
+    Logger logger,
+    ContentEnrichmentCoordinator coordinator,
+  ) async {
+    final modelPath = p.join(
+      modelDataDir, 'models', 'all-MiniLM-L6-v2', 'model.onnx',
+    );
+
+    if (File(modelPath).existsSync()) {
+      logger.i('LLM model file exists, initializing semantic model');
+      await rust_api
+          .initSemanticModel(dataDir: modelDataDir)
+          .then((_) => logger.i('Semantic model loaded from $modelDataDir'))
+          .catchError((Object e) => logger.w('Semantic model init failed: $e'));
+      return;
+    }
+
+    // Модель не существует на диске — запускаем загрузку с отображением прогресса
+
+    final job = EnrichmentJob(
+      filePath: modelPath,
+      fileName: 'AI-модель',
+      type: EnrichmentJobType.llmModelDownload,
+      status: EnrichmentJobStatus.processing,
+    );
+    coordinator.addCustomJob(job);
+
+    try {
+      final llmDownloadService = LlmDownloadService();
+      await for (final progress in llmDownloadService.downloadModel(
+        LlmDownloadService.modelUrl,
+        modelPath,
+      )) {
+        coordinator.updateCustomJobProgress(job, progress);
+      }
+
+      coordinator.completeCustomJob(job);
+
+      // Инициализируем семантическую модель после успешной загрузки
+      await rust_api.initSemanticModel(dataDir: modelDataDir);
+
+      logger.i('LLM model downloaded and initialized');
+    } catch (e, st) {
+      coordinator.completeCustomJob(job);
+      logger.e('LLM model download failed', error: e, stackTrace: st);
+
+      // Всё равно пытаемся инициализировать — возможно, файл уже был скачан ранее
+      await rust_api
+          .initSemanticModel(dataDir: modelDataDir)
+          .catchError((Object e) => logger.w('Semantic model init failed: $e'));
+    }
   }
 
   /// Освободить ресурсы.

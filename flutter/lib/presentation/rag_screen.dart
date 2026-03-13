@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../domain/app_config.dart';
+import '../domain/license.dart';
 import '../domain/rag.dart';
 import 'app_scope.dart';
 
@@ -99,6 +100,53 @@ class _RagScreenState extends State<RagScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final licenseCoordinator = AppScope.of(context).licenseCoordinator;
+    final isBasic =
+        licenseCoordinator.currentLicense.mode == LicenseMode.basic;
+
+    if (isBasic) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Спроси свою папку'),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline,
+                    size: 64,
+                    color: theme.colorScheme.outline),
+                const SizedBox(height: 16),
+                Text(
+                  'Функция «Спроси свою папку»',
+                  style: theme.textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Доступно в PRO',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.outline,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/settings');
+                  },
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  label: const Text('Узнать о PRO'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

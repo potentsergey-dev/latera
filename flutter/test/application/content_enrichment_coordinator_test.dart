@@ -1,13 +1,18 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latera/application/content_enrichment_coordinator.dart';
 import 'package:latera/application/file_events_coordinator.dart';
+import 'package:latera/application/license_coordinator.dart';
 import 'package:latera/domain/app_config.dart';
 import 'package:latera/domain/auto_summary.dart';
 import 'package:latera/domain/auto_tags.dart';
 import 'package:latera/domain/embeddings.dart';
+import 'package:latera/domain/feature_flags.dart';
 import 'package:latera/domain/indexer.dart';
+import 'package:latera/domain/license.dart';
+import 'package:latera/domain/license_service.dart';
 import 'package:latera/domain/notifications_service.dart';
 import 'package:latera/domain/ocr.dart';
 import 'package:latera/domain/text_extraction.dart';
@@ -471,6 +476,63 @@ class MockNotificationsService implements NotificationsService {
     showFileNeedsReviewCallCount++;
     needsReviewFileNames.add(fileName);
   }
+
+  int showIndexingLimitReachedCallCount = 0;
+
+  @override
+  Future<void> showIndexingLimitReached() async {
+    showIndexingLimitReachedCallCount++;
+  }
+}
+
+/// Мок для [LicenseService].
+class MockLicenseService implements LicenseService {
+  License _currentLicense = License.defaultFree;
+  final StreamController<License> _controller =
+      StreamController<License>.broadcast();
+
+  void setLicense(License license) {
+    _currentLicense = license;
+    _controller.add(license);
+  }
+
+  @override
+  License get currentLicense => _currentLicense;
+
+  @override
+  Stream<License> get licenseChanges => _controller.stream;
+
+  @override
+  Future<License> refreshLicense() async => _currentLicense;
+
+  @override
+  Future<LicenseActivationResult> activateLicense(String licenseKey) async =>
+      LicenseActivationResult.success(_currentLicense);
+
+  @override
+  Future<void> deactivateLicense() async {}
+
+  @override
+  bool isFeatureAvailable(String featureId) => true;
+
+  @override
+  Future<void> activateProPurchase() async {}
+}
+
+/// Мок для [FeatureFlags].
+class MockFeatureFlags implements FeatureFlags {
+  @override
+  bool isAvailable(String featureId) => true;
+
+  @override
+  int? getLimit(String limitId) => null;
+
+  @override
+  Stream<Set<String>> get availableFeaturesChanges =>
+      const Stream.empty();
+
+  @override
+  Set<String> get availableFeatures => const {};
 }
 
 // ============================================================================
@@ -497,6 +559,8 @@ void main() {
     late MockAutoSummaryService autoSummaryService;
     late MockAutoTagsService autoTagsService;
     late MockNotificationsService notifications;
+    late MockLicenseService licenseService;
+    late LicenseCoordinator licenseCoordinator;
     late ContentEnrichmentCoordinator coordinator;
     late StreamController<FileAddedUiEvent> fileEventsController;
 
@@ -515,6 +579,19 @@ void main() {
       notifications = MockNotificationsService();
       fileEventsController = StreamController<FileAddedUiEvent>.broadcast();
 
+      // По умолчанию Pro-лицензия, чтобы существующие тесты не меняли поведение.
+      licenseService = MockLicenseService();
+      licenseService.setLicense(const License(
+        type: LicenseType.pro,
+        status: LicenseStatus.active,
+        mode: LicenseMode.pro,
+      ));
+      licenseCoordinator = LicenseCoordinator(
+        logger: _testLogger(),
+        licenseService: licenseService,
+        featureFlags: MockFeatureFlags(),
+      );
+
       coordinator = ContentEnrichmentCoordinator(
         logger: _testLogger(),
         configService: configService,
@@ -526,6 +603,7 @@ void main() {
         autoSummaryService: autoSummaryService,
         autoTagsService: autoTagsService,
         notifications: notifications,
+        licenseCoordinator: licenseCoordinator,
       );
     });
 
@@ -1257,6 +1335,149 @@ void main() {
       // Должен быть progress с totalEnqueued == 2
       final withTwo = progressEvents.where((p) => p.totalEnqueued == 2);
       expect(withTwo, isNotEmpty);
+    });
+
+    // ------------------------------------------------------------------
+    // Basic tier indexing limit
+    // ------------------------------------------------------------------
+
+    group('Basic tier indexing limit', () {
+      late ContentEnrichmentCoordinator basicCoordinator;
+      late MockLicenseService basicLicenseService;
+      late LicenseCoordinator basicLicenseCoordinator;
+      late MockIndexer basicIndexer;
+      late MockNotificationsService basicNotifications;
+      late MockRichTextExtractor basicExtractor;
+      late StreamController<FileAddedUiEvent> basicFileEventsController;
+
+      setUp(() {
+        // Инициализируем SharedPreferences для тестов
+        SharedPreferences.setMockInitialValues({});
+
+        basicIndexer = MockIndexer();
+        basicExtractor = MockRichTextExtractor();
+        basicNotifications = MockNotificationsService();
+        basicFileEventsController =
+            StreamController<FileAddedUiEvent>.broadcast();
+
+        // Basic лицензия (Free)
+        basicLicenseService = MockLicenseService();
+        basicLicenseService.setLicense(License.defaultFree);
+        basicLicenseCoordinator = LicenseCoordinator(
+          logger: _testLogger(),
+          licenseService: basicLicenseService,
+          featureFlags: MockFeatureFlags(),
+        );
+
+        basicCoordinator = ContentEnrichmentCoordinator(
+          logger: _testLogger(),
+          configService: configService,
+          indexer: basicIndexer,
+          extractor: basicExtractor,
+          transcriber: transcriber,
+          embeddingService: embeddingService,
+          ocrService: ocrService,
+          autoSummaryService: autoSummaryService,
+          autoTagsService: autoTagsService,
+          notifications: basicNotifications,
+          licenseCoordinator: basicLicenseCoordinator,
+        );
+      });
+
+      tearDown(() async {
+        await basicCoordinator.dispose();
+        await basicFileEventsController.close();
+      });
+
+      test(
+          'skips enrichment when indexing limit reached in Basic mode',
+          () async {
+        // Эмулируем 100 уже проиндексированных файлов
+        for (var i = 0; i < 100; i++) {
+          basicIndexer.indexedFiles.add('/docs/file$i.txt');
+        }
+
+        basicCoordinator.start(basicFileEventsController.stream);
+
+        basicFileEventsController.add(FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ));
+
+        // Ждём обработки асинхронного вызова
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        // Файл НЕ должен быть передан на индексацию/обогащение
+        expect(basicExtractor.extractedPaths, isEmpty);
+        expect(basicCoordinator.queueLength, 0);
+      });
+
+      test(
+          'shows notification when indexing limit reached in Basic mode',
+          () async {
+        // Эмулируем 100 уже проиндексированных файлов
+        for (var i = 0; i < 100; i++) {
+          basicIndexer.indexedFiles.add('/docs/file$i.txt');
+        }
+
+        basicCoordinator.start(basicFileEventsController.stream);
+
+        basicFileEventsController.add(FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ));
+
+        // Ждём обработки
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        // Уведомление должно быть показано
+        expect(
+            basicNotifications.showIndexingLimitReachedCallCount, equals(1));
+      });
+
+      test(
+          'allows enrichment when count below limit in Basic mode',
+          () async {
+        // 50 файлов — ниже лимита
+        for (var i = 0; i < 50; i++) {
+          basicIndexer.indexedFiles.add('/docs/file$i.txt');
+        }
+
+        basicCoordinator.start(basicFileEventsController.stream);
+        final completed = basicCoordinator.completedJobs.first;
+
+        basicFileEventsController.add(FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ));
+
+        final job = await completed;
+        expect(job.status, EnrichmentJobStatus.completed);
+        expect(basicExtractor.extractedPaths, ['/docs/report.pdf']);
+      });
+
+      test('allows enrichment for Pro license regardless of count', () async {
+        // Pro лицензия — используем основной coordinator из setUp
+        for (var i = 0; i < 200; i++) {
+          indexer.indexedFiles.add('/docs/file$i.txt');
+        }
+
+        coordinator.start(fileEventsController.stream);
+        final completed = coordinator.completedJobs.first;
+
+        fileEventsController.add(FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ));
+
+        final job = await completed;
+        expect(job.status, EnrichmentJobStatus.completed);
+        expect(extractor.extractedPaths, ['/docs/report.pdf']);
+      });
     });
   });
 }

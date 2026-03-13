@@ -8,10 +8,12 @@ pub mod error;
 pub mod ffi_llm;
 pub mod ffi_ocr;
 pub mod ffi_search;
+pub mod ffi_system;
 pub mod file_watcher;
 pub mod frb_generated;
 pub mod indexer;
 pub mod logging;
+pub mod system_info;
 
 // FRB rust-input по требованию лежит в корне `rust/api.rs`.
 // Подключаем его как модуль, чтобы он участвовал в сборке crate.

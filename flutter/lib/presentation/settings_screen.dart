@@ -5,9 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../application/license_coordinator.dart';
 import '../domain/app_config.dart';
+import '../domain/license.dart';
+import '../infrastructure/licensing/store_purchase_service.dart';
 import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
+import 'widgets/license_badge.dart';
 
 /// Экран настроек приложения.
 ///
@@ -25,8 +29,11 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late final ConfigService _configService;
+  late final LicenseCoordinator _licenseCoordinator;
+  late final StorePurchaseService _storePurchaseService;
   AppConfig _config = const AppConfig();
   bool _isLoading = false;
+  bool _isPurchasing = false;
   String? _error;
   bool _folderExists = false;
   bool _initialized = false;
@@ -38,6 +45,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_initialized) return;
     _initialized = true;
     _configService = AppScope.of(context).configService;
+    _licenseCoordinator = AppScope.of(context).licenseCoordinator;
+    _storePurchaseService = AppScope.of(context).storePurchaseService;
     _loadConfig();
     _loadAppVersion();
   }
@@ -442,6 +451,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const Divider(),
 
+          // === Лицензия ===
+          _buildLicenseSection(),
+
+          const Divider(),
+
           // === Дополнительно ===
           _buildSection(
             title: l10n.settingsSectionAdvanced,
@@ -453,6 +467,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildLicenseSection() {
+    final license = _licenseCoordinator.currentLicense;
+    final isConstrained = _licenseCoordinator.isHardwareConstrained;
+
+    final String description;
+    final bool showBuyButton;
+
+    switch (license.mode) {
+      case LicenseMode.pro:
+        description = 'Лицензия PRO активна. Все функции доступны без ограничений.';
+        showBuyButton = false;
+      case LicenseMode.proTrial:
+        final remaining = _licenseCoordinator.trialTimeRemaining;
+        final days = (remaining?.inDays ?? 0) + 1;
+        description =
+            'Пробный период PRO (осталось $days дн.). Все функции доступны. '
+            'После окончания триала приложение перейдёт в режим Basic '
+            'с ограничениями на количество файлов и функции.';
+        showBuyButton = true;
+      case LicenseMode.basic:
+        description =
+            'Бесплатная версия с ограничениями: лимит на количество '
+            'файлов в индексе, отключены ресурсоёмкие функции (семантический '
+            'поиск, автоописания, транскрипция).';
+        showBuyButton = true;
+    }
+
+    return _buildSection(
+      title: 'Лицензия',
+      children: [
+        ListTile(
+          leading: const Icon(Icons.verified_outlined),
+          title: Row(
+            children: [
+              Text('Текущий режим: '),
+              LicenseBadge(licenseCoordinator: _licenseCoordinator),
+            ],
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(description),
+          ),
+        ),
+        if (isConstrained)
+          ListTile(
+            leading: Icon(Icons.memory, color: Theme.of(context).colorScheme.error),
+            title: const Text('Аппаратные ограничения'),
+            subtitle: const Text(
+              'Обнаружено менее 6 ГБ ОЗУ. PRO-функции недоступны '
+              'независимо от статуса лицензии.',
+            ),
+          ),
+        if (showBuyButton)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _isPurchasing ? null : _handleBuyPro,
+                icon: _isPurchasing
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.shopping_cart_outlined),
+                label: Text(
+                  _isPurchasing ? 'Обработка...' : 'Купить PRO — разовая покупка',
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _handleBuyPro() async {
+    setState(() => _isPurchasing = true);
+    try {
+      final result = await _storePurchaseService.buyPro();
+      if (!mounted) return;
+
+      if (result.isSuccess) {
+        await _licenseCoordinator.activateProPurchase();
+        await _licenseCoordinator.refreshLicense();
+        if (!mounted) return;
+        setState(() {});
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.verified, color: Colors.green, size: 48),
+            title: const Text('PRO-версия активирована!'),
+            content: const Text('Спасибо за покупку. Все PRO-функции теперь доступны.'),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else if (result.isError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              result.status == PurchaseStatus.storeUnavailable
+                  ? 'Магазин Microsoft Store недоступен. '
+                      'Убедитесь, что приложение установлено из Store.'
+                  : 'Ошибка покупки: ${result.errorMessage ?? "неизвестная ошибка"}',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      // isCancelled — ничего не делаем
+    } finally {
+      if (mounted) {
+        setState(() => _isPurchasing = false);
+      }
+    }
   }
 
   Widget _buildSection({
@@ -498,12 +637,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSelectFolderTile(AppLocalizations l10n) {
+    final isBasic =
+        _licenseCoordinator.currentLicense.mode == LicenseMode.basic;
+
     return ListTile(
       leading: const Icon(Icons.create_new_folder_outlined),
       title: Text(l10n.settingsSelectFolder),
-      subtitle: Text(l10n.settingsSelectFolderHint),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: _selectFolder,
+      subtitle: Text(
+        isBasic ? '${l10n.settingsSelectFolderHint} • Доступно в PRO' : l10n.settingsSelectFolderHint,
+      ),
+      trailing: isBasic
+          ? Tooltip(
+              message: 'Доступно в PRO',
+              child: Icon(Icons.lock_outline,
+                  size: 20, color: Theme.of(context).disabledColor),
+            )
+          : const Icon(Icons.chevron_right),
+      enabled: !isBasic,
+      onTap: isBasic ? null : _selectFolder,
     );
   }
 

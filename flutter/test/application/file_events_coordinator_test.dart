@@ -98,6 +98,9 @@ class MockNotificationsService implements NotificationsService {
   Future<void> showFileNeedsReview({required String fileName}) async {}
 
   @override
+  Future<void> showIndexingLimitReached() async {}
+
+  @override
   Future<void> init() async {}
 }
 

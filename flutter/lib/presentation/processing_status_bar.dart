@@ -19,6 +19,8 @@ String _jobTypeLabel(EnrichmentJobType type) {
       return 'описание';
     case EnrichmentJobType.autoTags:
       return 'теги';
+    case EnrichmentJobType.llmModelDownload:
+      return 'Загрузка AI-модели…';
   }
 }
 
@@ -118,10 +120,15 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
 
     final remaining = _progress.activeCount + _progress.pendingCount;
     final progressValue = _progress.progress;
+    final isLlmDownload =
+        _progress.currentJobType == EnrichmentJobType.llmModelDownload;
 
     // Текст текущей операции
     String detailText;
-    if (_progress.currentFileName != null && _progress.currentJobType != null) {
+    if (isLlmDownload) {
+      detailText = 'all-MiniLM-L6-v2 · sentence-embeddings';
+    } else if (_progress.currentFileName != null &&
+        _progress.currentJobType != null) {
       final typeLabel = _jobTypeLabel(_progress.currentJobType!);
       detailText = '$typeLabel: ${_progress.currentFileName}';
     } else if (_progress.currentFileName != null) {
@@ -129,6 +136,14 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
     } else {
       detailText = 'подготовка…';
     }
+
+    // Заголовок и счётчик
+    final headerText =
+        isLlmDownload ? 'Загрузка AI-модели' : 'Обработка файлов';
+    final counterText = isLlmDownload
+        ? '${_progress.completedCount}%'
+        : '${_progress.completedCount} из ${_progress.totalEnqueued}'
+            '${remaining > 0 ? '  ·  $remaining осталось' : ''}';
 
     return Container(
       width: double.infinity,
@@ -154,7 +169,7 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
               ),
               const SizedBox(width: 8),
               Text(
-                'Обработка файлов',
+                headerText,
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: colors.onSecondaryContainer,
                   fontWeight: FontWeight.w600,
@@ -162,8 +177,7 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
               ),
               const Spacer(),
               Text(
-                '${_progress.completedCount} из ${_progress.totalEnqueued}'
-                '${remaining > 0 ? '  ·  $remaining осталось' : ''}',
+                counterText,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: colors.onSecondaryContainer.withValues(alpha: 0.8),
                 ),

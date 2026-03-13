@@ -4,16 +4,20 @@ import 'dart:collection';
 import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../domain/app_config.dart';
 import '../domain/auto_summary.dart';
 import '../domain/auto_tags.dart';
 import '../domain/embeddings.dart';
+import '../domain/feature_flags.dart';
 import '../domain/indexer.dart';
 import '../domain/notifications_service.dart';
 import '../domain/ocr.dart';
 import '../domain/text_extraction.dart';
 import '../domain/transcription.dart';
 import 'file_events_coordinator.dart';
+import 'license_coordinator.dart';
 
 // ============================================================================
 // Job model
@@ -53,6 +57,9 @@ enum EnrichmentJobType {
 
   /// Автоматическая генерация тегов.
   autoTags,
+
+  /// Загрузка LLM-модели.
+  llmModelDownload,
 }
 
 /// Снимок прогресса обработки очереди обогащения.
@@ -169,6 +176,53 @@ class _FileEnrichmentTracker {
 /// coordinator.dispose(); // release resources
 /// ```
 class ContentEnrichmentCoordinator {
+  // --- Кастомные задачи (например, загрузка LLM-модели) ---
+  EnrichmentJob? _customJob;
+  double _customJobProgress = 0.0;
+
+  /// Добавить кастомную задачу (например, загрузка модели).
+  void addCustomJob(EnrichmentJob job) {
+    _customJob = job;
+    _customJobProgress = 0.0;
+    _emitCustomJobProgress();
+  }
+
+  /// Обновить прогресс кастомной задачи.
+  void updateCustomJobProgress(EnrichmentJob job, double progress) {
+    if (_customJob == job) {
+      _customJobProgress = progress;
+      _emitCustomJobProgress();
+    }
+  }
+
+  /// Завершить кастомную задачу.
+  void completeCustomJob(EnrichmentJob job) {
+    if (_customJob == job) {
+      _customJob = null;
+      _customJobProgress = 0.0;
+      _emitCustomJobProgress();
+    }
+  }
+
+  void _emitCustomJobProgress() {
+    if (_isDisposed) return;
+    if (_customJob != null) {
+      final percent = (_customJobProgress * 100).round().clamp(0, 100);
+      _progressController.add(
+        EnrichmentProgress(
+          totalEnqueued: 100,
+          completedCount: percent,
+          activeCount: percent < 100 ? 1 : 0,
+          pendingCount: 0,
+          currentFileName: _customJob!.fileName,
+          currentJobType: _customJob!.type,
+        ),
+      );
+    } else {
+      _emitProgress();
+    }
+  }
+
   final Logger _log;
   final ConfigService _configService;
   final Indexer _indexer;
@@ -179,6 +233,12 @@ class ContentEnrichmentCoordinator {
   final AutoSummaryService _autoSummaryService;
   final AutoTagsService _autoTagsService;
   final NotificationsService _notifications;
+  final LicenseCoordinator _licenseCoordinator;
+
+  /// Ключ SharedPreferences для хранения времени последнего показа
+  /// уведомления о лимите индексации.
+  static const _prefKeyLastLimitNotification =
+      'last_indexing_limit_notification';
 
   StreamSubscription<FileAddedUiEvent>? _fileEventSub;
   final Queue<EnrichmentJob> _queue = Queue<EnrichmentJob>();
@@ -243,6 +303,7 @@ class ContentEnrichmentCoordinator {
     required AutoSummaryService autoSummaryService,
     required AutoTagsService autoTagsService,
     required NotificationsService notifications,
+    required LicenseCoordinator licenseCoordinator,
   }) : _log = logger,
        _configService = configService,
        _indexer = indexer,
@@ -252,7 +313,8 @@ class ContentEnrichmentCoordinator {
        _ocrService = ocrService,
        _autoSummaryService = autoSummaryService,
        _autoTagsService = autoTagsService,
-       _notifications = notifications;
+       _notifications = notifications,
+       _licenseCoordinator = licenseCoordinator;
 
   /// Stream завершённых (или проваленных) задач обогащения.
   Stream<EnrichmentJob> get completedJobs => _completedController.stream;
@@ -262,13 +324,13 @@ class ContentEnrichmentCoordinator {
 
   /// Текущий снимок прогресса.
   EnrichmentProgress get currentProgress => EnrichmentProgress(
-        totalEnqueued: _totalEnqueued,
-        completedCount: _completedCount,
-        activeCount: _activeJobs,
-        pendingCount: _queue.length,
-        currentFileName: _currentFileName,
-        currentJobType: _currentJobType,
-      );
+    totalEnqueued: _totalEnqueued,
+    completedCount: _completedCount,
+    activeCount: _activeJobs,
+    pendingCount: _queue.length,
+    currentFileName: _currentFileName,
+    currentJobType: _currentJobType,
+  );
 
   /// Количество активных (in-progress) задач.
   int get activeJobCount => _activeJobs;
@@ -368,6 +430,60 @@ class ContentEnrichmentCoordinator {
     if (_isDisposed) return;
     if (event.fullPath == null) return;
 
+    // Проверяем лимит индексации для Basic-режима.
+    // Если пользователь не на Pro/ProTrial — пропускаем файл при превышении лимита.
+    if (!_licenseCoordinator.isPro && !_licenseCoordinator.isProTrial) {
+      unawaited(_checkAndEnforceIndexingLimit(event));
+      return;
+    }
+
+    _processFileEvent(event);
+  }
+
+  /// Проверяет лимит индексации и либо продолжает обработку, либо блокирует файл.
+  Future<void> _checkAndEnforceIndexingLimit(FileAddedUiEvent event) async {
+    try {
+      final currentCount = await _indexer.getIndexedCount();
+      if (currentCount >= FreeTierLimits.maxIndexedFiles) {
+        _log.i(
+          'Indexing limit reached ($currentCount >= ${FreeTierLimits.maxIndexedFiles}), '
+          'skipping file: ${event.fileName}',
+        );
+        await _showLimitNotificationIfNeeded();
+        return;
+      }
+    } catch (e, st) {
+      _log.e('Error checking indexing limit', error: e, stackTrace: st);
+      // При ошибке проверки — не блокируем обработку.
+    }
+    _processFileEvent(event);
+  }
+
+  /// Показывает уведомление о лимите не чаще одного раза в сутки.
+  Future<void> _showLimitNotificationIfNeeded() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastShownMs = prefs.getInt(_prefKeyLastLimitNotification);
+      final now = DateTime.now();
+
+      if (lastShownMs != null) {
+        final lastShown = DateTime.fromMillisecondsSinceEpoch(lastShownMs);
+        if (now.difference(lastShown) < const Duration(hours: 24)) {
+          return;
+        }
+      }
+
+      await _notifications.showIndexingLimitReached();
+      await prefs.setInt(
+        _prefKeyLastLimitNotification,
+        now.millisecondsSinceEpoch,
+      );
+    } catch (e, st) {
+      _log.w('Failed to show limit notification', error: e, stackTrace: st);
+    }
+  }
+
+  void _processFileEvent(FileAddedUiEvent event) {
     final ext = p
         .extension(event.fullPath!)
         .toLowerCase()
@@ -479,12 +595,53 @@ class ContentEnrichmentCoordinator {
   Future<void> _markEnrichedIfTextFile(String filePath, String ext) async {
     // Расширения из SqliteIndexService._textExtensions
     const textExtensions = <String>{
-      'txt', 'md', 'markdown', 'rst', 'log', 'csv', 'tsv',
-      'json', 'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'properties',
-      'rs', 'dart', 'py', 'js', 'ts', 'java', 'kt', 'c', 'cpp', 'h', 'hpp',
-      'cs', 'go', 'rb', 'php', 'swift', 'sh', 'bash', 'ps1', 'bat', 'cmd',
-      'html', 'htm', 'css', 'scss', 'sass', 'less',
-      'sql', 'graphql', 'proto', 'env',
+      'txt',
+      'md',
+      'markdown',
+      'rst',
+      'log',
+      'csv',
+      'tsv',
+      'json',
+      'xml',
+      'yaml',
+      'yml',
+      'toml',
+      'ini',
+      'cfg',
+      'conf',
+      'properties',
+      'rs',
+      'dart',
+      'py',
+      'js',
+      'ts',
+      'java',
+      'kt',
+      'c',
+      'cpp',
+      'h',
+      'hpp',
+      'cs',
+      'go',
+      'rb',
+      'php',
+      'swift',
+      'sh',
+      'bash',
+      'ps1',
+      'bat',
+      'cmd',
+      'html',
+      'htm',
+      'css',
+      'scss',
+      'sass',
+      'less',
+      'sql',
+      'graphql',
+      'proto',
+      'env',
     };
     if (textExtensions.contains(ext)) {
       try {
@@ -516,7 +673,10 @@ class ContentEnrichmentCoordinator {
   /// Обновляет трекер и при завершении всех контент-задач для файла:
   /// - если контент был извлечён → снимает needs_review
   /// - если контент НЕ был извлечён → отправляет тихое уведомление
-  Future<void> _onContentJobCompleted(EnrichmentJob job, {required bool success}) async {
+  Future<void> _onContentJobCompleted(
+    EnrichmentJob job, {
+    required bool success,
+  }) async {
     final tracker = _trackers[job.filePath];
     if (tracker == null) return;
 
@@ -543,7 +703,10 @@ class ContentEnrichmentCoordinator {
         try {
           await _notifications.showFileNeedsReview(fileName: job.fileName);
         } catch (e) {
-          _log.w('Failed to show needs-review notification: ${job.fileName}', error: e);
+          _log.w(
+            'Failed to show needs-review notification: ${job.fileName}',
+            error: e,
+          );
         }
       }
     }
@@ -557,16 +720,25 @@ class ContentEnrichmentCoordinator {
       switch (job.type) {
         case EnrichmentJobType.textExtraction:
           await _processTextExtraction(job);
+          break;
         case EnrichmentJobType.transcription:
           await _processTranscription(job);
+          break;
         case EnrichmentJobType.embeddings:
           await _processEmbeddings(job);
+          break;
         case EnrichmentJobType.ocr:
           await _processOcr(job);
+          break;
         case EnrichmentJobType.autoSummary:
           await _processAutoSummary(job);
+          break;
         case EnrichmentJobType.autoTags:
           await _processAutoTags(job);
+          break;
+        case EnrichmentJobType.llmModelDownload:
+          // Загрузка модели обрабатывается отдельно через addCustomJob, здесь ничего не делаем.
+          break;
       }
     } catch (e, st) {
       job.status = EnrichmentJobStatus.failed;
@@ -603,7 +775,7 @@ class ContentEnrichmentCoordinator {
   bool _isTextMeaningful(String text) {
     final trimmed = text.trim();
     if (trimmed.isEmpty) return false;
-    
+
     // Если текст слишком короткий - это наверняка мусор или пара цифр
     if (trimmed.length <= 3) return false;
 
@@ -629,10 +801,10 @@ class ContentEnrichmentCoordinator {
         '(${result.contentType}, ${result.text.length} chars'
         '${result.pagesExtracted > 0 ? ", ${result.pagesExtracted} pages" : ""})',
       );
-      
+
       final isMeaningful = _isTextMeaningful(result.text);
       await _onContentJobCompleted(job, success: isMeaningful);
-      
+
       if (isMeaningful) {
         _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
         _enqueueMetadataJobsIfEnabled(job.filePath, job.fileName);
@@ -692,10 +864,10 @@ class ContentEnrichmentCoordinator {
         '(${result.contentType}, ${result.text.length} chars, '
         '${result.durationSeconds}s)',
       );
-      
+
       final isMeaningful = _isTextMeaningful(result.text);
       await _onContentJobCompleted(job, success: isMeaningful);
-      
+
       if (isMeaningful) {
         _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
         _enqueueMetadataJobsIfEnabled(job.filePath, job.fileName);
@@ -767,10 +939,10 @@ class ContentEnrichmentCoordinator {
         '${result.pagesProcessed > 0 ? ", ${result.pagesProcessed} pages" : ""}'
         '${result.confidence != null ? ", conf=${result.confidence!.toStringAsFixed(2)}" : ""})',
       );
-      
+
       final isMeaningful = _isTextMeaningful(result.text);
       await _onContentJobCompleted(job, success: isMeaningful);
-      
+
       if (isMeaningful) {
         _enqueueEmbeddingsIfEnabled(job.filePath, job.fileName);
         _enqueueMetadataJobsIfEnabled(job.filePath, job.fileName);

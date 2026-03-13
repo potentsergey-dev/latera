@@ -12,4 +12,7 @@ abstract interface class NotificationsService {
   ///
   /// Файл добавлен в индекс, но требует ручного описания.
   Future<void> showFileNeedsReview({required String fileName});
+
+  /// Показать уведомление о достижении лимита индексации Basic-режима.
+  Future<void> showIndexingLimitReached();
 }

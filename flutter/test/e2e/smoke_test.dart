@@ -80,6 +80,11 @@ class E2EMockNotificationsService implements NotificationsService {
   }
 
   @override
+  Future<void> showIndexingLimitReached() async {
+    _shownNotifications.add('indexing_limit_reached');
+  }
+
+  @override
   Future<void> init() async {}
 }
 

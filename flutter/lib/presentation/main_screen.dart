@@ -1,12 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../application/file_events_coordinator.dart';
 import '../domain/app_config.dart';
 import '../domain/core_error.dart';
+import '../domain/feature_flags.dart';
+import '../domain/license.dart';
 import 'app_scope.dart';
 import 'processing_status_bar.dart';
+import 'widgets/license_badge.dart';
 
 /// Главный экран.
 ///
@@ -132,6 +136,9 @@ class _MainScreenState extends State<MainScreen> {
       setState(() {
         _status = 'Готово. Ожидаю файлы…';
       });
+
+      // Одноразовое уведомление о слабом ПК
+      unawaited(_showLowRamNotificationIfNeeded());
     } catch (e, st) {
       root.logger.e('Init failed', error: e, stackTrace: st);
       if (!mounted) return;
@@ -157,6 +164,18 @@ class _MainScreenState extends State<MainScreen> {
 
     final root = AppScope.of(context);
     try {
+      // Проверка лимита индексации Basic-режима
+      if (!root.licenseCoordinator.isPro &&
+          !root.licenseCoordinator.isProTrial) {
+        final count = await root.indexer.getIndexedCount();
+        if (count >= FreeTierLimits.maxIndexedFiles) {
+          root.logger.i(
+            'Indexing limit reached ($count), skipping: ${event.fileName}',
+          );
+          return;
+        }
+      }
+
       final success = await root.indexer.indexFileForReview(
         filePath,
         fileName: event.fileName,
@@ -290,6 +309,31 @@ class _MainScreenState extends State<MainScreen> {
     return error.toString();
   }
 
+  /// Показывает одноразовое уведомление, если ПК имеет мало RAM.
+  Future<void> _showLowRamNotificationIfNeeded() async {
+    if (!mounted) return;
+    final root = AppScope.of(context);
+    if (!root.isHardwareConstrained) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    const key = 'latera_low_ram_notified';
+    if (prefs.getBool(key) == true) return;
+    await prefs.setBool(key, true);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'На вашем ПК обнаружено менее 6 ГБ ОЗУ. Приложение работает в режиме Basic '
+          'с отключёнными ресурсоёмкими функциями. Для режима PRO и локального AI '
+          'рекомендуется увеличить объём ОЗУ.',
+        ),
+        duration: Duration(seconds: 10),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final root = AppScope.of(context);
@@ -300,6 +344,8 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         title: const Text('Latera'),
         actions: [
+          LicenseBadge(licenseCoordinator: root.licenseCoordinator),
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Настройки',
@@ -359,25 +405,44 @@ class _MainScreenState extends State<MainScreen> {
             const SizedBox(height: 12),
 
             // RAG кнопка — «Спроси свою папку»
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: config.isFeatureEffectivelyEnabled(ContentFeature.rag)
-                    ? () {
-                        Navigator.pushNamed(context, '/rag');
-                      }
-                    : null,
-                icon: const Icon(Icons.psychology),
-                label: Text(
-                  config.isFeatureEffectivelyEnabled(ContentFeature.rag)
-                      ? 'Спроси свою папку'
-                      : 'Спроси свою папку (выкл.)',
-                ),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  textStyle: theme.textTheme.titleSmall,
-                ),
-              ),
+            Builder(
+              builder: (context) {
+                final isBasic = root.licenseCoordinator.currentLicense.mode ==
+                    LicenseMode.basic;
+                final isEnabled =
+                    !isBasic && config.isFeatureEffectivelyEnabled(ContentFeature.rag);
+
+                return Opacity(
+                  opacity: isBasic ? 0.5 : 1.0,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: isEnabled
+                          ? () {
+                              Navigator.pushNamed(context, '/rag');
+                            }
+                          : isBasic
+                              ? () {
+                                  // В Basic-режиме открываем RAG-экран с заглушкой
+                                  Navigator.pushNamed(context, '/rag');
+                                }
+                              : null,
+                      icon: Icon(isBasic ? Icons.lock_outline : Icons.psychology),
+                      label: Text(
+                        isBasic
+                            ? 'Спроси свою папку (PRO)'
+                            : config.isFeatureEffectivelyEnabled(ContentFeature.rag)
+                                ? 'Спроси свою папку'
+                                : 'Спроси свою папку (выкл.)',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        textStyle: theme.textTheme.titleSmall,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 24),
 

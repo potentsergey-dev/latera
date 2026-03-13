@@ -1,0 +1,637 @@
+00:00 +0: loading C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart
+00:00 +0: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator enriches PDF file when event received
+00:00 +1: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator enriches DOCX file when event received
+00:00 +2: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator ignores non-rich, non-media, non-image files (txt, etc.)
+00:00 +3: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator ignores files with null fullPath
+00:00 +4: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator skips enrichment when officeDocs disabled
+00:00 +5: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator skips enrichment in resource saver mode for heavy features
+00:00 +6: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator passes config limits to extractor
+00:00 +7: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator respects maxConcurrentJobs limit
+00:00 +8: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator handles extraction failure gracefully
+00:00 +9: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator handles extractor exception gracefully
+00:00 +10: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator enqueueFile adds job manually
+00:00 +11: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator stop() prevents new file events from being processed
+00:00 +12: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator dispose() clears queue and closes streams
+00:00 +13: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator events ignored after dispose
+00:00 +14: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator transcribes MP3 file when transcription enabled
+00:00 +15: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator transcribes MP4 video file when transcription enabled
+00:00 +16: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator ignores audio files when transcription disabled
+00:00 +17: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator transcription disabled in resource saver mode
+00:01 +18: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator passes config limits to transcriber
+00:01 +19: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator handles transcription failure gracefully
+00:01 +20: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator handles transcriber exception gracefully
+00:01 +21: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator does not transcribe non-media files
+00:01 +22: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator OCR processes PNG image when OCR enabled
+00:01 +23: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator OCR processes JPEG image when OCR enabled
+00:01 +24: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator ignores images when OCR disabled
+00:01 +25: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator OCR disabled in resource saver mode
+00:01 +26: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator passes config limits to OCR service
+00:01 +27: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator handles OCR failure gracefully
+00:01 +28: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator handles OCR exception gracefully
+00:01 +29: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator OCR supports multiple image formats
+00:01 +30: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator progressStream emits progress when job enqueued
+00:01 +31: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator progressStream shows completion after job finishes
+00:02 +32: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator currentProgress returns snapshot
+00:02 +33: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator EnrichmentProgress.progress returns correct ratio
+00:02 +34: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator EnrichmentProgress.progress is null when no jobs
+00:02 +35: C:/Users/voron/Documents/Projects/latera/flutter/test/application/content_enrichment_coordinator_test.dart: ContentEnrichmentCoordinator progress tracks multiple files correctly
+00:02 +36: loading C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart
+00:04 +36: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator start should start watching on watcher
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File watcher stream completed[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:04 +37: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator start should pass watch path from config to watcher
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: /custom/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File watcher stream completed[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:04 +38: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator start should pass null to watcher when config has no watch path
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File watcher stream completed[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:04 +39: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator stop should stop watching on watcher
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:04 +40: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator stop should be idempotent
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:04 +41: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator stop should allow restart after stop
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:04 +42: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator dispose should prevent start after dispose
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Disposing file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator disposed[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:04 +43: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator dispose should be idempotent
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Disposing file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator disposed[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:04 +44: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator file event handling should emit UI events when file is added
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +45: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator file event handling should show notification when file is added
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +46: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator file event handling should handle multiple file events
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +47: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator file event handling should emit events even when notification throws
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +48: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator config changes should restart watcher when watch path changes
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Watch path changed: default -> /new/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Restarting watcher due to watch path change[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Clearing index due to watch path change[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: /new/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Scanning existing files in: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File watcher stream completed[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +49: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator config changes should restart watcher when watch path changes
+[38;5;208m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;208m│ ⚠️ Watch directory does not exist for scanning: /mock/watch/dir[0m
+[38;5;208m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +49: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator config changes should clear index when watch path changes
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Watch path changed: default -> /new/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Restarting watcher due to watch path change[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Clearing index due to watch path change[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: /new/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Scanning existing files in: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File watcher stream completed[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +50: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator config changes should clear index when watch path changes
+[38;5;208m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;208m│ ⚠️ Watch directory does not exist for scanning: /mock/watch/dir[0m
+[38;5;208m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +50: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator config changes should emit watchPathChanged event when path changes
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Watch path changed: default -> /new/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Restarting watcher due to watch path change[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Clearing index due to watch path change[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: /new/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Scanning existing files in: /mock/watch/dir[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +51: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator config changes should emit watchPathChanged event when path changes
+[38;5;208m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;208m│ ⚠️ Watch directory does not exist for scanning: /mock/watch/dir[0m
+[38;5;208m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:05 +51: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator FileAddedUiEvent should create from domain event correctly
+00:05 +52: C:/Users/voron/Documents/Projects/latera/flutter/test/application/file_events_coordinator_test.dart: FileEventsCoordinator FileAddedUiEvent should handle null fullPath
+00:05 +53: loading C:/Users/voron/Documents/Projects/latera/flutter/test/application/local_license_service_test.dart
+00:07 +53: C:/Users/voron/Documents/Projects/latera/flutter/test/application/local_license_service_test.dart: LocalLicenseService first launch sets install date and returns proTrial
+00:07 +54: C:/Users/voron/Documents/Projects/latera/flutter/test/application/local_license_service_test.dart: LocalLicenseService install date 4 days ago returns basic
+00:07 +55: C:/Users/voron/Documents/Projects/latera/flutter/test/application/local_license_service_test.dart: LocalLicenseService install date 1 day ago returns proTrial
+00:07 +56: C:/Users/voron/Documents/Projects/latera/flutter/test/application/local_license_service_test.dart: LocalLicenseService pro purchased returns pro regardless of install date
+00:08 +57: C:/Users/voron/Documents/Projects/latera/flutter/test/application/local_license_service_test.dart: LocalLicenseService activateProPurchase switches to pro mode
+00:08 +58: C:/Users/voron/Documents/Projects/latera/flutter/test/application/local_license_service_test.dart: LocalLicenseService refreshLicense re-computes license and emits on stream
+00:08 +59: C:/Users/voron/Documents/Projects/latera/flutter/test/application/local_license_service_test.dart: LocalLicenseService deactivateLicense removes pro purchase
+00:09 +60: loading C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart
+00:11 +60: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig defaults defaultConfig has expected default values
+00:11 +61: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig defaults resourceSaverPreset has correct values
+00:11 +62: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.copyWith copies all new fields correctly
+00:11 +63: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.copyWith preserves existing fields when not specified
+00:11 +64: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.isFeatureEffectivelyEnabled returns raw flag when resourceSaver is off
+00:11 +65: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.isFeatureEffectivelyEnabled officeDocs remains enabled when resourceSaver is on
+00:11 +66: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.isFeatureEffectivelyEnabled heavy features are disabled when resourceSaver is on
+00:11 +67: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.isFeatureEffectivelyEnabled returns false when feature is off regardless of resourceSaver
+00:11 +68: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.isFeatureEffectivelyEnabled semanticSimilarity requires both enableSemanticSimilarity and enableEmbeddings
+00:11 +69: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.isFeatureEffectivelyEnabled semanticSimilarity disabled in resource saver mode
+00:11 +70: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.effectiveLimits returns user limits when resourceSaver is off
+00:11 +71: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig.effectiveLimits returns reduced limits when resourceSaver is on
+00:11 +72: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig equality configs with same values are equal
+00:11 +73: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/app_config_test.dart: AppConfig equality configs with different new fields are not equal
+00:11 +74: loading C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart
+00:14 +74: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrOptions constructs with required parameters
+00:14 +75: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrOptions constructs with optional language
+00:14 +76: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrResult isSuccess returns true when errorCode is null
+00:14 +77: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrResult isSuccess returns false when errorCode is set
+00:14 +78: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrResult hasText returns false for empty text
+00:14 +79: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrResult partial success with warning (too_many_pages)
+00:14 +80: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrResult toString contains all fields
+00:14 +81: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrResult toString with error
+00:14 +82: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/ocr_test.dart: OcrService contract stub implementation satisfies interface
+00:14 +83: loading C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart
+00:16 +83: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: RagQueryResult isSuccess returns true when errorCode is null
+00:16 +84: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: RagQueryResult isSuccess returns false when errorCode is set
+00:16 +85: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: RagQueryResult sourceCount returns correct number of sources
+00:16 +86: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: RagQueryResult toString includes all relevant info
+00:16 +87: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: RagSource toString includes file path and offset
+00:16 +88: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: StubRagService returns empty_question for empty input
+00:16 +89: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: StubRagService returns empty_question for whitespace input
+00:16 +90: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: StubRagService returns not_implemented for valid question
+00:16 +91: C:/Users/voron/Documents/Projects/latera/flutter/test/domain/rag_test.dart: StubRagService respects topK parameter without error
+00:16 +92: loading C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart
+00:18 +92: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests FileEventsCoordinator E2E should start and stop successfully
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/desktop/latera[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:18 +93: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests FileEventsCoordinator E2E should process file events end-to-end
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/desktop/latera[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:19 +94: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests FileEventsCoordinator E2E should handle multiple file events
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/desktop/latera[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:19 +95: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests FileEventsCoordinator E2E should handle startWatching with override path from config
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: /custom/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /custom/watch/path[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:19 +96: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests Domain Types E2E FileAddedEvent should be created correctly
+00:19 +97: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests Domain Types E2E FileAddedEvent should work without fullPath
+00:19 +98: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests Domain Types E2E FileAddedUiEvent should be created from domain event
+00:19 +99: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests Stream Behavior E2E broadcast stream should support multiple listeners
+00:19 +100: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests Stream Behavior E2E stream should continue after listener cancellation
+00:19 +101: C:/Users/voron/Documents/Projects/latera/flutter/test/e2e/smoke_test.dart: E2E Smoke Tests Error Handling E2E should handle rapid events without crashing
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Starting file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Using watch path from config: default (Desktop/Latera)[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator started. Watching: /mock/desktop/latera[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 Stopping file events coordinator[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[38;5;12m│ 💡 File events coordinator stopped[0m
+[38;5;12m└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+00:20 +102: loading C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart
+00:24 +102: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService init should initialize plugin successfully
+🐛 [17:03:32.647] [DEBUG] [corr_1773410612641_2641] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.664] [WARN] [corr_1773410612641_2641] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+🐛 [17:03:32.667] [DEBUG] [corr_1773410612641_2641] [notifications.init] Plugin initialized successfully
+💡 [17:03:32.668] [INFO] [corr_1773410612641_2641] [notifications.init] Local notifications initialized
+00:24 +103: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService init should throw NotificationException on initialization failure
+🐛 [17:03:32.718] [DEBUG] [corr_1773410612718_2718] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.719] [WARN] [corr_1773410612718_2718] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+⛔ [17:03:32.734] [ERROR] [corr_1773410612718_2718] [notifications.init] Failed to initialize notifications
+  Error: NotificationException: Plugin initialization returned false
+  StackTrace: #0      LocalNotificationsService._initializePlugin (package:latera/infrastructure/notifications/local_notifications_service.dart:235:7)
+<asynchronous suspension>
+#1      LocalNotificationsService._doInit (package:latera/infrastructure/notifications/local_notifications_service.dart:139:7)
+<asynchronous suspension>
+#2      Throws._matchFuture (package:matcher/src/expect/throws_matcher.dart:103:19)
+<asynchronous suspension>
+#3      _expect.<anonymous closure> (package:matcher/src/expect/expect.dart:153:17)
+<asynchronous suspension>
+#4      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+
+00:24 +104: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService init should be idempotent - multiple calls result in single initialization
+🐛 [17:03:32.750] [DEBUG] [corr_1773410612750_2750] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.751] [WARN] [corr_1773410612750_2750] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+🐛 [17:03:32.751] [DEBUG] [corr_1773410612750_2750] [notifications.init] Plugin initialized successfully
+💡 [17:03:32.752] [INFO] [corr_1773410612750_2750] [notifications.init] Local notifications initialized
+00:24 +105: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService showFileAdded should show notification with correct content
+🐛 [17:03:32.767] [DEBUG] [corr_1773410612767_2767] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.767] [WARN] [corr_1773410612767_2767] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+🐛 [17:03:32.768] [DEBUG] [corr_1773410612767_2767] [notifications.init] Plugin initialized successfully
+💡 [17:03:32.768] [INFO] [corr_1773410612767_2767] [notifications.init] Local notifications initialized
+💡 [17:03:32.777] [INFO] [corr_1773410612768_2768] [notification.showFileAdded] Notification shown: test.txt
+00:24 +106: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService showFileAdded should initialize before showing notification
+🐛 [17:03:32.795] [DEBUG] [corr_1773410612795_2795] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.795] [WARN] [corr_1773410612795_2795] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+🐛 [17:03:32.795] [DEBUG] [corr_1773410612795_2795] [notifications.init] Plugin initialized successfully
+💡 [17:03:32.796] [INFO] [corr_1773410612795_2795] [notifications.init] Local notifications initialized
+💡 [17:03:32.796] [INFO] [corr_1773410612796_2796] [notification.showFileAdded] Notification shown: test.txt
+00:24 +107: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService showFileAdded should throw NotificationException on show failure
+🐛 [17:03:32.812] [DEBUG] [corr_1773410612812_2812] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.813] [WARN] [corr_1773410612812_2812] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+🐛 [17:03:32.814] [DEBUG] [corr_1773410612812_2812] [notifications.init] Plugin initialized successfully
+💡 [17:03:32.816] [INFO] [corr_1773410612812_2812] [notifications.init] Local notifications initialized
+⛔ [17:03:32.819] [ERROR] [corr_1773410612817_2817] [notification.showFileAdded] Failed to show notification
+  Error: Exception: Show failed
+  StackTrace: #0      MockFlutterLocalNotificationsPlugin.show (file:///C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart:37:7)
+#1      LocalNotificationsService.showFileAdded (package:latera/infrastructure/notifications/local_notifications_service.dart:266:21)
+<asynchronous suspension>
+#2      Throws._matchFuture (package:matcher/src/expect/throws_matcher.dart:103:19)
+<asynchronous suspension>
+#3      _expect.<anonymous closure> (package:matcher/src/expect/expect.dart:153:17)
+<asynchronous suspension>
+#4      StackZoneSpecification._registerCallback.<anonymous closure> (package:stack_trace/src/stack_zone_specification.dart:114:42)
+<asynchronous suspension>
+
+00:24 +108: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService ThrottlePolicy should throttle notifications according to policy
+🐛 [17:03:32.840] [DEBUG] [corr_1773410612840_2840] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.841] [WARN] [corr_1773410612840_2840] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+🐛 [17:03:32.841] [DEBUG] [corr_1773410612840_2840] [notifications.init] Plugin initialized successfully
+💡 [17:03:32.841] [INFO] [corr_1773410612840_2840] [notifications.init] Local notifications initialized
+💡 [17:03:32.842] [INFO] [corr_1773410612841_2841] [notification.showFileAdded] Notification shown: file1.txt
+💡 [17:03:32.866] [INFO] [corr_1773410612866_2866] [notification.showFileAdded] Notification shown: file2.txt
+🐛 [17:03:32.889] [DEBUG] [corr_1773410612889_2889] [notification.showFileAdded] Notification throttled
+00:24 +109: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService ThrottlePolicy should allow notifications after minInterval passes
+🐛 [17:03:32.903] [DEBUG] [corr_1773410612903_2903] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.904] [WARN] [corr_1773410612903_2903] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+🐛 [17:03:32.905] [DEBUG] [corr_1773410612903_2903] [notifications.init] Plugin initialized successfully
+💡 [17:03:32.905] [INFO] [corr_1773410612903_2903] [notifications.init] Local notifications initialized
+💡 [17:03:32.905] [INFO] [corr_1773410612905_2905] [notification.showFileAdded] Notification shown: file1.txt
+💡 [17:03:32.970] [INFO] [corr_1773410612969_2969] [notification.showFileAdded] Notification shown: file2.txt
+00:24 +110: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: LocalNotificationsService cancelAll should cancel all notifications
+🐛 [17:03:32.982] [DEBUG] [corr_1773410612982_2982] [notifications.init] Requesting notification permissions
+⚠️ [17:03:32.982] [WARN] [corr_1773410612982_2982] [notifications.init] Could not request permissions (non-critical)
+  Error: UnimplementedError: resolvePlatformSpecificImplementation
+🐛 [17:03:32.983] [DEBUG] [corr_1773410612982_2982] [notifications.init] Plugin initialized successfully
+💡 [17:03:32.983] [INFO] [corr_1773410612982_2982] [notifications.init] Local notifications initialized
+💡 [17:03:32.983] [INFO] [corr_1773410612983_2983] [notification.showFileAdded] Notification shown: test.txt
+💡 [17:03:32.985] [INFO] [corr_1773410612984_2984] [notification.cancelAll] All notifications cancelled
+00:24 +111: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: NotificationException should format message correctly
+00:24 +112: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: NotificationException should include cause in message
+00:24 +113: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: ThrottlePolicy defaultPolicy should have correct values
+00:24 +114: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: ThrottlePolicy strict policy should have correct values
+00:24 +115: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/notifications/local_notifications_service_test.dart: NotificationChannelConfig fileAdded channel should have correct values
+00:24 +116: loading C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart
+00:26 +116: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher startWatching should set isWatching to true
+00:26 +117: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher startWatching should store override path
+00:26 +118: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher startWatching should return failure if already watching
+00:26 +119: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher stopWatching should set isWatching to false
+00:26 +120: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher stopWatching should clear current path
+00:26 +121: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher simulateFileAdded should emit event to stream
+00:26 +122: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher simulateFileAdded should throw if not watching
+00:27 +123: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher simulateFileAdded should store emitted events
+00:27 +124: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher simulateFileAdded should use custom fullPath if provided
+00:27 +125: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher simulateFileAdded should use custom occurredAt if provided
+00:27 +126: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher simulateFilesAdded should emit multiple events
+00:27 +127: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher reset should clear all state
+00:27 +128: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: MockFileWatcher broadcast stream should support multiple listeners
+00:27 +129: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: FileWatcher interface contract FileWatcher should be an interface
+00:27 +130: C:/Users/voron/Documents/Projects/latera/flutter/test/infrastructure/rust/mock_file_watcher_test.dart: FileWatcher interface contract fileAddedEvents should be a broadcast stream
+00:27 +131: loading C:/Users/voron/Documents/Projects/latera/flutter/test/widget_test.dart
+00:29 +131: C:/Users/voron/Documents/Projects/latera/flutter/test/widget_test.dart: App builds smoke test
+00:31 +132: All tests passed!

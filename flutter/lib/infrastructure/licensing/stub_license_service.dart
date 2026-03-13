@@ -101,6 +101,18 @@ class StubLicenseService implements LicenseService {
     return _currentLicense.isPro;
   }
 
+  @override
+  Future<void> activateProPurchase() async {
+    _logger.d('StubLicenseService: activateProPurchase');
+    _currentLicense = License(
+      type: LicenseType.pro,
+      status: LicenseStatus.active,
+      mode: LicenseMode.pro,
+      activatedAt: DateTime.now(),
+    );
+    _licenseController.add(_currentLicense);
+  }
+
   /// Освободить ресурсы.
   void dispose() {
     _licenseController.close();

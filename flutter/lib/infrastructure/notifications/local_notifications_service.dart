@@ -382,6 +382,42 @@ class LocalNotificationsService implements NotificationsService {
   /// Проверить, инициализирован ли сервис.
   bool get isInitialized => _isInitialized;
 
+  @override
+  Future<void> showIndexingLimitReached() async {
+    await init();
+
+    final ctx = LogContext.withOperation('notification.showIndexingLimitReached');
+
+    if (!_shouldShowNotification('indexing_limit_reached')) {
+      _log.debugWithContext('Indexing limit notification throttled', ctx);
+      return;
+    }
+
+    try {
+      final id = _getNextNotificationId();
+      final details = _buildNotificationDetails();
+
+      await _plugin.show(
+        id: id,
+        title: 'Лимит Basic-режима',
+        body: 'Достигнут лимит Basic-режима (100 файлов). '
+            'Перейдите на PRO для неограниченной индексации.',
+        notificationDetails: details,
+        payload: 'indexing_limit_reached',
+      );
+
+      _recordNotification('indexing_limit_reached');
+      _log.infoWithContext('Indexing limit notification shown', ctx);
+    } catch (e, st) {
+      _log.errorWithContext(
+        'Failed to show indexing limit notification',
+        ctx,
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
   /// Отменить все уведомления.
   Future<void> cancelAll() async {
     final ctx = LogContext.withOperation('notification.cancelAll');

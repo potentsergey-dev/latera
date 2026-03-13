@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../application/file_events_coordinator.dart';
 import '../../../domain/app_config.dart';
 import '../../../domain/core_error.dart';
+import '../../../domain/feature_flags.dart';
 import '../../app_scope.dart';
 import '../../processing_status_bar.dart';
 
@@ -126,6 +128,9 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
       setState(() {
         _status = 'Готово. Ожидаю файлы…';
       });
+
+      // Одноразовое уведомление о слабом ПК
+      unawaited(_showLowRamNotificationIfNeeded());
     } catch (e, st) {
       root.logger.e('Init failed', error: e, stackTrace: st);
       if (!mounted) return;
@@ -143,6 +148,18 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
 
     final root = AppScope.of(context);
     try {
+      // Проверка лимита индексации Basic-режима
+      if (!root.licenseCoordinator.isPro &&
+          !root.licenseCoordinator.isProTrial) {
+        final count = await root.indexer.getIndexedCount();
+        if (count >= FreeTierLimits.maxIndexedFiles) {
+          root.logger.i(
+            'Indexing limit reached ($count), skipping: ${event.fileName}',
+          );
+          return;
+        }
+      }
+
       final success = await root.indexer.indexFileForReview(
         filePath,
         fileName: event.fileName,
@@ -248,6 +265,36 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
   String _extractErrorMessage(Object error) {
     if (error is CoreError) return error.message;
     return error.toString();
+  }
+
+  /// Показывает одноразовое уведомление, если ПК имеет мало RAM.
+  Future<void> _showLowRamNotificationIfNeeded() async {
+    if (!mounted) return;
+    final root = AppScope.of(context);
+    if (!root.isHardwareConstrained) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    const key = 'latera_low_ram_notified';
+    if (prefs.getBool(key) == true) return;
+    await prefs.setBool(key, true);
+
+    if (!mounted) return;
+    fluent.displayInfoBar(
+      context,
+      duration: const Duration(seconds: 10),
+      builder: (context, close) {
+        return fluent.InfoBar(
+          title: const Text('Недостаточно ОЗУ'),
+          content: const Text(
+            'На вашем ПК обнаружено менее 6 ГБ ОЗУ. Приложение работает в режиме Basic '
+            'с отключёнными ресурсоёмкими функциями. Для режима PRO и локального AI '
+            'рекомендуется увеличить объём ОЗУ.',
+          ),
+          severity: fluent.InfoBarSeverity.warning,
+          onClose: close,
+        );
+      },
+    );
   }
 
   @override
