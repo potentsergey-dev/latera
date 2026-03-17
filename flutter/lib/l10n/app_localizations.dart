@@ -595,6 +595,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'File {fileName} added without recognition. Please add a description manually.'**
   String notificationFileNeedsReviewBody(String fileName);
+
+  /// Settings section: license
+  ///
+  /// In en, this message translates to:
+  /// **'License'**
+  String get settingsSectionLicense;
+
+  /// Settings section: legal information
+  ///
+  /// In en, this message translates to:
+  /// **'Legal'**
+  String get settingsSectionLegal;
+
+  /// Link to privacy policy
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get settingsPrivacyPolicy;
+
+  /// Link to terms of use
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Use'**
+  String get settingsTermsOfUse;
+
+  /// Label before license badge
+  ///
+  /// In en, this message translates to:
+  /// **'Current mode: '**
+  String get licenseCurrentMode;
+
+  /// Description for PRO mode
+  ///
+  /// In en, this message translates to:
+  /// **'PRO license active. All features available without restrictions.'**
+  String get licenseDescriptionPro;
+
+  /// Description for trial mode
+  ///
+  /// In en, this message translates to:
+  /// **'PRO trial period ({days} days remaining). All features available. After the trial ends, the app will switch to Basic mode with file limits and restricted features.'**
+  String licenseDescriptionTrial(int days);
+
+  /// Description for basic mode
+  ///
+  /// In en, this message translates to:
+  /// **'Free version with restrictions: file index limit, resource-intensive features disabled (semantic search, auto-descriptions, transcription).'**
+  String get licenseDescriptionBasic;
+
+  /// Title for hardware constraint notice
+  ///
+  /// In en, this message translates to:
+  /// **'Hardware constraints'**
+  String get licenseHardwareConstraintsTitle;
+
+  /// Body for hardware constraint notice
+  ///
+  /// In en, this message translates to:
+  /// **'Less than 6 GB RAM detected. PRO features are unavailable regardless of license status.'**
+  String get licenseHardwareConstraintsBody;
+
+  /// Buy PRO button label
+  ///
+  /// In en, this message translates to:
+  /// **'Buy PRO — one-time purchase'**
+  String get licenseBuyPro;
+
+  /// Buy button label while purchasing
+  ///
+  /// In en, this message translates to:
+  /// **'Processing...'**
+  String get licensePurchasing;
+
+  /// Restore purchases button label
+  ///
+  /// In en, this message translates to:
+  /// **'Restore purchase'**
+  String get licenseRestorePurchases;
+
+  /// Restore button label while checking
+  ///
+  /// In en, this message translates to:
+  /// **'Checking...'**
+  String get licenseRestoring;
+
+  /// Dialog title after successful purchase
+  ///
+  /// In en, this message translates to:
+  /// **'PRO activated!'**
+  String get licenseActivatedTitle;
+
+  /// Dialog body after successful purchase
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you for your purchase. All PRO features are now available.'**
+  String get licenseActivatedBody;
+
+  /// Dialog title after successful restore
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase restored!'**
+  String get licenseRestoredTitle;
+
+  /// Dialog body after successful restore
+  ///
+  /// In en, this message translates to:
+  /// **'PRO version successfully restored. All features are available.'**
+  String get licenseRestoredBody;
+
+  /// Snackbar when restore finds no purchase
+  ///
+  /// In en, this message translates to:
+  /// **'PRO purchase not found in Microsoft Store.'**
+  String get licenseRestoreNotFound;
+
+  /// Snackbar on restore error
+  ///
+  /// In en, this message translates to:
+  /// **'Error restoring purchase: {error}'**
+  String licenseRestoreError(String error);
+
+  /// Error when Store is not reachable
+  ///
+  /// In en, this message translates to:
+  /// **'Microsoft Store is unavailable. Make sure the app was installed from the Store.'**
+  String get licenseStoreUnavailable;
+
+  /// Error during purchase
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase error: {error}'**
+  String licensePurchaseError(String error);
 }
 
 class _AppLocalizationsDelegate

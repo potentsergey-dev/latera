@@ -285,4 +285,83 @@ class AppLocalizationsRu extends AppLocalizations {
   String notificationFileNeedsReviewBody(String fileName) {
     return 'Файл $fileName добавлен без распознавания. Пожалуйста, добавьте описание вручную.';
   }
+
+  @override
+  String get settingsSectionLicense => 'Лицензия';
+
+  @override
+  String get settingsSectionLegal => 'Правовая информация';
+
+  @override
+  String get settingsPrivacyPolicy => 'Политика конфиденциальности';
+
+  @override
+  String get settingsTermsOfUse => 'Условия использования';
+
+  @override
+  String get licenseCurrentMode => 'Текущий режим: ';
+
+  @override
+  String get licenseDescriptionPro =>
+      'Лицензия PRO активна. Все функции доступны без ограничений.';
+
+  @override
+  String licenseDescriptionTrial(int days) {
+    return 'Пробный период PRO (осталось $days дн.). Все функции доступны. После окончания триала приложение перейдёт в режим Basic с ограничениями на количество файлов и функции.';
+  }
+
+  @override
+  String get licenseDescriptionBasic =>
+      'Бесплатная версия с ограничениями: лимит на количество файлов в индексе, отключены ресурсоёмкие функции (семантический поиск, автоописания, транскрипция).';
+
+  @override
+  String get licenseHardwareConstraintsTitle => 'Аппаратные ограничения';
+
+  @override
+  String get licenseHardwareConstraintsBody =>
+      'Обнаружено менее 6 ГБ ОЗУ. PRO-функции недоступны независимо от статуса лицензии.';
+
+  @override
+  String get licenseBuyPro => 'Купить PRO — разовая покупка';
+
+  @override
+  String get licensePurchasing => 'Обработка...';
+
+  @override
+  String get licenseRestorePurchases => 'Восстановить покупку';
+
+  @override
+  String get licenseRestoring => 'Проверка...';
+
+  @override
+  String get licenseActivatedTitle => 'PRO-версия активирована!';
+
+  @override
+  String get licenseActivatedBody =>
+      'Спасибо за покупку. Все PRO-функции теперь доступны.';
+
+  @override
+  String get licenseRestoredTitle => 'Покупка восстановлена!';
+
+  @override
+  String get licenseRestoredBody =>
+      'PRO-версия успешно восстановлена. Все функции доступны.';
+
+  @override
+  String get licenseRestoreNotFound =>
+      'Покупка PRO не найдена в Microsoft Store.';
+
+  @override
+  String licenseRestoreError(String error) {
+    return 'Ошибка восстановления покупки: $error';
+  }
+
+  @override
+  String get licenseStoreUnavailable =>
+      'Магазин Microsoft Store недоступен. Убедитесь, что приложение установлено из Store.';
+
+  @override
+  String licensePurchaseError(String error) {
+    return 'Ошибка покупки: $error';
+  }
 }

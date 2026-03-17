@@ -134,11 +134,17 @@ class LocalLicenseService implements LicenseService {
   ///
   /// Вызывается при старте приложения для обработки сценария переустановки:
   /// если пользователь переустановил приложение, но покупка сохранилась в Store.
+  ///
+  /// Также деактивирует Pro, если Store сообщает, что покупка не найдена
+  /// (защита от ручной модификации SharedPreferences).
   Future<void> syncStoreStatus(bool isStorePurchased) async {
     final localPurchased = _prefs.getBool(_keyIsProPurchased) ?? false;
     if (isStorePurchased && !localPurchased) {
       _logger.i('LocalLicenseService: Store purchase detected, activating Pro');
       await activateProPurchase();
+    } else if (!isStorePurchased && localPurchased) {
+      _logger.w('LocalLicenseService: Store says not purchased, deactivating Pro');
+      await deactivateLicense();
     }
   }
 

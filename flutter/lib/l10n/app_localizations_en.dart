@@ -285,4 +285,83 @@ class AppLocalizationsEn extends AppLocalizations {
   String notificationFileNeedsReviewBody(String fileName) {
     return 'File $fileName added without recognition. Please add a description manually.';
   }
+
+  @override
+  String get settingsSectionLicense => 'License';
+
+  @override
+  String get settingsSectionLegal => 'Legal';
+
+  @override
+  String get settingsPrivacyPolicy => 'Privacy Policy';
+
+  @override
+  String get settingsTermsOfUse => 'Terms of Use';
+
+  @override
+  String get licenseCurrentMode => 'Current mode: ';
+
+  @override
+  String get licenseDescriptionPro =>
+      'PRO license active. All features available without restrictions.';
+
+  @override
+  String licenseDescriptionTrial(int days) {
+    return 'PRO trial period ($days days remaining). All features available. After the trial ends, the app will switch to Basic mode with file limits and restricted features.';
+  }
+
+  @override
+  String get licenseDescriptionBasic =>
+      'Free version with restrictions: file index limit, resource-intensive features disabled (semantic search, auto-descriptions, transcription).';
+
+  @override
+  String get licenseHardwareConstraintsTitle => 'Hardware constraints';
+
+  @override
+  String get licenseHardwareConstraintsBody =>
+      'Less than 6 GB RAM detected. PRO features are unavailable regardless of license status.';
+
+  @override
+  String get licenseBuyPro => 'Buy PRO — one-time purchase';
+
+  @override
+  String get licensePurchasing => 'Processing...';
+
+  @override
+  String get licenseRestorePurchases => 'Restore purchase';
+
+  @override
+  String get licenseRestoring => 'Checking...';
+
+  @override
+  String get licenseActivatedTitle => 'PRO activated!';
+
+  @override
+  String get licenseActivatedBody =>
+      'Thank you for your purchase. All PRO features are now available.';
+
+  @override
+  String get licenseRestoredTitle => 'Purchase restored!';
+
+  @override
+  String get licenseRestoredBody =>
+      'PRO version successfully restored. All features are available.';
+
+  @override
+  String get licenseRestoreNotFound =>
+      'PRO purchase not found in Microsoft Store.';
+
+  @override
+  String licenseRestoreError(String error) {
+    return 'Error restoring purchase: $error';
+  }
+
+  @override
+  String get licenseStoreUnavailable =>
+      'Microsoft Store is unavailable. Make sure the app was installed from the Store.';
+
+  @override
+  String licensePurchaseError(String error) {
+    return 'Purchase error: $error';
+  }
 }

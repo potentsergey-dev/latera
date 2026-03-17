@@ -155,7 +155,7 @@ flutter:
 #
 msix:
   display_name: Latera
-  publisher_display_name: Latera Team
+  publisher_display_name: Sergey Voronin
   identity_name: com.latera.latera
   publisher: CN=LateraTeam, O=Latera, C=BY
   version: 1.0.0.0
@@ -165,7 +165,8 @@ msix:
   # NOTE: broadFileSystemAccess is required for the file watcher/indexer functionality.
   # This capability allows the app to access the file system without per-file picker prompts.
   # Windows Store may require justification for this capability during submission.
-  capabilities: broadFileSystemAccess, picturesLibrary
+  # internetClient is required for downloading AI model from Hugging Face on first launch.
+  capabilities: internetClient, broadFileSystemAccess, picturesLibrary
   languages: en-us, ru-ru
   # === Signing (optional for local dev, required for distribution) ===
   # For local testing with a test certificate:

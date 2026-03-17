@@ -247,7 +247,7 @@ class _RagScreenState extends State<RagScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'RAG найдёт релевантные фрагменты и сформирует ответ',
+              'Поиск покажет релевантные фрагменты из ваших документов',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
@@ -308,10 +308,10 @@ class _RagScreenState extends State<RagScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.auto_awesome,
+                      Icon(Icons.format_quote,
                           size: 20, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
-                      Text('Ответ',
+                      Text('Результат',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           )),

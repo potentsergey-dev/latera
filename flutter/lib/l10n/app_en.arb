@@ -248,5 +248,71 @@
   "@notificationFileNeedsReviewTitle": { "description": "Notification title when file could not be parsed" },
 
   "notificationFileNeedsReviewBody": "File {fileName} added without recognition. Please add a description manually.",
-  "@notificationFileNeedsReviewBody": { "description": "Notification body for unrecognized file", "placeholders": { "fileName": { "type": "String" } } }
+  "@notificationFileNeedsReviewBody": { "description": "Notification body for unrecognized file", "placeholders": { "fileName": { "type": "String" } } },
+
+  "settingsSectionLicense": "License",
+  "@settingsSectionLicense": { "description": "Settings section: license" },
+
+  "settingsSectionLegal": "Legal",
+  "@settingsSectionLegal": { "description": "Settings section: legal information" },
+
+  "settingsPrivacyPolicy": "Privacy Policy",
+  "@settingsPrivacyPolicy": { "description": "Link to privacy policy" },
+
+  "settingsTermsOfUse": "Terms of Use",
+  "@settingsTermsOfUse": { "description": "Link to terms of use" },
+
+  "licenseCurrentMode": "Current mode: ",
+  "@licenseCurrentMode": { "description": "Label before license badge" },
+
+  "licenseDescriptionPro": "PRO license active. All features available without restrictions.",
+  "@licenseDescriptionPro": { "description": "Description for PRO mode" },
+
+  "licenseDescriptionTrial": "PRO trial period ({days} days remaining). All features available. After the trial ends, the app will switch to Basic mode with file limits and restricted features.",
+  "@licenseDescriptionTrial": { "description": "Description for trial mode", "placeholders": { "days": { "type": "int" } } },
+
+  "licenseDescriptionBasic": "Free version with restrictions: file index limit, resource-intensive features disabled (semantic search, auto-descriptions, transcription).",
+  "@licenseDescriptionBasic": { "description": "Description for basic mode" },
+
+  "licenseHardwareConstraintsTitle": "Hardware constraints",
+  "@licenseHardwareConstraintsTitle": { "description": "Title for hardware constraint notice" },
+
+  "licenseHardwareConstraintsBody": "Less than 6 GB RAM detected. PRO features are unavailable regardless of license status.",
+  "@licenseHardwareConstraintsBody": { "description": "Body for hardware constraint notice" },
+
+  "licenseBuyPro": "Buy PRO — one-time purchase",
+  "@licenseBuyPro": { "description": "Buy PRO button label" },
+
+  "licensePurchasing": "Processing...",
+  "@licensePurchasing": { "description": "Buy button label while purchasing" },
+
+  "licenseRestorePurchases": "Restore purchase",
+  "@licenseRestorePurchases": { "description": "Restore purchases button label" },
+
+  "licenseRestoring": "Checking...",
+  "@licenseRestoring": { "description": "Restore button label while checking" },
+
+  "licenseActivatedTitle": "PRO activated!",
+  "@licenseActivatedTitle": { "description": "Dialog title after successful purchase" },
+
+  "licenseActivatedBody": "Thank you for your purchase. All PRO features are now available.",
+  "@licenseActivatedBody": { "description": "Dialog body after successful purchase" },
+
+  "licenseRestoredTitle": "Purchase restored!",
+  "@licenseRestoredTitle": { "description": "Dialog title after successful restore" },
+
+  "licenseRestoredBody": "PRO version successfully restored. All features are available.",
+  "@licenseRestoredBody": { "description": "Dialog body after successful restore" },
+
+  "licenseRestoreNotFound": "PRO purchase not found in Microsoft Store.",
+  "@licenseRestoreNotFound": { "description": "Snackbar when restore finds no purchase" },
+
+  "licenseRestoreError": "Error restoring purchase: {error}",
+  "@licenseRestoreError": { "description": "Snackbar on restore error", "placeholders": { "error": { "type": "String" } } },
+
+  "licenseStoreUnavailable": "Microsoft Store is unavailable. Make sure the app was installed from the Store.",
+  "@licenseStoreUnavailable": { "description": "Error when Store is not reachable" },
+
+  "licensePurchaseError": "Purchase error: {error}",
+  "@licensePurchaseError": { "description": "Error during purchase", "placeholders": { "error": { "type": "String" } } }
 }

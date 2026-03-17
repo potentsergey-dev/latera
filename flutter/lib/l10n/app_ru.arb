@@ -93,5 +93,29 @@
   "trayQuit": "Выход",
 
   "notificationFileNeedsReviewTitle": "Файл добавлен без распознавания",
-  "notificationFileNeedsReviewBody": "Файл {fileName} добавлен без распознавания. Пожалуйста, добавьте описание вручную."
+  "notificationFileNeedsReviewBody": "Файл {fileName} добавлен без распознавания. Пожалуйста, добавьте описание вручную.",
+
+  "settingsSectionLicense": "Лицензия",
+  "settingsSectionLegal": "Правовая информация",
+  "settingsPrivacyPolicy": "Политика конфиденциальности",
+  "settingsTermsOfUse": "Условия использования",
+
+  "licenseCurrentMode": "Текущий режим: ",
+  "licenseDescriptionPro": "Лицензия PRO активна. Все функции доступны без ограничений.",
+  "licenseDescriptionTrial": "Пробный период PRO (осталось {days} дн.). Все функции доступны. После окончания триала приложение перейдёт в режим Basic с ограничениями на количество файлов и функции.",
+  "licenseDescriptionBasic": "Бесплатная версия с ограничениями: лимит на количество файлов в индексе, отключены ресурсоёмкие функции (семантический поиск, автоописания, транскрипция).",
+  "licenseHardwareConstraintsTitle": "Аппаратные ограничения",
+  "licenseHardwareConstraintsBody": "Обнаружено менее 6 ГБ ОЗУ. PRO-функции недоступны независимо от статуса лицензии.",
+  "licenseBuyPro": "Купить PRO — разовая покупка",
+  "licensePurchasing": "Обработка...",
+  "licenseRestorePurchases": "Восстановить покупку",
+  "licenseRestoring": "Проверка...",
+  "licenseActivatedTitle": "PRO-версия активирована!",
+  "licenseActivatedBody": "Спасибо за покупку. Все PRO-функции теперь доступны.",
+  "licenseRestoredTitle": "Покупка восстановлена!",
+  "licenseRestoredBody": "PRO-версия успешно восстановлена. Все функции доступны.",
+  "licenseRestoreNotFound": "Покупка PRO не найдена в Microsoft Store.",
+  "licenseRestoreError": "Ошибка восстановления покупки: {error}",
+  "licenseStoreUnavailable": "Магазин Microsoft Store недоступен. Убедитесь, что приложение установлено из Store.",
+  "licensePurchaseError": "Ошибка покупки: {error}"
 }

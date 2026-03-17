@@ -187,7 +187,7 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'RAG найдёт релевантные фрагменты и сформирует ответ',
+              'Поиск покажет релевантные фрагменты из ваших документов',
               style: theme.typography.caption,
               textAlign: TextAlign.center,
             ),
@@ -241,9 +241,9 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.auto_awesome, size: 18, color: theme.accentColor),
+                    Icon(Icons.format_quote, size: 18, color: theme.accentColor),
                     const SizedBox(width: 8),
-                    Text('Ответ', style: theme.typography.bodyStrong),
+                    Text('Результат', style: theme.typography.bodyStrong),
                   ],
                 ),
                 const SizedBox(height: 8),

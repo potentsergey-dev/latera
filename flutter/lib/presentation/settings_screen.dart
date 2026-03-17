@@ -34,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   AppConfig _config = const AppConfig();
   bool _isLoading = false;
   bool _isPurchasing = false;
+  bool _isRestoring = false;
   String? _error;
   bool _folderExists = false;
   bool _initialized = false;
@@ -415,6 +416,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: _toggleTranscription,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
+                comingSoon: true,
               ),
               _buildContentFeatureToggle(
                 icon: Icons.chat_outlined,
@@ -456,6 +458,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const Divider(),
 
+          // === Правовая информация ===
+          _buildSection(
+            title: l10n.settingsSectionLegal,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.privacy_tip_outlined),
+                title: Text(l10n.settingsPrivacyPolicy),
+                trailing: const Icon(Icons.open_in_new, size: 18),
+                onTap: () => launchUrl(
+                  Uri.parse('https://potentsergey-dev.github.io/latera/privacy'),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: Text(l10n.settingsTermsOfUse),
+                trailing: const Icon(Icons.open_in_new, size: 18),
+                onTap: () => launchUrl(
+                  Uri.parse('https://potentsergey-dev.github.io/latera/terms'),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
+            ],
+          ),
+
+          const Divider(),
+
           // === Дополнительно ===
           _buildSection(
             title: l10n.settingsSectionAdvanced,
@@ -473,37 +502,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final license = _licenseCoordinator.currentLicense;
     final isConstrained = _licenseCoordinator.isHardwareConstrained;
 
+    final l10n = AppLocalizations.of(context)!;
     final String description;
     final bool showBuyButton;
 
     switch (license.mode) {
       case LicenseMode.pro:
-        description = 'Лицензия PRO активна. Все функции доступны без ограничений.';
+        description = l10n.licenseDescriptionPro;
         showBuyButton = false;
       case LicenseMode.proTrial:
         final remaining = _licenseCoordinator.trialTimeRemaining;
         final days = (remaining?.inDays ?? 0) + 1;
-        description =
-            'Пробный период PRO (осталось $days дн.). Все функции доступны. '
-            'После окончания триала приложение перейдёт в режим Basic '
-            'с ограничениями на количество файлов и функции.';
+        description = l10n.licenseDescriptionTrial(days);
         showBuyButton = true;
       case LicenseMode.basic:
-        description =
-            'Бесплатная версия с ограничениями: лимит на количество '
-            'файлов в индексе, отключены ресурсоёмкие функции (семантический '
-            'поиск, автоописания, транскрипция).';
+        description = l10n.licenseDescriptionBasic;
         showBuyButton = true;
     }
 
     return _buildSection(
-      title: 'Лицензия',
+      title: l10n.settingsSectionLicense,
       children: [
         ListTile(
           leading: const Icon(Icons.verified_outlined),
           title: Row(
             children: [
-              Text('Текущий режим: '),
+              Text(l10n.licenseCurrentMode),
               LicenseBadge(licenseCoordinator: _licenseCoordinator),
             ],
           ),
@@ -515,11 +539,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (isConstrained)
           ListTile(
             leading: Icon(Icons.memory, color: Theme.of(context).colorScheme.error),
-            title: const Text('Аппаратные ограничения'),
-            subtitle: const Text(
-              'Обнаружено менее 6 ГБ ОЗУ. PRO-функции недоступны '
-              'независимо от статуса лицензии.',
-            ),
+            title: Text(l10n.licenseHardwareConstraintsTitle),
+            subtitle: Text(l10n.licenseHardwareConstraintsBody),
           ),
         if (showBuyButton)
           Padding(
@@ -539,16 +560,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       )
                     : const Icon(Icons.shopping_cart_outlined),
                 label: Text(
-                  _isPurchasing ? 'Обработка...' : 'Купить PRO — разовая покупка',
+                  _isPurchasing ? l10n.licensePurchasing : l10n.licenseBuyPro,
                 ),
               ),
             ),
           ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isRestoring ? null : _handleRestorePurchases,
+              icon: _isRestoring
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.refresh),
+              label: Text(
+                _isRestoring
+                    ? l10n.licenseRestoring
+                    : l10n.licenseRestorePurchases,
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
 
   Future<void> _handleBuyPro() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isPurchasing = true);
     try {
       final result = await _storePurchaseService.buyPro();
@@ -563,8 +606,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           context: context,
           builder: (context) => AlertDialog(
             icon: const Icon(Icons.verified, color: Colors.green, size: 48),
-            title: const Text('PRO-версия активирована!'),
-            content: const Text('Спасибо за покупку. Все PRO-функции теперь доступны.'),
+            title: Text(l10n.licenseActivatedTitle),
+            content: Text(l10n.licenseActivatedBody),
             actions: [
               FilledButton(
                 onPressed: () => Navigator.pop(context),
@@ -578,9 +621,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SnackBar(
             content: Text(
               result.status == PurchaseStatus.storeUnavailable
-                  ? 'Магазин Microsoft Store недоступен. '
-                      'Убедитесь, что приложение установлено из Store.'
-                  : 'Ошибка покупки: ${result.errorMessage ?? "неизвестная ошибка"}',
+                  ? l10n.licenseStoreUnavailable
+                  : l10n.licensePurchaseError(result.errorMessage ?? ''),
             ),
             backgroundColor: Colors.red,
           ),
@@ -590,6 +632,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } finally {
       if (mounted) {
         setState(() => _isPurchasing = false);
+      }
+    }
+  }
+
+  Future<void> _handleRestorePurchases() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isRestoring = true);
+    try {
+      final isPurchased = await _storePurchaseService.isProPurchased();
+      if (!mounted) return;
+
+      if (isPurchased) {
+        await _licenseCoordinator.activateProPurchase();
+        await _licenseCoordinator.refreshLicense();
+        if (!mounted) return;
+        setState(() {});
+        await showDialog<void>(
+          context: context,
+          builder: (context) => AlertDialog(
+            icon: const Icon(Icons.verified, color: Colors.green, size: 48),
+            title: Text(l10n.licenseRestoredTitle),
+            content: Text(l10n.licenseRestoredBody),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.licenseRestoreNotFound)),
+        );
+      }
+    } on Exception catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.licenseRestoreError(e.toString())),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isRestoring = false);
       }
     }
   }
