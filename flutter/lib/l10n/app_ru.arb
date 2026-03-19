@@ -25,6 +25,9 @@
   "onboardingSettingsStorage": "Настройки: локальное хранилище",
   "onboardingFolderSectionTitle": "Папка для наблюдения",
   "onboardingSelectFolder": "Выбрать папку...",
+  "onboardingCustomFolderProBadge": "PRO",
+  "onboardingCustomFolderProHint": "Доступно в PRO-триале — любая папка",
+  "onboardingCustomFolderLockedHint": "Требует PRO — оформите подписку, чтобы использовать произвольную папку",
   "onboardingUseDefault": "Использовать по умолчанию",
   "onboardingStartButton": "Начать работу",
   "onboardingChangeLater": "Папку можно изменить позже в настройках",
@@ -79,6 +82,9 @@
   "settingsVersion": "Версия",
 
   "settingsFolderChanged": "Папка изменена: {path}",
+  "settingsChangeFolderConfirmTitle": "Изменить папку наблюдения?",
+  "settingsChangeFolderConfirmBody": "Файлы из текущей папки будут удалены из индекса поиска. С диска они не удаляются.\n\nНовая папка: {path}",
+  "settingsChangeFolderConfirmButton": "Изменить папку",
   "settingsFolderPickError": "Ошибка выбора папки: {error}",
   "settingsFolderNotSelected": "Папка не выбрана",
   "settingsFolderNotExists": "Папка не существует: {path}",
@@ -117,5 +123,10 @@
   "licenseRestoreNotFound": "Покупка PRO не найдена в Microsoft Store.",
   "licenseRestoreError": "Ошибка восстановления покупки: {error}",
   "licenseStoreUnavailable": "Магазин Microsoft Store недоступен. Убедитесь, что приложение установлено из Store.",
-  "licensePurchaseError": "Ошибка покупки: {error}"
+  "licensePurchaseError": "Ошибка покупки: {error}",
+
+  "trialExpiredCustomFolderBannerTitle": "Пробный период PRO завершён",
+  "trialExpiredCustomFolderBannerBody": "Произвольная папка наблюдения — функция PRO. Ваши данные сохранены. Переключитесь на папку по умолчанию или оформите PRO.",
+  "trialExpiredSwitchToDefault": "Использовать папку по умолчанию",
+  "trialExpiredUpgradePro": "Перейти на PRO"
 }

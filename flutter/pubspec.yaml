@@ -161,7 +161,8 @@ msix:
   version: 1.0.0.0
   install_certificate: false
   build_windows: false  # Build is controlled by build.ps1
-  logo_path: windows/runner/resources/app_icon.ico
+  logo_path: assets/app_icon.png
+  images_folder: windows/runner/resources/msix_images
   # NOTE: broadFileSystemAccess is required for the file watcher/indexer functionality.
   # This capability allows the app to access the file system without per-file picker prompts.
   # Windows Store may require justification for this capability during submission.
@@ -170,7 +171,7 @@ msix:
   languages: en-us, ru-ru
   # === Signing (optional for local dev, required for distribution) ===
   # For local testing with a test certificate:
-  #   certificate_path: ../certs/latera-test.pfx
-  #   certificate_password: ""  # Or use environment variable
+  certificate_path: ../certs/latera-test.pfx
+  certificate_password: "WQgln2YUrdk1EHBc" # Or use environment variable
   # For CI/CD, certificate is installed to the certificate store automatically
   # The msix package will use the certificate matching the publisher subject

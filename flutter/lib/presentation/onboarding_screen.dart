@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../domain/feature_flags.dart';
 import '../infrastructure/rust/generated/api.dart';
 import '../infrastructure/rust/rust_core.dart';
 import '../l10n/app_localizations.dart';
@@ -15,8 +16,15 @@ import 'app_scope.dart';
 ///
 /// Важно: папка НЕ создаётся до нажатия кнопки «Начать работу».
 /// Создание происходит позже при вызове start_watching на MainScreen.
+///
+/// [onComplete] вызывается после успешного сохранения настроек.
+/// Если не передан — используется именованный маршрут '/main' (только MaterialApp).
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({super.key});
+  /// Callback-навигация после завершения онбординга.
+  /// Обязателен в FluentApp (Windows), т.к. там нет именованных маршрутов.
+  final VoidCallback? onComplete;
+
+  const OnboardingScreen({super.key, this.onComplete});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -142,7 +150,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await configService.completeOnboarding();
 
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/main');
+        if (widget.onComplete != null) {
+          widget.onComplete!();
+        } else {
+          Navigator.of(context).pushReplacementNamed('/main');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -297,7 +309,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Expanded(
                       child: Text(
                         item,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurface,
+                            ),
                       ),
                     ),
                   ],
@@ -363,7 +377,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall
-                                ?.copyWith(color: colorScheme.outline),
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
                           ),
@@ -379,7 +393,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: Theme.of(context)
                     .textTheme
                     .bodySmall
-                    ?.copyWith(color: colorScheme.outline),
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
             ),
           ],
@@ -391,6 +405,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildFolderSelection() {
     final l10n = AppLocalizations.of(context)!;
     final colorScheme = Theme.of(context).colorScheme;
+
+    // Определяем, доступна ли произвольная папка (PRO/trial)
+    final licenseCoordinator = AppScope.maybeOf(context)?.licenseCoordinator;
+    final canUseCustomFolder = licenseCoordinator == null ||
+        licenseCoordinator
+            .isFeatureAvailable(FeatureId.customWatchFolder);
 
     // Показываем ошибку загрузки
     if (_loadError != null) {
@@ -449,42 +469,108 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Кнопка выбора папки
+            // Кнопка выбора произвольной папки (PRO)
             InkWell(
-              onTap: _selectFolder,
+              onTap: canUseCustomFolder ? _selectFolder : null,
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: _selectedPath != null
-                        ? colorScheme.primary
-                        : colorScheme.outline,
+                    color: !canUseCustomFolder
+                        ? colorScheme.outline.withValues(alpha: 0.3)
+                        : _selectedPath != null
+                            ? colorScheme.primary
+                            : colorScheme.outline,
                   ),
                   borderRadius: BorderRadius.circular(8),
+                  color: !canUseCustomFolder
+                      ? colorScheme.surfaceContainerHighest
+                      : null,
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      _selectedPath != null
-                          ? Icons.check_circle
-                          : Icons.create_new_folder_outlined,
-                      color: _selectedPath != null
-                          ? Colors.green
-                          : colorScheme.primary,
+                      !canUseCustomFolder
+                          ? Icons.lock_outline
+                          : _selectedPath != null
+                              ? Icons.check_circle
+                              : Icons.create_new_folder_outlined,
+                      color: !canUseCustomFolder
+                          ? colorScheme.outline.withValues(alpha: 0.5)
+                          : _selectedPath != null
+                              ? Colors.green
+                              : colorScheme.primary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        _selectedPath ?? l10n.onboardingSelectFolder,
-                        style: TextStyle(
-                          color:
-                              _selectedPath != null ? null : colorScheme.outline,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _selectedPath ?? l10n.onboardingSelectFolder,
+                                  style: TextStyle(
+                                    color: !canUseCustomFolder
+                                        ? colorScheme.onSurface
+                                            .withValues(alpha: 0.4)
+                                        : _selectedPath != null
+                                            ? colorScheme.onSurface
+                                            : colorScheme.onSurfaceVariant,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // PRO badge
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: canUseCustomFolder
+                                      ? colorScheme.primaryContainer
+                                      : colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: canUseCustomFolder
+                                        ? colorScheme.primary
+                                        : colorScheme.outline
+                                            .withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: Text(
+                                  l10n.onboardingCustomFolderProBadge,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: canUseCustomFolder
+                                            ? colorScheme.onPrimaryContainer
+                                            : colorScheme.outline,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            canUseCustomFolder
+                                ? l10n.onboardingCustomFolderProHint
+                                : l10n.onboardingCustomFolderLockedHint,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right),
+                    if (canUseCustomFolder) const Icon(Icons.chevron_right),
                   ],
                 ),
               ),
@@ -512,28 +598,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       _useDefaultPath
                           ? Icons.check_circle
                           : Icons.folder_special_outlined,
-                      color:
-                          _useDefaultPath ? Colors.green : colorScheme.outline,
+                      color: _useDefaultPath
+                          ? Colors.green
+                          : colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(l10n.onboardingUseDefault),
+                          Text(
+                            l10n.onboardingUseDefault,
+                            style: TextStyle(
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
                           if (_isLoadingDefault)
                             const SizedBox(
                               width: 12,
                               height: 12,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           else
                             Text(
                               _defaultPath ?? 'Desktop/Latera',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: colorScheme.outline,
+                                color: colorScheme.onSurfaceVariant,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -546,6 +637,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ],
         ),
+
       ),
     );
   }

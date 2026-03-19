@@ -85,9 +85,9 @@ class AppConfig {
     this.enableOfficeDocs = true,
     this.enableOcr = false,
     this.enableTranscription = false,
-    this.enableEmbeddings = false,
-    this.enableSemanticSimilarity = false,
-    this.enableRag = false,
+    this.enableEmbeddings = true,
+    this.enableSemanticSimilarity = true,
+    this.enableRag = true,
     this.enableAutoSummary = false,
     this.enableAutoTags = false,
     // Лимиты

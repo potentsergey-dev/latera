@@ -107,12 +107,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
 
       if (result != null && mounted) {
+        // Предупреждаем пользователя, что старые файлы будут удалены из индекса
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: Text(l10n.settingsChangeFolderConfirmTitle),
+            content: Text(l10n.settingsChangeFolderConfirmBody(result)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text(l10n.buttonCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(l10n.settingsChangeFolderConfirmButton),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true || !mounted) return;
+
         await _configService.updateValue(watchPath: result);
         await _checkFolderExists(result);
         setState(() {
           _config = _config.copyWith(watchPath: result);
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(l10n.settingsFolderChanged(result))),

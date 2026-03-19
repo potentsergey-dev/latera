@@ -282,10 +282,10 @@ class AppCompositionRoot {
       notifications: notifications,
       licenseCoordinator: licenseCoordinator,
     );
-    // Подключаем к потоку событий добавления файлов
-    contentEnrichmentCoordinator.start(
-      fileEventsCoordinator.fileAddedEvents,
-    );
+    // НЕ подключаем coordinator к broadcast-стриму fileAddedEvents напрямую:
+    // UI (main_screen / windows_main_page) слушает тот же стрим, сначала индексирует
+    // файл через indexFileForReview(), а затем вызывает enqueueFile().
+    // Прямая подписка coordinator.start() приводила к двойной обработке.
 
     // Проверка и фоновая загрузка LLM-модели с прогрессом в статус-баре.
     // Не блокирует запуск приложения — выполняется асинхронно.

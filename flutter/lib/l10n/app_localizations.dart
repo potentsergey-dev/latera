@@ -236,6 +236,24 @@ abstract class AppLocalizations {
   /// **'Select folder...'**
   String get onboardingSelectFolder;
 
+  /// PRO badge label next to custom folder selector
+  ///
+  /// In en, this message translates to:
+  /// **'PRO'**
+  String get onboardingCustomFolderProBadge;
+
+  /// Hint shown on custom folder option during PRO trial
+  ///
+  /// In en, this message translates to:
+  /// **'Available in PRO trial — any folder'**
+  String get onboardingCustomFolderProHint;
+
+  /// Hint shown on disabled custom folder option for free users
+  ///
+  /// In en, this message translates to:
+  /// **'Requires PRO — upgrade to use a custom folder'**
+  String get onboardingCustomFolderLockedHint;
+
   /// Use default folder option
   ///
   /// In en, this message translates to:
@@ -524,6 +542,24 @@ abstract class AppLocalizations {
   /// **'Folder changed: {path}'**
   String settingsFolderChanged(String path);
 
+  /// Confirmation dialog title when changing watch folder
+  ///
+  /// In en, this message translates to:
+  /// **'Change watch folder?'**
+  String get settingsChangeFolderConfirmTitle;
+
+  /// Confirmation dialog body when changing watch folder
+  ///
+  /// In en, this message translates to:
+  /// **'Previously indexed files from the current folder will be removed from the search index. They won\'t be deleted from disk.\n\nNew folder: {path}'**
+  String settingsChangeFolderConfirmBody(String path);
+
+  /// Confirmation button in change folder dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Change folder'**
+  String get settingsChangeFolderConfirmButton;
+
   /// Error picking folder
   ///
   /// In en, this message translates to:
@@ -727,6 +763,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Purchase error: {error}'**
   String licensePurchaseError(String error);
+
+  /// Banner title when trial expired and custom folder is in use
+  ///
+  /// In en, this message translates to:
+  /// **'PRO trial expired'**
+  String get trialExpiredCustomFolderBannerTitle;
+
+  /// Banner body when trial expired and custom folder is in use
+  ///
+  /// In en, this message translates to:
+  /// **'The custom watch folder is a PRO feature. Your indexed data is preserved. Switch to the default folder or upgrade to PRO to continue.'**
+  String get trialExpiredCustomFolderBannerBody;
+
+  /// Action button: switch to default folder after trial expiry
+  ///
+  /// In en, this message translates to:
+  /// **'Use default folder'**
+  String get trialExpiredSwitchToDefault;
+
+  /// Action button: upgrade to PRO after trial expiry
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to PRO'**
+  String get trialExpiredUpgradePro;
 }
 
 class _AppLocalizationsDelegate

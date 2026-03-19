@@ -70,6 +70,15 @@
   "onboardingSelectFolder": "Select folder...",
   "@onboardingSelectFolder": { "description": "Button to pick a folder" },
 
+  "onboardingCustomFolderProBadge": "PRO",
+  "@onboardingCustomFolderProBadge": { "description": "PRO badge label next to custom folder selector" },
+
+  "onboardingCustomFolderProHint": "Available in PRO trial — any folder",
+  "@onboardingCustomFolderProHint": { "description": "Hint shown on custom folder option during PRO trial" },
+
+  "onboardingCustomFolderLockedHint": "Requires PRO — upgrade to use a custom folder",
+  "@onboardingCustomFolderLockedHint": { "description": "Hint shown on disabled custom folder option for free users" },
+
   "onboardingUseDefault": "Use default",
   "@onboardingUseDefault": { "description": "Use default folder option" },
 
@@ -214,6 +223,15 @@
   "settingsFolderChanged": "Folder changed: {path}",
   "@settingsFolderChanged": { "description": "Snackbar after folder change", "placeholders": { "path": { "type": "String" } } },
 
+  "settingsChangeFolderConfirmTitle": "Change watch folder?",
+  "@settingsChangeFolderConfirmTitle": { "description": "Confirmation dialog title when changing watch folder" },
+
+  "settingsChangeFolderConfirmBody": "Previously indexed files from the current folder will be removed from the search index. They won't be deleted from disk.\n\nNew folder: {path}",
+  "@settingsChangeFolderConfirmBody": { "description": "Confirmation dialog body when changing watch folder", "placeholders": { "path": { "type": "String" } } },
+
+  "settingsChangeFolderConfirmButton": "Change folder",
+  "@settingsChangeFolderConfirmButton": { "description": "Confirmation button in change folder dialog" },
+
   "settingsFolderPickError": "Error selecting folder: {error}",
   "@settingsFolderPickError": { "description": "Error picking folder", "placeholders": { "error": { "type": "String" } } },
 
@@ -314,5 +332,17 @@
   "@licenseStoreUnavailable": { "description": "Error when Store is not reachable" },
 
   "licensePurchaseError": "Purchase error: {error}",
-  "@licensePurchaseError": { "description": "Error during purchase", "placeholders": { "error": { "type": "String" } } }
+  "@licensePurchaseError": { "description": "Error during purchase", "placeholders": { "error": { "type": "String" } } },
+
+  "trialExpiredCustomFolderBannerTitle": "PRO trial expired",
+  "@trialExpiredCustomFolderBannerTitle": { "description": "Banner title when trial expired and custom folder is in use" },
+
+  "trialExpiredCustomFolderBannerBody": "The custom watch folder is a PRO feature. Your indexed data is preserved. Switch to the default folder or upgrade to PRO to continue.",
+  "@trialExpiredCustomFolderBannerBody": { "description": "Banner body when trial expired and custom folder is in use" },
+
+  "trialExpiredSwitchToDefault": "Use default folder",
+  "@trialExpiredSwitchToDefault": { "description": "Action button: switch to default folder after trial expiry" },
+
+  "trialExpiredUpgradePro": "Upgrade to PRO",
+  "@trialExpiredUpgradePro": { "description": "Action button: upgrade to PRO after trial expiry" }
 }

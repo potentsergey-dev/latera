@@ -81,6 +81,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingSelectFolder => 'Select folder...';
 
   @override
+  String get onboardingCustomFolderProBadge => 'PRO';
+
+  @override
+  String get onboardingCustomFolderProHint =>
+      'Available in PRO trial — any folder';
+
+  @override
+  String get onboardingCustomFolderLockedHint =>
+      'Requires PRO — upgrade to use a custom folder';
+
+  @override
   String get onboardingUseDefault => 'Use default';
 
   @override
@@ -242,6 +253,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsChangeFolderConfirmTitle => 'Change watch folder?';
+
+  @override
+  String settingsChangeFolderConfirmBody(String path) {
+    return 'Previously indexed files from the current folder will be removed from the search index. They won\'t be deleted from disk.\n\nNew folder: $path';
+  }
+
+  @override
+  String get settingsChangeFolderConfirmButton => 'Change folder';
+
+  @override
   String settingsFolderPickError(String error) {
     return 'Error selecting folder: $error';
   }
@@ -364,4 +386,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String licensePurchaseError(String error) {
     return 'Purchase error: $error';
   }
+
+  @override
+  String get trialExpiredCustomFolderBannerTitle => 'PRO trial expired';
+
+  @override
+  String get trialExpiredCustomFolderBannerBody =>
+      'The custom watch folder is a PRO feature. Your indexed data is preserved. Switch to the default folder or upgrade to PRO to continue.';
+
+  @override
+  String get trialExpiredSwitchToDefault => 'Use default folder';
+
+  @override
+  String get trialExpiredUpgradePro => 'Upgrade to PRO';
 }

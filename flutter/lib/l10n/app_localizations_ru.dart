@@ -82,6 +82,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get onboardingSelectFolder => 'Выбрать папку...';
 
   @override
+  String get onboardingCustomFolderProBadge => 'PRO';
+
+  @override
+  String get onboardingCustomFolderProHint =>
+      'Доступно в PRO-триале — любая папка';
+
+  @override
+  String get onboardingCustomFolderLockedHint =>
+      'Требует PRO — оформите подписку, чтобы использовать произвольную папку';
+
+  @override
   String get onboardingUseDefault => 'Использовать по умолчанию';
 
   @override
@@ -242,6 +253,17 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get settingsChangeFolderConfirmTitle => 'Изменить папку наблюдения?';
+
+  @override
+  String settingsChangeFolderConfirmBody(String path) {
+    return 'Файлы из текущей папки будут удалены из индекса поиска. С диска они не удаляются.\n\nНовая папка: $path';
+  }
+
+  @override
+  String get settingsChangeFolderConfirmButton => 'Изменить папку';
+
+  @override
   String settingsFolderPickError(String error) {
     return 'Ошибка выбора папки: $error';
   }
@@ -364,4 +386,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String licensePurchaseError(String error) {
     return 'Ошибка покупки: $error';
   }
+
+  @override
+  String get trialExpiredCustomFolderBannerTitle =>
+      'Пробный период PRO завершён';
+
+  @override
+  String get trialExpiredCustomFolderBannerBody =>
+      'Произвольная папка наблюдения — функция PRO. Ваши данные сохранены. Переключитесь на папку по умолчанию или оформите PRO.';
+
+  @override
+  String get trialExpiredSwitchToDefault => 'Использовать папку по умолчанию';
+
+  @override
+  String get trialExpiredUpgradePro => 'Перейти на PRO';
 }

@@ -1,0 +1,2 @@
+﻿Building Windows application...                                   415,0s
+тИЪ Built build\windows\x64\runner\Release\latera.exe

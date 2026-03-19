@@ -148,7 +148,23 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
         builder: (context) {
           _updateTrayMenu(context);
           if (_needsOnboarding) {
-            return const OnboardingScreen();
+            // FluentApp не предоставляет Material-тему и не имеет именованных маршрутов.
+            // Оборачиваем OnboardingScreen в Material-тему для корректных цветов,
+            // и передаём onComplete вместо pushReplacementNamed.
+            final isDark =
+                MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+            final theme =
+                isDark ? AppTheme.materialDarkTheme : AppTheme.materialTheme;
+            return Theme(
+              data: theme,
+              child: Material(
+                color: theme.colorScheme.surface,
+                child: OnboardingScreen(
+                  onComplete: () =>
+                      setState(() => _needsOnboarding = false),
+                ),
+              ),
+            );
           }
           return const WindowsNavigationShell();
         },
@@ -169,7 +185,10 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       themeMode: ThemeMode.system,
       initialRoute: _needsOnboarding ? '/onboarding' : '/main',
       routes: {
-        '/onboarding': (context) => const OnboardingScreen(),
+        '/onboarding': (context) => OnboardingScreen(
+              onComplete: () =>
+                  Navigator.of(context).pushReplacementNamed('/main'),
+            ),
         '/main': (context) => const MainScreen(),
         '/search': (context) => const SearchScreen(),
         '/inbox': (context) => const InboxScreen(),

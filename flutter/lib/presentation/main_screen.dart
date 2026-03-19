@@ -8,6 +8,7 @@ import '../domain/app_config.dart';
 import '../domain/core_error.dart';
 import '../domain/feature_flags.dart';
 import '../domain/license.dart';
+import '../infrastructure/di/app_composition_root.dart';
 import 'app_scope.dart';
 import 'processing_status_bar.dart';
 import 'widgets/license_badge.dart';
@@ -309,6 +310,118 @@ class _MainScreenState extends State<MainScreen> {
     return error.toString();
   }
 
+  /// Баннер «Пробный период завершён — кастомная папка заблокирована».
+  ///
+  /// Показывается только когда:
+  ///  - лицензия Basic (триал истёк)
+  ///  - И установлена произвольная папка (не null)
+  Widget _buildTrialExpiredBannerIfNeeded(
+    BuildContext context,
+    AppCompositionRoot root,
+    AppConfig config,
+    ThemeData theme,
+  ) {
+    final license = root.licenseCoordinator.currentLicense;
+    if (license.mode != LicenseMode.basic) return const SizedBox.shrink();
+
+    // Показываем баннер только если установлена кастомная папка
+    final watchPath = config.watchPath;
+    if (watchPath == null || watchPath.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        Material(
+          elevation: 0,
+          color: theme.colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: theme.colorScheme.onErrorContainer, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Пробный период PRO завершён',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Произвольная папка наблюдения — функция PRO. '
+                  'Ваши данные сохранены. Переключитесь на папку по умолчанию '
+                  'или оформите PRO.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onErrorContainer,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onErrorContainer,
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () => _switchToDefaultFolder(root),
+                      child: const Text('Использовать папку по умолчанию'),
+                    ),
+                    const SizedBox(width: 16),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onErrorContainer,
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/settings'),
+                      child: const Text('Перейти на PRO'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  /// Переключить папку наблюдения на дефолтную (после окончания триала).
+  Future<void> _switchToDefaultFolder(AppCompositionRoot root) async {
+    try {
+      await root.configService.updateValue(clearWatchPath: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Папка сброшена на значение по умолчанию'),
+          ),
+        );
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   /// Показывает одноразовое уведомление, если ПК имеет мало RAM.
   Future<void> _showLowRamNotificationIfNeeded() async {
     if (!mounted) return;
@@ -360,6 +473,9 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Баннер: пробный период закончился, кастомная папка заблокирована
+            _buildTrialExpiredBannerIfNeeded(context, root, config, theme),
+
             // Поисковая кнопка — основное CTA
             SizedBox(
               width: double.infinity,

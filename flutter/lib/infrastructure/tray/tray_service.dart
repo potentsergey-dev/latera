@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -35,10 +36,11 @@ class TrayService with TrayListener, WindowListener {
   }
 
   Future<void> _setupTray() async {
-    // Используем .ico из ресурсов Runner-а — путь относительно exe.
+    // Используем .ico рядом с exe — работает как в dev, так и в MSIX.
     String iconPath;
     if (Platform.isWindows) {
-      iconPath = 'windows/runner/resources/app_icon.ico';
+      final exeDir = File(Platform.resolvedExecutable).parent.path;
+      iconPath = p.join(exeDir, 'app_icon.ico');
     } else {
       iconPath = 'macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png';
     }

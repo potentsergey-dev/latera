@@ -134,14 +134,22 @@ fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
 
     let ini_path = folder.join("desktop.ini");
 
-    // Если desktop.ini уже существует — не перезаписываем
-    if ini_path.exists() {
-        return Ok(());
-    }
-
     // Путь к текущему .exe — содержит нашу иконку (индекс 0)
     let exe_path = std::env::current_exe()?;
     let exe_str = exe_path.to_string_lossy();
+
+    // Если desktop.ini уже существует — проверяем, актуален ли путь к exe.
+    // После переустановки MSIX путь к exe меняется, и иконка слетает.
+    if ini_path.exists() {
+        if let Ok(existing) = std::fs::read_to_string(&ini_path) {
+            if existing.contains(&*exe_str) {
+                return Ok(()); // Путь актуален — не трогаем
+            }
+            info!("desktop.ini has stale exe path, updating");
+        } else {
+            return Ok(());
+        }
+    }
 
     let ini_content = format!(
         "[.ShellClassInfo]\r\nIconResource={exe_str},0\r\n"
