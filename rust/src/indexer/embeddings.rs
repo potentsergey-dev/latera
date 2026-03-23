@@ -1,10 +1,10 @@
 //! Embeddings: вычисление и similarity search.
 //!
-//! Phase 3.5: реальный ONNX-пайплайн на базе all-MiniLM-L6-v2.
+//! Phase 3.5: реальный ONNX-пайплайн на базе paraphrase-multilingual-MiniLM-L12-v2.
 //!
 //! Текст → HF Tokenizer → ONNX Runtime → mean-pooling → L2-norm → f32 vector.
 //!
-//! Модель (~80 MB) загружается по требованию при первом вызове
+//! Модель (~170 MB) загружается по требованию при первом вызове
 //! [`init_semantic_model`] и сохраняется в папку данных приложения.
 //! Если модель не инициализирована — используется stub fallback (hash-based).
 //!
@@ -40,7 +40,7 @@ use crate::error::LateraError;
 // Constants
 // ============================================================================
 
-/// Размерность эмбеддинга (384 для all-MiniLM-L6-v2).
+/// Размерность эмбеддинга (384 для paraphrase-multilingual-MiniLM-L12-v2).
 pub const EMBEDDING_DIM: usize = 384;
 
 /// Размерность stub-эмбеддинга (для fallback без модели).
@@ -53,7 +53,7 @@ pub const DEFAULT_CHUNK_SIZE: usize = 500;
 pub const DEFAULT_CHUNK_OVERLAP: usize = 50;
 
 /// Имя директории модели.
-const MODEL_DIR_NAME: &str = "all-MiniLM-L6-v2";
+const MODEL_DIR_NAME: &str = "paraphrase-multilingual-MiniLM-L12-v2";
 
 /// Имя файла ONNX-модели.
 const MODEL_FILE: &str = "model.onnx";
@@ -63,11 +63,11 @@ const TOKENIZER_FILE: &str = "tokenizer.json";
 
 /// URL ONNX-модели на Hugging Face.
 const MODEL_URL: &str =
-    "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx";
+    "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/onnx/model.onnx";
 
 /// URL токенизатора на Hugging Face.
 const TOKENIZER_URL: &str =
-    "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/tokenizer.json";
+    "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/tokenizer.json";
 
 /// Максимальная длина последовательности токенов для модели.
 const MAX_SEQ_LENGTH: usize = 256;
@@ -200,7 +200,7 @@ pub fn init_semantic_model(data_dir: &str) -> Result<(), LateraError> {
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     *guard = Some(SemanticModel { session, tokenizer });
 
-    info!("Semantic model loaded successfully (dim={})", EMBEDDING_DIM);
+    info!("Semantic model loaded successfully (dim={}, multilingual)", EMBEDDING_DIM);
     Ok(())
 }
 
@@ -634,9 +634,6 @@ pub fn similarity_search(
             .partial_cmp(&a.0.score)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
-    // Дедупликация по file_path (оставляем лучший чанк)
-    let mut seen = std::collections::HashSet::new();
-    scored.retain(|r| seen.insert(r.0.file_path.clone()));
     if scored.is_empty() {
         return Ok(Vec::new());
     }

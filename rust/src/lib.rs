@@ -7,6 +7,7 @@
 pub mod error;
 pub mod ffi_llm;
 pub mod ffi_ocr;
+pub mod ffi_rag;
 pub mod ffi_search;
 pub mod ffi_system;
 pub mod file_watcher;

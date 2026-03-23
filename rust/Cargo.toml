@@ -24,6 +24,11 @@ ureq = "2.12"
 # System information (RAM, etc.)
 sysinfo = "0.33"
 
+# FUTURE: Vulkan GPU acceleration for llama.cpp
+# Чтобы включить: добавить `llama-cpp-sys-2 = { path = "llama-cpp-sys-2-patched", features = ["vulkan"] }`
+# Требования: Vulkan SDK установлен на CI, переменная VULKAN_SDK задана.
+# После включения — в llm_engine.rs использовать n_gpu_layers=u32::MAX с fallback на CPU.
+
 # PDF text extraction (text layer, без OCR)
 lopdf = "0.34"
 

@@ -24,13 +24,146 @@
 
 use log::{debug, info, warn};
 use rusqlite::Connection;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::mpsc;
+use std::sync::Mutex;
 
 use crate::error::LateraError;
 use super::embeddings::{self, SimilarityResult};
 
 // ============================================================================
-// Public types
+// Global RAG configuration
 // ============================================================================
+
+/// Глобальный лимит генерируемых токенов для RAG.
+static RAG_MAX_TOKENS: AtomicU32 = AtomicU32::new(0);
+
+/// Флаг отмены текущего RAG-запроса.
+static CANCEL_RAG: AtomicBool = AtomicBool::new(false);
+
+/// Канал для стриминга событий RAG → Dart.
+static STREAM_SENDER: Mutex<Option<mpsc::Sender<RagStreamEvent>>> = Mutex::new(None);
+static STREAM_RECEIVER: Mutex<Option<mpsc::Receiver<RagStreamEvent>>> = Mutex::new(None);
+
+/// Устанавливает глобальный лимит генерируемых токенов для RAG.
+pub fn set_rag_max_tokens(max_tokens: u32) {
+    info!("RAG max_tokens set to {}", max_tokens);
+    RAG_MAX_TOKENS.store(max_tokens, Ordering::Relaxed);
+}
+
+/// Возвращает текущий лимит генерируемых токенов для RAG.
+fn get_rag_max_tokens() -> u32 {
+    RAG_MAX_TOKENS.load(Ordering::Relaxed)
+}
+
+/// Отменяет текущий RAG-запрос.
+pub fn cancel_rag_query() {
+    info!("RAG: cancel requested");
+    CANCEL_RAG.store(true, Ordering::Relaxed);
+}
+
+/// Проверяет, запрошена ли отмена.
+fn is_cancelled() -> bool {
+    CANCEL_RAG.load(Ordering::Relaxed)
+}
+
+// ============================================================================
+// Streaming
+// ============================================================================
+
+/// Событие стриминга RAG-ответа.
+#[derive(Clone, Debug)]
+pub enum RagStreamEvent {
+    /// Фрагмент ответа (один или несколько токенов).
+    Token(String),
+    /// Запрос завершён. Содержит финальный результат как JSON.
+    Done {
+        /// JSON-сериализованный RagResult.
+        result_json: String,
+    },
+}
+
+/// Создаёт канал стриминга. Возвращает sender (для rag_query_streaming).
+fn init_stream_channel() -> mpsc::Sender<RagStreamEvent> {
+    let (tx, rx) = mpsc::channel();
+    *STREAM_SENDER.lock().unwrap() = Some(tx.clone());
+    *STREAM_RECEIVER.lock().unwrap() = Some(rx);
+    tx
+}
+
+/// Извлекает следующее событие из канала (неблокирующее).
+pub fn poll_stream_event() -> Option<RagStreamEvent> {
+    let guard = STREAM_RECEIVER.lock().unwrap();
+    if let Some(rx) = guard.as_ref() {
+        rx.try_recv().ok()
+    } else {
+        None
+    }
+}
+
+/// Запускает RAG-запрос в отдельном потоке со стримингом событий.
+///
+/// Вызывающая сторона должна затем вызывать `poll_stream_event()`
+/// для получения Token/Done событий.
+pub fn rag_query_streaming_start(question: String, top_k: usize) {
+    CANCEL_RAG.store(false, Ordering::Relaxed);
+    let tx = init_stream_channel();
+
+    std::thread::Builder::new()
+        .name("rag-stream".into())
+        .spawn(move || {
+            rag_query_streaming_thread(&question, top_k, &tx);
+        })
+        .expect("failed to spawn rag-stream thread");
+}
+
+/// Рабочий поток стримингового RAG-запроса.
+fn rag_query_streaming_thread(
+    question: &str,
+    top_k: usize,
+    tx: &mpsc::Sender<RagStreamEvent>,
+) {
+    // Используем глобальную БД через api::with_index_db
+    let result = match crate::api::with_index_db(|conn| {
+        rag_query_full_context(conn, question, top_k)
+    }) {
+        Ok(r) => r,
+        Err(e) => {
+            let r = RagResult {
+                answer: String::new(),
+                sources: Vec::new(),
+                error_code: Some("query_failed".to_string()),
+            };
+            let _ = tx.send(RagStreamEvent::Done {
+                result_json: rag_result_to_json(&r),
+            });
+            warn!("RAG stream: query failed: {e}");
+            return;
+        }
+    };
+
+    if is_cancelled() {
+        let cancelled = RagResult {
+            answer: String::new(),
+            sources: Vec::new(),
+            error_code: Some("cancelled".to_string()),
+        };
+        let _ = tx.send(RagStreamEvent::Done {
+            result_json: rag_result_to_json(&cancelled),
+        });
+        return;
+    }
+
+    // Стримим ответ по частям (сейчас stub — целиком; с LLM будет по токенам)
+    if result.has_answer() {
+        let _ = tx.send(RagStreamEvent::Token(result.answer.clone()));
+    }
+
+    // Отправляем Done
+    let _ = tx.send(RagStreamEvent::Done {
+        result_json: rag_result_to_json(&result),
+    });
+}
 
 /// Источник ответа RAG (чанк, из которого взята информация).
 #[derive(Clone, Debug)]
@@ -57,6 +190,72 @@ pub struct RagResult {
     /// - `"empty_question"` — пустой вопрос
     /// - `"query_failed"` — ошибка при выполнении запроса
     pub error_code: Option<String>,
+}
+
+impl RagResult {
+    /// Есть ли ответ.
+    pub fn has_answer(&self) -> bool {
+        !self.answer.is_empty()
+    }
+}
+
+/// Сериализует RagResult в JSON строку (для передачи через C FFI).
+pub fn rag_result_to_json(result: &RagResult) -> String {
+    // Ручная сериализация — без serde, чтобы не добавлять зависимость.
+    let sources_json: Vec<String> = result
+        .sources
+        .iter()
+        .map(|s| {
+            format!(
+                "{{\"file_path\":{},\"chunk_snippet\":{},\"chunk_offset\":{}}}",
+                json_escape(&s.file_path),
+                json_escape(&s.chunk_snippet),
+                s.chunk_offset
+            )
+        })
+        .collect();
+
+    let error_code = match &result.error_code {
+        Some(code) => json_escape(code),
+        None => "null".to_string(),
+    };
+
+    format!(
+        "{{\"answer\":{},\"sources\":[{}],\"error_code\":{}}}",
+        json_escape(&result.answer),
+        sources_json.join(","),
+        error_code
+    )
+}
+
+/// Экранирует строку для JSON.
+fn json_escape(s: &str) -> String {
+    json_escape_inner(s)
+}
+
+/// Публичная версия json_escape для использования из ffi_rag.
+pub fn json_escape_pub(s: &str) -> String {
+    json_escape_inner(s)
+}
+
+fn json_escape_inner(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for ch in s.chars() {
+        match ch {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => {
+                out.push_str(&format!("\\u{:04x}", c as u32));
+            }
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }
 
 // ============================================================================
@@ -122,22 +321,13 @@ pub fn rag_query(
     // 3. Собираем контекст из релевантных чанков
     let context_parts: Vec<String> = relevant
         .iter()
-        .enumerate()
-        .map(|(i, r)| {
-            format!(
-                "[{}] (из файла «{}», позиция {}):\n{}",
-                i + 1,
-                extract_filename(&r.file_path),
-                r.chunk_offset,
-                r.chunk_snippet
-            )
-        })
+        .map(|r| r.chunk_snippet.clone())
         .collect();
 
-    let context = context_parts.join("\n\n");
+    let context = context_parts.join("\n\n---\n\n");
 
-    // 4. Генерируем ответ (stub: конкатенация с заголовком)
-    let answer = generate_stub_answer(question, &context, relevant.len());
+    // 4. Генерируем ответ (LLM если доступен, иначе stub)
+    let answer = generate_answer(question, &context, relevant.len());
 
     // 5. Собираем источники
     let sources: Vec<RagSource> = relevant
@@ -257,21 +447,11 @@ pub fn rag_query_full_context(
     // 3. Формируем контекст и ответ (full context version)
     let context_parts: Vec<String> = scored
         .iter()
-        .enumerate()
-        .map(|(i, (score, text, offset, path, _))| {
-            format!(
-                "[{}] (файл: «{}», позиция: {}, релевантность: {:.2}):\n{}",
-                i + 1,
-                extract_filename(path),
-                offset,
-                score,
-                text
-            )
-        })
+        .map(|(_, text, _, _, _)| text.clone())
         .collect();
 
-    let context = context_parts.join("\n\n");
-    let answer = generate_stub_answer(question, &context, scored.len());
+    let context = context_parts.join("\n\n---\n\n");
+    let answer = generate_answer(question, &context, scored.len());
 
     let sources: Vec<RagSource> = scored
         .iter()
@@ -304,27 +484,55 @@ const MIN_SIMILARITY_SCORE: f64 = 0.05;
 // Helpers
 // ============================================================================
 
+/// Генерирует ответ: через LLM если загружен, иначе stub-конкатенация.
+///
+/// Когда llm_engine будет подключён как модуль (после добавления llama-cpp-2 в Cargo.toml),
+/// эта функция будет вызывать `llm_engine::generate_with_context()` с `get_rag_max_tokens()`.
+fn generate_answer(question: &str, context: &str, source_count: usize) -> String {
+    let max_tokens = get_rag_max_tokens();
+    info!("RAG: generate_answer (max_tokens={}, llm=stub)", max_tokens);
+
+    // TODO: когда llm_engine станет компилируемым модулем, раскомментировать:
+    // if llm_engine::is_llm_ready() {
+    //     let language = detect_question_language(question);
+    //     let system_prompt = llm_engine::rag_system_prompt(&language);
+    //     let user_prompt = format!("Context from user's files:\n\n{context}\n\nQuestion: {question}");
+    //     match llm_engine::generate_with_context(&system_prompt, &user_prompt, max_tokens) {
+    //         Ok(answer) if !answer.is_empty() => return answer,
+    //         Ok(_) => warn!("RAG: LLM returned empty answer, falling back to stub"),
+    //         Err(e) => warn!("RAG: LLM generation failed: {e}, falling back to stub"),
+    //     }
+    // }
+
+    generate_stub_answer(question, context, source_count)
+}
+
+/// Простая эвристика определения языка вопроса.
+///
+/// Если вопрос содержит кириллические символы — «ru», иначе «en».
+#[allow(dead_code)]
+fn detect_question_language(question: &str) -> String {
+    let cyrillic_count = question.chars().filter(|c| matches!(*c, '\u{0400}'..='\u{04FF}')).count();
+    let total_alpha = question.chars().filter(|c| c.is_alphabetic()).count();
+    if total_alpha > 0 && cyrillic_count * 2 > total_alpha {
+        "ru".to_string()
+    } else {
+        "en".to_string()
+    }
+}
+
 /// Генерирует stub-ответ на основе контекста.
 ///
-/// Формат:
-/// ```text
-/// По вашему вопросу «...» найдено N релевантных фрагментов:
-///
-/// [контекст]
-/// ```
+/// Показывает только текст найденных фрагментов, без метаданных источников
+/// (имя файла, позиция) — они отображаются отдельно в UI как карточки.
 ///
 /// При подключении LLM будет заменён на prompt + inference.
-fn generate_stub_answer(question: &str, context: &str, source_count: usize) -> String {
-    format!(
-        "По вашему вопросу «{}» найдено {} релевантных {}:\n\n{}",
-        truncate(question, 100),
-        source_count,
-        pluralize_fragment(source_count),
-        context
-    )
+fn generate_stub_answer(_question: &str, context: &str, _source_count: usize) -> String {
+    context.to_string()
 }
 
 /// Склоняем слово «фрагмент» по числу.
+#[allow(dead_code)]
 fn pluralize_fragment(n: usize) -> &'static str {
     let rem100 = n % 100;
     let rem10 = n % 10;
@@ -340,6 +548,7 @@ fn pluralize_fragment(n: usize) -> &'static str {
 }
 
 /// Извлекает имя файла из полного пути.
+#[allow(dead_code)]
 fn extract_filename(path: &str) -> &str {
     std::path::Path::new(path)
         .file_name()

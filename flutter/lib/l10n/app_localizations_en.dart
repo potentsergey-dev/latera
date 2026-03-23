@@ -399,4 +399,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trialExpiredUpgradePro => 'Upgrade to PRO';
+
+  @override
+  String get settingsSectionLanguage => 'Language';
+
+  @override
+  String get settingsLanguage => 'Interface language';
+
+  @override
+  String get settingsLanguageHint => 'Select the app display language';
+
+  @override
+  String get settingsLanguageSystem => 'System default';
+
+  @override
+  String get settingsLanguageRestartHint =>
+      'Restart the app to apply the new language';
 }

@@ -28,4 +28,16 @@ class StubRagService implements RagService {
       errorCode: 'not_implemented',
     );
   }
+
+  @override
+  Stream<RagStreamEvent> queryStream(
+    String question, {
+    int topK = 5,
+  }) async* {
+    final result = await query(question, topK: topK);
+    yield RagDoneEvent(result);
+  }
+
+  @override
+  void cancelQuery() {}
 }

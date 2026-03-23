@@ -10,9 +10,9 @@ void main() {
       expect(config.enableOfficeDocs, true);
       expect(config.enableOcr, false);
       expect(config.enableTranscription, false);
-      expect(config.enableEmbeddings, false);
-      expect(config.enableSemanticSimilarity, false);
-      expect(config.enableRag, false);
+      expect(config.enableEmbeddings, true);
+      expect(config.enableSemanticSimilarity, true);
+      expect(config.enableRag, true);
       expect(config.enableAutoSummary, false);
       expect(config.enableAutoTags, false);
       expect(config.maxConcurrentJobs, 2);

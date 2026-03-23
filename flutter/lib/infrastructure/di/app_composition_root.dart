@@ -187,6 +187,20 @@ class AppCompositionRoot {
       }
     }
 
+    // AVX2 detection + adaptive RAG max_tokens
+    bool hasAvx2 = false;
+    if (rustSystemService.isAvailable) {
+      hasAvx2 = rustSystemService.getHasAvx2();
+      final int ragMaxTokens = hasAvx2 ? 300 : 100;
+      rustSystemService.setRagMaxTokens(ragMaxTokens);
+      logger.i('CPU: AVX2=${hasAvx2 ? "yes" : "no"}, RAG max_tokens=$ragMaxTokens');
+
+      // Vulkan diagnostic: проверяем наличие Vulkan runtime для будущего GPU-ускорения
+      final hasVulkan = rustSystemService.getHasVulkan();
+      logger.i('GPU: Vulkan=${hasVulkan ? "available" : "not found"}'
+          ' (acceleration not yet enabled)');
+    }
+
     // SQLite FTS5 Index Service (implements both Indexer and SearchRepository)
     final appDataDir = await getApplicationSupportDirectory();
     final dbPath = p.join(appDataDir.path, 'Latera', 'index', 'latera_index.db');

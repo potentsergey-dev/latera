@@ -720,6 +720,70 @@ void main() {
 
         await coordinator.stop();
       });
+
+      test('should clear index and emit event on start after path changed while stopped', () async {
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+          indexer: mockIndexer,
+        );
+
+        // Запускаем и останавливаем координатор (имитация ухода на Settings)
+        await coordinator.start();
+        await coordinator.stop();
+        expect(coordinator.isRunning, false);
+        expect(mockIndexer.clearIndexCallCount, 0);
+
+        // Меняем путь пока координатор остановлен
+        mockConfigService.setConfig(const AppConfig(
+          watchPath: '/new/watch/path',
+        ));
+        // Даём микротаскам отработать (listener _onConfigChanged)
+        await pumpEventQueue();
+
+        // Подписываемся на событие смены папки ДО старта
+        final pathChangeFuture = coordinator.watchPathChangedEvents.first
+            .timeout(const Duration(seconds: 1));
+
+        // Запускаем координатор снова (имитация возврата на главную)
+        final result = await coordinator.start();
+        expect(result, isA<CoordinatorStartSuccess>());
+
+        // Индекс должен быть очищен
+        expect(mockIndexer.clearIndexCallCount, 1);
+
+        // watchPathChanged должен быть эмитирован
+        final emittedPath = await pathChangeFuture;
+        expect(emittedPath, '/mock/watch/dir');
+
+        // Путь должен быть передан watcher'у
+        expect(mockWatcher.lastOverridePath, '/new/watch/path');
+
+        await coordinator.stop();
+      });
+
+      test('should not clear index on start if path did not change while stopped', () async {
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+          indexer: mockIndexer,
+        );
+
+        // Запускаем, останавливаем, запускаем снова — без смены пути
+        await coordinator.start();
+        await coordinator.stop();
+        final result = await coordinator.start();
+
+        expect(result, isA<CoordinatorStartSuccess>());
+        // clearIndex НЕ должен вызываться
+        expect(mockIndexer.clearIndexCallCount, 0);
+
+        await coordinator.stop();
+      });
     });
 
     group('FileAddedUiEvent', () {

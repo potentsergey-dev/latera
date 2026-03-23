@@ -99,6 +99,7 @@ class FileEventsCoordinator {
   bool _isDisposing = false;
   Future<void>? _restartFuture;
   bool _restartRequested = false; // Флаг для отслеживания отложенных restart'ов
+  bool _needsClearOnStart = false; // Путь изменился пока координатор был остановлен
   String? _lastWatchPath; // Последний известный путь для обнаружения изменений
 
   FileEventsCoordinator({
@@ -173,6 +174,18 @@ class FileEventsCoordinator {
       WatchFailure(:final error) => _onStartFailure(error),
     };
 
+    // Если путь изменился пока координатор был остановлен —
+    // очищаем старый индекс и сканируем файлы новой папки.
+    if (_needsClearOnStart && !_isDisposed && !_isDisposing) {
+      _needsClearOnStart = false;
+      if (mapped is CoordinatorStartSuccess) {
+        _log.i('Performing deferred index clear after watch path change');
+        await _indexer.clearIndex();
+        _watchPathChangedController.add(mapped.watchDir);
+        await _scanExistingFiles(mapped.watchDir);
+      }
+    }
+
     // Если watchPath изменился во время await startWatching(),
     // watcher мог запуститься на устаревшем пути.
     // Планируем сериализованный рестарт после успешного старта.
@@ -239,6 +252,10 @@ class FileEventsCoordinator {
         _restartFuture = null;
       });
       unawaited(_restartFuture);
+    } else if (!_isDisposed && !_isDisposing) {
+      // Координатор остановлен — запоминаем, что нужна очистка при следующем старте.
+      _log.i('Coordinator not running, deferring clear+rescan to next start');
+      _needsClearOnStart = true;
     }
   }
   

@@ -400,4 +400,20 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get trialExpiredUpgradePro => 'Перейти на PRO';
+
+  @override
+  String get settingsSectionLanguage => 'Язык';
+
+  @override
+  String get settingsLanguage => 'Язык интерфейса';
+
+  @override
+  String get settingsLanguageHint => 'Выберите язык отображения приложения';
+
+  @override
+  String get settingsLanguageSystem => 'Системный';
+
+  @override
+  String get settingsLanguageRestartHint =>
+      'Перезапустите приложение для применения нового языка';
 }

@@ -25,6 +25,8 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
   RagQueryResult? _result;
   bool _isQuerying = false;
   String? _error;
+  String _streamingAnswer = '';
+  StreamSubscription<RagStreamEvent>? _streamSub;
 
   @override
   void initState() {
@@ -36,10 +38,23 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
 
   @override
   void dispose() {
+    _streamSub?.cancel();
     _questionController.dispose();
     _focusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _cancelQuery() {
+    final root = AppScope.of(context);
+    root.ragService.cancelQuery();
+    _streamSub?.cancel();
+    _streamSub = null;
+    if (mounted) {
+      setState(() {
+        _isQuerying = false;
+      });
+    }
   }
 
   Future<void> _performQuery() async {
@@ -50,6 +65,7 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
       _isQuerying = true;
       _error = null;
       _result = null;
+      _streamingAnswer = '';
     });
 
     try {
@@ -66,25 +82,43 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
         return;
       }
 
-      final result = await root.ragService.query(question, topK: 5);
-
-      if (!mounted) return;
-      setState(() {
-        _result = result;
-        _isQuerying = false;
-      });
-
-      if (result.hasAnswer) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
+      final stream = root.ragService.queryStream(question, topK: 10);
+      _streamSub = stream.listen(
+        (event) {
+          if (!mounted) return;
+          switch (event) {
+            case RagTokenEvent(:final text):
+              setState(() {
+                _streamingAnswer += text;
+              });
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scrollController.hasClients) {
+                  _scrollController.animateTo(
+                    _scrollController.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 100),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
+            case RagDoneEvent(:final result):
+              setState(() {
+                _result = result;
+                _isQuerying = false;
+                _streamingAnswer = '';
+              });
           }
-        });
-      }
+        },
+        onError: (e) {
+          if (!mounted) return;
+          setState(() {
+            _error = e.toString();
+            _isQuerying = false;
+          });
+        },
+        onDone: () {
+          _streamSub = null;
+        },
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -122,28 +156,32 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                fluent.FilledButton(
-                  onPressed: _isQuerying ? null : _performQuery,
-                  child: Row(
-                    children: [
-                      if (_isQuerying)
-                        const Padding(
+                if (_isQuerying)
+                  fluent.Button(
+                    onPressed: _cancelQuery,
+                    child: const Row(
+                      children: [
+                        Padding(
                           padding: EdgeInsets.only(right: 8),
-                          child: SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: fluent.ProgressRing(strokeWidth: 2),
-                          ),
-                        )
-                      else
-                        const Padding(
+                          child: Icon(Icons.stop, size: 16),
+                        ),
+                        Text('Стоп'),
+                      ],
+                    ),
+                  )
+                else
+                  fluent.FilledButton(
+                    onPressed: _performQuery,
+                    child: const Row(
+                      children: [
+                        Padding(
                           padding: EdgeInsets.only(right: 8),
                           child: Icon(Icons.send, size: 16),
                         ),
-                      const Text('Спросить'),
-                    ],
+                        Text('Спросить'),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -196,8 +234,40 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
       );
     }
 
-    // Загрузка
+    // Загрузка / стриминг
     if (_isQuerying) {
+      if (_streamingAnswer.isNotEmpty) {
+        return SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              fluent.Card(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.format_quote, size: 18, color: theme.accentColor),
+                        const SizedBox(width: 8),
+                        Text('Генерация ответа…', style: theme.typography.bodyStrong),
+                        const SizedBox(width: 8),
+                        const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: fluent.ProgressRing(strokeWidth: 2),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(_streamingAnswer, style: theme.typography.body),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

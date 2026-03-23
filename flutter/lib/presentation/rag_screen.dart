@@ -26,6 +26,8 @@ class _RagScreenState extends State<RagScreen> {
   RagQueryResult? _result;
   bool _isQuerying = false;
   String? _error;
+  String _streamingAnswer = '';
+  StreamSubscription<RagStreamEvent>? _streamSub;
 
   @override
   void initState() {
@@ -37,10 +39,23 @@ class _RagScreenState extends State<RagScreen> {
 
   @override
   void dispose() {
+    _streamSub?.cancel();
     _questionController.dispose();
     _focusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _cancelQuery() {
+    final root = AppScope.of(context);
+    root.ragService.cancelQuery();
+    _streamSub?.cancel();
+    _streamSub = null;
+    if (mounted) {
+      setState(() {
+        _isQuerying = false;
+      });
+    }
   }
 
   Future<void> _performQuery() async {
@@ -51,6 +66,7 @@ class _RagScreenState extends State<RagScreen> {
       _isQuerying = true;
       _error = null;
       _result = null;
+      _streamingAnswer = '';
     });
 
     try {
@@ -68,26 +84,44 @@ class _RagScreenState extends State<RagScreen> {
         return;
       }
 
-      final result = await root.ragService.query(question, topK: 5);
-
-      if (!mounted) return;
-      setState(() {
-        _result = result;
-        _isQuerying = false;
-      });
-
-      // Прокручиваем к ответу
-      if (result.hasAnswer) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
+      final stream = root.ragService.queryStream(question, topK: 5);
+      _streamSub = stream.listen(
+        (event) {
+          if (!mounted) return;
+          switch (event) {
+            case RagTokenEvent(:final text):
+              setState(() {
+                _streamingAnswer += text;
+              });
+              // Автопрокрутка при получении токенов
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_scrollController.hasClients) {
+                  _scrollController.animateTo(
+                    _scrollController.position.maxScrollExtent,
+                    duration: const Duration(milliseconds: 100),
+                    curve: Curves.easeOut,
+                  );
+                }
+              });
+            case RagDoneEvent(:final result):
+              setState(() {
+                _result = result;
+                _isQuerying = false;
+                _streamingAnswer = '';
+              });
           }
-        });
-      }
+        },
+        onError: (e) {
+          if (!mounted) return;
+          setState(() {
+            _error = e.toString();
+            _isQuerying = false;
+          });
+        },
+        onDone: () {
+          _streamSub = null;
+        },
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -178,20 +212,18 @@ class _RagScreenState extends State<RagScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: _isQuerying ? null : _performQuery,
-                  icon: _isQuerying
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.send),
-                  label: const Text('Спросить'),
-                ),
+                if (_isQuerying)
+                  FilledButton.tonalIcon(
+                    onPressed: _cancelQuery,
+                    icon: const Icon(Icons.stop),
+                    label: const Text('Стоп'),
+                  )
+                else
+                  FilledButton.icon(
+                    onPressed: _performQuery,
+                    icon: const Icon(Icons.send),
+                    label: const Text('Спросить'),
+                  ),
               ],
             ),
 
@@ -258,8 +290,51 @@ class _RagScreenState extends State<RagScreen> {
       );
     }
 
-    // Загрузка
+    // Загрузка / стриминг
     if (_isQuerying) {
+      if (_streamingAnswer.isNotEmpty) {
+        // Показываем ответ по мере генерации
+        return SingleChildScrollView(
+          controller: _scrollController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.format_quote,
+                              size: 20, color: theme.colorScheme.primary),
+                          const SizedBox(width: 8),
+                          Text('Генерация ответа…',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              )),
+                          const SizedBox(width: 8),
+                          const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SelectableText(
+                        _streamingAnswer,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       return const Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

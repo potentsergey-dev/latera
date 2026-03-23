@@ -128,5 +128,11 @@
   "trialExpiredCustomFolderBannerTitle": "Пробный период PRO завершён",
   "trialExpiredCustomFolderBannerBody": "Произвольная папка наблюдения — функция PRO. Ваши данные сохранены. Переключитесь на папку по умолчанию или оформите PRO.",
   "trialExpiredSwitchToDefault": "Использовать папку по умолчанию",
-  "trialExpiredUpgradePro": "Перейти на PRO"
+  "trialExpiredUpgradePro": "Перейти на PRO",
+
+  "settingsSectionLanguage": "Язык",
+  "settingsLanguage": "Язык интерфейса",
+  "settingsLanguageHint": "Выберите язык отображения приложения",
+  "settingsLanguageSystem": "Системный",
+  "settingsLanguageRestartHint": "Перезапустите приложение для применения нового языка"
 }

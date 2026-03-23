@@ -344,5 +344,20 @@
   "@trialExpiredSwitchToDefault": { "description": "Action button: switch to default folder after trial expiry" },
 
   "trialExpiredUpgradePro": "Upgrade to PRO",
-  "@trialExpiredUpgradePro": { "description": "Action button: upgrade to PRO after trial expiry" }
+  "@trialExpiredUpgradePro": { "description": "Action button: upgrade to PRO after trial expiry" },
+
+  "settingsSectionLanguage": "Language",
+  "@settingsSectionLanguage": { "description": "Settings section: language" },
+
+  "settingsLanguage": "Interface language",
+  "@settingsLanguage": { "description": "Language picker label" },
+
+  "settingsLanguageHint": "Select the app display language",
+  "@settingsLanguageHint": { "description": "Language picker hint" },
+
+  "settingsLanguageSystem": "System default",
+  "@settingsLanguageSystem": { "description": "Use system locale" },
+
+  "settingsLanguageRestartHint": "Restart the app to apply the new language",
+  "@settingsLanguageRestartHint": { "description": "Hint about restart" }
 }

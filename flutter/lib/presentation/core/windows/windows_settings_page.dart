@@ -6,7 +6,10 @@ import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../../../application/license_coordinator.dart';
 import '../../../domain/app_config.dart';
+import '../../../domain/license.dart';
+import '../../../infrastructure/licensing/store_purchase_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app_scope.dart';
 
@@ -23,8 +26,12 @@ class WindowsSettingsPage extends fluent.StatefulWidget {
 
 class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
   late final ConfigService _configService;
+  late final LicenseCoordinator _licenseCoordinator;
+  late final StorePurchaseService _storePurchaseService;
   AppConfig _config = const AppConfig();
   bool _isLoading = false;
+  bool _isPurchasing = false;
+  bool _isRestoring = false;
   String? _error;
   bool _folderExists = false;
   bool _initialized = false;
@@ -36,6 +43,8 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     if (_initialized) return;
     _initialized = true;
     _configService = AppScope.of(context).configService;
+    _licenseCoordinator = AppScope.of(context).licenseCoordinator;
+    _storePurchaseService = AppScope.of(context).storePurchaseService;
     _loadConfig();
     _loadAppVersion();
   }
@@ -306,6 +315,11 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
         _buildFolderCard(l10n, theme),
         const SizedBox(height: 24),
 
+        // === Язык ===
+        _buildSectionHeader(l10n.settingsSectionLanguage, theme),
+        _buildLanguageCard(l10n, theme),
+        const SizedBox(height: 24),
+
         // === Уведомления ===
         _buildSectionHeader(l10n.settingsSectionNotifications, theme),
         _buildToggleCard(
@@ -395,6 +409,11 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           onChanged: (v) => _updateConfig(enableAutoTags: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
         ),
+        const SizedBox(height: 24),
+
+        // === Лицензия ===
+        _buildSectionHeader(l10n.settingsSectionLicense, theme),
+        _buildLicenseCard(l10n, theme),
         const SizedBox(height: 24),
 
         // === Дополнительно ===
@@ -495,6 +514,275 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLicenseCard(AppLocalizations l10n, fluent.FluentThemeData theme) {
+    final license = _licenseCoordinator.currentLicense;
+    final isConstrained = _licenseCoordinator.isHardwareConstrained;
+
+    final String description;
+    final bool showBuyButton;
+    final String badgeLabel;
+    final Color badgeColor;
+
+    switch (license.mode) {
+      case LicenseMode.pro:
+        description = l10n.licenseDescriptionPro;
+        showBuyButton = false;
+        badgeLabel = 'PRO';
+        badgeColor = const Color(0xFF546E7A);
+      case LicenseMode.proTrial:
+        final remaining = _licenseCoordinator.trialTimeRemaining;
+        final days = (remaining?.inDays ?? 0) + 1;
+        description = l10n.licenseDescriptionTrial(days);
+        showBuyButton = true;
+        badgeLabel = 'PRO Trial · $days дн.';
+        badgeColor = const Color(0xFFE65100);
+      case LicenseMode.basic:
+        description = l10n.licenseDescriptionBasic;
+        showBuyButton = true;
+        badgeLabel = 'Basic';
+        badgeColor = const Color(0x00000000);
+    }
+
+    return fluent.Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          fluent.ListTile(
+            leading: const Icon(Icons.verified_outlined),
+            title: Row(
+              children: [
+                Text(l10n.licenseCurrentMode),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: badgeColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      color: license.mode == LicenseMode.basic
+                          ? theme.typography.body?.color
+                          : const Color(0xFFFFFFFF),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(description),
+            ),
+          ),
+          if (isConstrained)
+            fluent.ListTile(
+              leading: Icon(Icons.memory, color: fluent.Colors.red),
+              title: Text(l10n.licenseHardwareConstraintsTitle),
+              subtitle: Text(l10n.licenseHardwareConstraintsBody),
+            ),
+          if (showBuyButton)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  fluent.FilledButton(
+                    onPressed: _isPurchasing ? null : _handleBuyPro,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isPurchasing)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: SizedBox(
+                              width: 14, height: 14,
+                              child: fluent.ProgressRing(strokeWidth: 2),
+                            ),
+                          )
+                        else
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(Icons.shopping_cart_outlined, size: 16),
+                          ),
+                        Text(_isPurchasing ? l10n.licensePurchasing : l10n.licenseBuyPro),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  fluent.Button(
+                    onPressed: _isRestoring ? null : _handleRestorePurchases,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isRestoring)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: SizedBox(
+                              width: 14, height: 14,
+                              child: fluent.ProgressRing(strokeWidth: 2),
+                            ),
+                          )
+                        else
+                          const Padding(
+                            padding: EdgeInsets.only(right: 8),
+                            child: Icon(Icons.refresh, size: 16),
+                          ),
+                        Text(_isRestoring ? l10n.licenseRestoring : l10n.licenseRestorePurchases),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleBuyPro() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isPurchasing = true);
+    try {
+      final result = await _storePurchaseService.buyPro();
+      if (!mounted) return;
+
+      if (result.isSuccess) {
+        await _licenseCoordinator.activateProPurchase();
+        await _licenseCoordinator.refreshLicense();
+        if (!mounted) return;
+        setState(() {});
+        await fluent.showDialog<void>(
+          context: context,
+          builder: (context) => fluent.ContentDialog(
+            title: Text(l10n.licenseActivatedTitle),
+            content: Text(l10n.licenseActivatedBody),
+            actions: [
+              fluent.FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else if (result.isError) {
+        fluent.displayInfoBar(context, builder: (context, close) {
+          return fluent.InfoBar(
+            title: Text(
+              result.status == PurchaseStatus.storeUnavailable
+                  ? l10n.licenseStoreUnavailable
+                  : l10n.licensePurchaseError(result.errorMessage ?? ''),
+            ),
+            severity: fluent.InfoBarSeverity.error,
+            onClose: close,
+          );
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPurchasing = false);
+      }
+    }
+  }
+
+  Future<void> _handleRestorePurchases() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() => _isRestoring = true);
+    try {
+      final isPurchased = await _storePurchaseService.isProPurchased();
+      if (!mounted) return;
+
+      if (isPurchased) {
+        await _licenseCoordinator.activateProPurchase();
+        await _licenseCoordinator.refreshLicense();
+        if (!mounted) return;
+        setState(() {});
+        await fluent.showDialog<void>(
+          context: context,
+          builder: (context) => fluent.ContentDialog(
+            title: Text(l10n.licenseRestoredTitle),
+            content: Text(l10n.licenseRestoredBody),
+            actions: [
+              fluent.FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        fluent.displayInfoBar(context, builder: (context, close) {
+          return fluent.InfoBar(
+            title: Text(l10n.licenseRestoreNotFound),
+            severity: fluent.InfoBarSeverity.warning,
+            onClose: close,
+          );
+        });
+      }
+    } on Exception catch (e) {
+      if (!mounted) return;
+      fluent.displayInfoBar(context, builder: (context, close) {
+        return fluent.InfoBar(
+          title: Text(l10n.licenseRestoreError(e.toString())),
+          severity: fluent.InfoBarSeverity.error,
+          onClose: close,
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isRestoring = false);
+      }
+    }
+  }
+
+  static const _supportedLanguages = <String?, String>{
+    null: '', // System default — label resolved from l10n
+    'en': 'English',
+    'ru': 'Русский',
+    'de': 'Deutsch',
+    'es': 'Español',
+    'pt': 'Português',
+  };
+
+  Widget _buildLanguageCard(AppLocalizations l10n, fluent.FluentThemeData theme) {
+    final current = _config.language;
+    return fluent.Card(
+      child: fluent.ListTile(
+        leading: const Icon(Icons.language),
+        title: Text(l10n.settingsLanguage),
+        subtitle: Text(l10n.settingsLanguageHint),
+        trailing: fluent.ComboBox<String?>(
+          value: _supportedLanguages.containsKey(current) ? current : null,
+          items: _supportedLanguages.entries.map((e) {
+            return fluent.ComboBoxItem<String?>(
+              value: e.key,
+              child: Text(e.key == null ? l10n.settingsLanguageSystem : e.value),
+            );
+          }).toList(),
+          onChanged: (value) async {
+            if (value == null) {
+              await _configService.updateValue(clearLanguage: true);
+            } else {
+              await _configService.updateValue(language: value);
+            }
+            final updated = await _configService.load();
+            if (mounted) {
+              setState(() => _config = updated);
+              fluent.displayInfoBar(context, builder: (context, close) {
+                return fluent.InfoBar(
+                  title: Text(l10n.settingsLanguageRestartHint),
+                  severity: fluent.InfoBarSeverity.info,
+                  onClose: close,
+                );
+              });
+            }
+          },
+        ),
       ),
     );
   }

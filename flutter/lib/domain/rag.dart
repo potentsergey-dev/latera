@@ -45,6 +45,7 @@ class RagQueryResult {
   /// - `"no_relevant_chunks"` — не найдено релевантных чанков
   /// - `"empty_question"` — пустой вопрос
   /// - `"query_failed"` — ошибка при выполнении запроса
+  /// - `"cancelled"` — отменён пользователем
   final String? errorCode;
 
   const RagQueryResult({
@@ -69,23 +70,51 @@ class RagQueryResult {
 }
 
 // ============================================================================
+// Stream events
+// ============================================================================
+
+/// Событие стриминга RAG-ответа.
+sealed class RagStreamEvent {
+  const RagStreamEvent();
+}
+
+/// Фрагмент ответа (один или несколько токенов).
+class RagTokenEvent extends RagStreamEvent {
+  final String text;
+  const RagTokenEvent(this.text);
+}
+
+/// Запрос завершён.
+class RagDoneEvent extends RagStreamEvent {
+  final RagQueryResult result;
+  const RagDoneEvent(this.result);
+}
+
+// ============================================================================
 // Service contract
 // ============================================================================
 
 /// Контракт для сервиса RAG-запросов.
 ///
-/// Тяжёлая обработка выполняется в Rust core через FRB.
+/// Тяжёлая обработка выполняется в Rust core через FRB / C FFI.
 /// Domain-слой не зависит от реализации.
 abstract interface class RagService {
-  /// Выполняет RAG-запрос по индексированным документам.
-  ///
-  /// Находит релевантные фрагменты через similarity search
-  /// и формирует ответ на основе найденного контекста.
-  ///
-  /// [question] — вопрос пользователя.
-  /// [topK] — максимальное количество источников для ответа.
+  /// Выполняет RAG-запрос по индексированным документам (одноразовый результат).
   Future<RagQueryResult> query(
     String question, {
     int topK = 5,
   });
+
+  /// Запускает RAG-запрос со стримингом токенов.
+  ///
+  /// Возвращает поток [RagStreamEvent]:
+  /// - [RagTokenEvent] — фрагменты ответа (приходят по мере генерации)
+  /// - [RagDoneEvent] — финальный результат с источниками
+  Stream<RagStreamEvent> queryStream(
+    String question, {
+    int topK = 5,
+  });
+
+  /// Отменяет текущий RAG-запрос.
+  void cancelQuery();
 }

@@ -112,6 +112,14 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// Resolves the locale from config language setting.
+  /// Returns null (system default) if not set.
+  Locale? _resolveLocale() {
+    final lang = _root?.configService.currentConfig.language;
+    if (lang == null || lang.isEmpty) return null;
+    return Locale(lang);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Показываем загрузку
@@ -136,9 +144,11 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
   // ─── Windows (Fluent UI) ───
 
   Widget _buildWindowsApp() {
+    final localeOverride = _resolveLocale();
     return fluent.FluentApp(
       title: 'Latera',
       debugShowCheckedModeBanner: false,
+      locale: localeOverride,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.fluentTheme,
@@ -175,9 +185,11 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
   // ─── Material (Linux / macOS / fallback) ───
 
   Widget _buildMaterialApp() {
+    final localeOverride = _resolveLocale();
     return MaterialApp(
       title: 'Latera',
       debugShowCheckedModeBanner: false,
+      locale: localeOverride,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.materialTheme,
