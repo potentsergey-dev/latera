@@ -6,8 +6,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../domain/app_config.dart';
 import '../domain/search_repository.dart';
+import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
 import 'file_description_dialog.dart';
+import 'friendly_error.dart';
 
 /// Экран поиска файлов.
 ///
@@ -109,8 +111,9 @@ class _SearchScreenState extends State<SearchScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e.toString(), l10n);
         _isSearching = false;
         _hasSearched = true;
       });
@@ -169,8 +172,9 @@ class _SearchScreenState extends State<SearchScreen> {
       _searchController.addListener(_onSearchChanged);
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e.toString(), l10n);
         _isSearching = false;
         _hasSearched = true;
       });

@@ -416,4 +416,92 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsLanguageRestartHint =>
       'Перезапустите приложение для применения нового языка';
+
+  @override
+  String get onboardingAiModelsTitle => 'AI-модели';
+
+  @override
+  String get onboardingAiModelsItem1 =>
+      'AI-модели (~1.8 ГБ) загружаются при первом запуске';
+
+  @override
+  String get onboardingAiModelsItem2 =>
+      'Модели используются для семантического поиска и описания документов';
+
+  @override
+  String get onboardingAiModelsItem3 =>
+      'Источник загрузки: Hugging Face (публичный репозиторий)';
+
+  @override
+  String get onboardingModelsLocation => 'Модели:';
+
+  @override
+  String get onboardingPrivacyItem3 =>
+      'AI-модели загружаются один раз — постоянного обмена данными нет';
+
+  @override
+  String get downloadFailedTitle => 'Ошибка загрузки';
+
+  @override
+  String get downloadFailedEmbedding =>
+      'Не удалось загрузить модель эмбеддингов. Семантический поиск не будет работать, пока модель не будет загружена.';
+
+  @override
+  String get downloadFailedGguf =>
+      'Не удалось загрузить генеративную модель. Описания, теги и RAG-чат не будут работать, пока модель не будет загружена.';
+
+  @override
+  String get downloadRetryButton => 'Повторить загрузку';
+
+  @override
+  String downloadSkippedLowRam(int ramMb) {
+    return 'Генеративная AI-модель пропущена: обнаружено менее 6 ГБ ОЗУ ($ramMb МБ). Описания, теги и RAG-чат отключены.';
+  }
+
+  @override
+  String get downloadSkippedLowDisk =>
+      'Генеративная AI-модель пропущена: недостаточно места на диске (нужно минимум 2 ГБ). Освободите место и перезапустите приложение.';
+
+  @override
+  String get errorModelNotLoaded =>
+      'AI-модель не загружена. Дождитесь завершения загрузки или повторите попытку в Настройках.';
+
+  @override
+  String get errorInsufficientRam =>
+      'Недостаточно оперативной памяти. Закройте другие приложения и попробуйте снова.';
+
+  @override
+  String get errorInsufficientDisk =>
+      'Недостаточно свободного места на диске. Освободите минимум 2 ГБ и попробуйте снова.';
+
+  @override
+  String get errorNetworkUnavailable =>
+      'Сетевое подключение не удалось. Проверьте подключение к интернету и попробуйте снова.';
+
+  @override
+  String get settingsAiModelsStatus => 'AI-модели';
+
+  @override
+  String get settingsEmbeddingModelReady => 'Модель эмбеддингов: готова';
+
+  @override
+  String get settingsEmbeddingModelMissing =>
+      'Модель эмбеддингов: не загружена';
+
+  @override
+  String get settingsGgufModelReady => 'Генеративная модель: готова';
+
+  @override
+  String get settingsGgufModelMissing => 'Генеративная модель: не загружена';
+
+  @override
+  String get settingsGgufModelSkippedRam =>
+      'Генеративная модель: пропущена (мало ОЗУ)';
+
+  @override
+  String get settingsGgufModelSkippedDisk =>
+      'Генеративная модель: пропущена (мало места на диске)';
+
+  @override
+  String get downloadFailedRetryHint => 'Нажмите для повторной загрузки';
 }

@@ -415,4 +415,91 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsLanguageRestartHint =>
       'Restart the app to apply the new language';
+
+  @override
+  String get onboardingAiModelsTitle => 'AI Models';
+
+  @override
+  String get onboardingAiModelsItem1 =>
+      'AI models (~1.8 GB) are downloaded on first launch';
+
+  @override
+  String get onboardingAiModelsItem2 =>
+      'Models are used for semantic search and document summaries';
+
+  @override
+  String get onboardingAiModelsItem3 =>
+      'Download source: Hugging Face (public repository)';
+
+  @override
+  String get onboardingModelsLocation => 'Models:';
+
+  @override
+  String get onboardingPrivacyItem3 =>
+      'AI models are downloaded once — no ongoing data transfer';
+
+  @override
+  String get downloadFailedTitle => 'Download failed';
+
+  @override
+  String get downloadFailedEmbedding =>
+      'Failed to download the embedding model. Semantic search will not work until the model is downloaded.';
+
+  @override
+  String get downloadFailedGguf =>
+      'Failed to download the generative model. Summaries, tags, and RAG chat will not work until the model is downloaded.';
+
+  @override
+  String get downloadRetryButton => 'Retry download';
+
+  @override
+  String downloadSkippedLowRam(int ramMb) {
+    return 'Generative AI model skipped: less than 6 GB RAM detected ($ramMb MB). Summaries, tags, and RAG chat are disabled.';
+  }
+
+  @override
+  String get downloadSkippedLowDisk =>
+      'Generative AI model skipped: not enough free disk space (need at least 2 GB). Free up space and restart the app.';
+
+  @override
+  String get errorModelNotLoaded =>
+      'AI model is not loaded. Please wait for the download to complete or retry in Settings.';
+
+  @override
+  String get errorInsufficientRam =>
+      'Not enough RAM for this operation. Close other applications and try again.';
+
+  @override
+  String get errorInsufficientDisk =>
+      'Not enough free disk space. Free up at least 2 GB and try again.';
+
+  @override
+  String get errorNetworkUnavailable =>
+      'Network connection failed. Check your internet connection and try again.';
+
+  @override
+  String get settingsAiModelsStatus => 'AI Models';
+
+  @override
+  String get settingsEmbeddingModelReady => 'Embedding model: ready';
+
+  @override
+  String get settingsEmbeddingModelMissing => 'Embedding model: not downloaded';
+
+  @override
+  String get settingsGgufModelReady => 'Generative model: ready';
+
+  @override
+  String get settingsGgufModelMissing => 'Generative model: not downloaded';
+
+  @override
+  String get settingsGgufModelSkippedRam =>
+      'Generative model: skipped (low RAM)';
+
+  @override
+  String get settingsGgufModelSkippedDisk =>
+      'Generative model: skipped (low disk space)';
+
+  @override
+  String get downloadFailedRetryHint => 'Tap to retry download';
 }

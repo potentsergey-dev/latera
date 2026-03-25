@@ -7,6 +7,7 @@
 
 pub mod embeddings;
 pub mod llm;
+pub mod llm_engine;
 pub mod ocr;
 pub mod rag;
 mod text_extractor;

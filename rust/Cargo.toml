@@ -6,6 +6,10 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "lib"]
 
+[features]
+default = []
+vulkan = ["llama-cpp-2/vulkan"]
+
 [dependencies]
 flutter_rust_bridge = "=2.11.1"
 notify = "6.1.1"
@@ -21,13 +25,17 @@ ort = { version = "2.0.0-rc.11", features = ["download-binaries"] }
 tokenizers = { version = "0.21", default-features = false, features = ["progressbar", "fancy-regex"] }
 ureq = "2.12"
 
+# Generative LLM engine (llama.cpp, Vulkan GPU-ускорение)
+# Vulkan GPU backend включается через cargo feature: --features vulkan
+llama-cpp-2 = "0.1.140"
+
 # System information (RAM, etc.)
 sysinfo = "0.33"
 
-# FUTURE: Vulkan GPU acceleration for llama.cpp
-# Чтобы включить: добавить `llama-cpp-sys-2 = { path = "llama-cpp-sys-2-patched", features = ["vulkan"] }`
-# Требования: Vulkan SDK установлен на CI, переменная VULKAN_SDK задана.
-# После включения — в llm_engine.rs использовать n_gpu_layers=u32::MAX с fallback на CPU.
+# Vulkan GPU acceleration for llama.cpp
+# Включается feature-флагом: cargo build --features vulkan
+# Требования: Vulkan SDK установлен, переменная VULKAN_SDK задана.
+# GPU offload: n_gpu_layers=u32::MAX при наличии Vulkan, fallback на CPU (0).
 
 # PDF text extraction (text layer, без OCR)
 lopdf = "0.34"
@@ -85,4 +93,7 @@ trivially_copy_pass_by_ref = "allow"
 return_self_not_must_use = "allow"
 # Allow non_std_lazy_statics (once_cell::Lazy is fine)
 non_std_lazy_statics = "allow"
+
+[patch.crates-io]
+llama-cpp-sys-2 = { path = "llama-cpp-sys-2-patched" }
 

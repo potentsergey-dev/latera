@@ -28,7 +28,7 @@ typedef _FreeCStringDart = void Function(Pointer<Utf8> ptr);
 /// через C FFI.
 ///
 /// Использует extractive summarization на основе sentence embeddings
-/// (ONNX all-MiniLM-L6-v2). При подключении генеративной LLM-модели
+/// (ONNX paraphrase-multilingual-MiniLM-L12-v2). При подключении генеративной LLM-модели
 /// Rust-side заменится без изменения Dart API.
 class RustFfiAutoSummaryService implements AutoSummaryService {
   static final _log = Logger(printer: PrettyPrinter(methodCount: 0));

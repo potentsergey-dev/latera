@@ -419,4 +419,93 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsLanguageRestartHint =>
       'Starten Sie die App neu, um die neue Sprache anzuwenden';
+
+  @override
+  String get onboardingAiModelsTitle => 'KI-Modelle';
+
+  @override
+  String get onboardingAiModelsItem1 =>
+      'KI-Modelle (~1,8 GB) werden beim ersten Start heruntergeladen';
+
+  @override
+  String get onboardingAiModelsItem2 =>
+      'Modelle werden für semantische Suche und Dokumentzusammenfassungen verwendet';
+
+  @override
+  String get onboardingAiModelsItem3 =>
+      'Download-Quelle: Hugging Face (öffentliches Repository)';
+
+  @override
+  String get onboardingModelsLocation => 'Modelle:';
+
+  @override
+  String get onboardingPrivacyItem3 =>
+      'KI-Modelle werden einmalig heruntergeladen — kein dauerhafter Datentransfer';
+
+  @override
+  String get downloadFailedTitle => 'Download fehlgeschlagen';
+
+  @override
+  String get downloadFailedEmbedding =>
+      'Das Embedding-Modell konnte nicht heruntergeladen werden. Die semantische Suche funktioniert erst nach dem Download.';
+
+  @override
+  String get downloadFailedGguf =>
+      'Das generative Modell konnte nicht heruntergeladen werden. Zusammenfassungen, Tags und RAG-Chat funktionieren erst nach dem Download.';
+
+  @override
+  String get downloadRetryButton => 'Download wiederholen';
+
+  @override
+  String downloadSkippedLowRam(int ramMb) {
+    return 'Generatives KI-Modell übersprungen: weniger als 6 GB RAM erkannt ($ramMb MB). Zusammenfassungen, Tags und RAG-Chat sind deaktiviert.';
+  }
+
+  @override
+  String get downloadSkippedLowDisk =>
+      'Generatives KI-Modell übersprungen: nicht genügend freier Speicherplatz (mindestens 2 GB benötigt). Geben Sie Speicher frei und starten Sie die App neu.';
+
+  @override
+  String get errorModelNotLoaded =>
+      'KI-Modell nicht geladen. Bitte warten Sie auf den Abschluss des Downloads oder versuchen Sie es in den Einstellungen erneut.';
+
+  @override
+  String get errorInsufficientRam =>
+      'Nicht genügend RAM. Schließen Sie andere Anwendungen und versuchen Sie es erneut.';
+
+  @override
+  String get errorInsufficientDisk =>
+      'Nicht genügend freier Speicherplatz. Geben Sie mindestens 2 GB frei und versuchen Sie es erneut.';
+
+  @override
+  String get errorNetworkUnavailable =>
+      'Netzwerkverbindung fehlgeschlagen. Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.';
+
+  @override
+  String get settingsAiModelsStatus => 'KI-Modelle';
+
+  @override
+  String get settingsEmbeddingModelReady => 'Embedding-Modell: bereit';
+
+  @override
+  String get settingsEmbeddingModelMissing =>
+      'Embedding-Modell: nicht heruntergeladen';
+
+  @override
+  String get settingsGgufModelReady => 'Generatives Modell: bereit';
+
+  @override
+  String get settingsGgufModelMissing =>
+      'Generatives Modell: nicht heruntergeladen';
+
+  @override
+  String get settingsGgufModelSkippedRam =>
+      'Generatives Modell: übersprungen (wenig RAM)';
+
+  @override
+  String get settingsGgufModelSkippedDisk =>
+      'Generatives Modell: übersprungen (wenig Speicherplatz)';
+
+  @override
+  String get downloadFailedRetryHint => 'Tippen zum erneuten Herunterladen';
 }

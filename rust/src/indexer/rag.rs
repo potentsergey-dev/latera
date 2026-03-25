@@ -485,24 +485,22 @@ const MIN_SIMILARITY_SCORE: f64 = 0.05;
 // ============================================================================
 
 /// Генерирует ответ: через LLM если загружен, иначе stub-конкатенация.
-///
-/// Когда llm_engine будет подключён как модуль (после добавления llama-cpp-2 в Cargo.toml),
-/// эта функция будет вызывать `llm_engine::generate_with_context()` с `get_rag_max_tokens()`.
 fn generate_answer(question: &str, context: &str, source_count: usize) -> String {
     let max_tokens = get_rag_max_tokens();
-    info!("RAG: generate_answer (max_tokens={}, llm=stub)", max_tokens);
 
-    // TODO: когда llm_engine станет компилируемым модулем, раскомментировать:
-    // if llm_engine::is_llm_ready() {
-    //     let language = detect_question_language(question);
-    //     let system_prompt = llm_engine::rag_system_prompt(&language);
-    //     let user_prompt = format!("Context from user's files:\n\n{context}\n\nQuestion: {question}");
-    //     match llm_engine::generate_with_context(&system_prompt, &user_prompt, max_tokens) {
-    //         Ok(answer) if !answer.is_empty() => return answer,
-    //         Ok(_) => warn!("RAG: LLM returned empty answer, falling back to stub"),
-    //         Err(e) => warn!("RAG: LLM generation failed: {e}, falling back to stub"),
-    //     }
-    // }
+    if super::llm_engine::is_llm_ready() {
+        info!("RAG: generate_answer (max_tokens={}, llm=active)", max_tokens);
+        let language = detect_question_language(question);
+        let system_prompt = super::llm_engine::rag_system_prompt(&language);
+        let user_prompt = format!("Context from user's files:\n\n{context}\n\nQuestion: {question}");
+        match super::llm_engine::generate_with_context(&system_prompt, &user_prompt, max_tokens) {
+            Ok(answer) if !answer.is_empty() => return answer,
+            Ok(_) => warn!("RAG: LLM returned empty answer, falling back to stub"),
+            Err(e) => warn!("RAG: LLM generation failed: {e}, falling back to stub"),
+        }
+    } else {
+        info!("RAG: generate_answer (max_tokens={}, llm=stub)", max_tokens);
+    }
 
     generate_stub_answer(question, context, source_count)
 }
@@ -523,16 +521,27 @@ fn detect_question_language(question: &str) -> String {
 
 /// Генерирует stub-ответ на основе контекста.
 ///
-/// Показывает только текст найденных фрагментов, без метаданных источников
-/// (имя файла, позиция) — они отображаются отдельно в UI как карточки.
+/// Форматирует найденные фрагменты в читаемый пронумерованный список.
+/// Источники (имя файла, позиция) отображаются отдельно в UI как карточки.
 ///
 /// При подключении LLM будет заменён на prompt + inference.
-fn generate_stub_answer(_question: &str, context: &str, _source_count: usize) -> String {
-    context.to_string()
+fn generate_stub_answer(_question: &str, context: &str, source_count: usize) -> String {
+    let fragments: Vec<&str> = context.split("\n\n---\n\n").collect();
+    let mut result = format!(
+        "Найдены релевантные фрагменты ({} {}):\n",
+        source_count,
+        pluralize_fragment(source_count),
+    );
+    for (i, fragment) in fragments.iter().enumerate() {
+        let trimmed = fragment.trim();
+        if !trimmed.is_empty() {
+            result.push_str(&format!("\n{}. {}\n", i + 1, trimmed));
+        }
+    }
+    result
 }
 
 /// Склоняем слово «фрагмент» по числу.
-#[allow(dead_code)]
 fn pluralize_fragment(n: usize) -> &'static str {
     let rem100 = n % 100;
     let rem10 = n % 10;

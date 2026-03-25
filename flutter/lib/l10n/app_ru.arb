@@ -134,5 +134,32 @@
   "settingsLanguage": "Язык интерфейса",
   "settingsLanguageHint": "Выберите язык отображения приложения",
   "settingsLanguageSystem": "Системный",
-  "settingsLanguageRestartHint": "Перезапустите приложение для применения нового языка"
+  "settingsLanguageRestartHint": "Перезапустите приложение для применения нового языка",
+
+  "onboardingAiModelsTitle": "AI-модели",
+  "onboardingAiModelsItem1": "AI-модели (~1.8 ГБ) загружаются при первом запуске",
+  "onboardingAiModelsItem2": "Модели используются для семантического поиска и описания документов",
+  "onboardingAiModelsItem3": "Источник загрузки: Hugging Face (публичный репозиторий)",
+  "onboardingModelsLocation": "Модели:",
+  "onboardingPrivacyItem3": "AI-модели загружаются один раз — постоянного обмена данными нет",
+
+  "downloadFailedTitle": "Ошибка загрузки",
+  "downloadFailedEmbedding": "Не удалось загрузить модель эмбеддингов. Семантический поиск не будет работать, пока модель не будет загружена.",
+  "downloadFailedGguf": "Не удалось загрузить генеративную модель. Описания, теги и RAG-чат не будут работать, пока модель не будет загружена.",
+  "downloadRetryButton": "Повторить загрузку",
+  "downloadSkippedLowRam": "Генеративная AI-модель пропущена: обнаружено менее 6 ГБ ОЗУ ({ramMb} МБ). Описания, теги и RAG-чат отключены.",
+  "downloadSkippedLowDisk": "Генеративная AI-модель пропущена: недостаточно места на диске (нужно минимум 2 ГБ). Освободите место и перезапустите приложение.",
+  "errorModelNotLoaded": "AI-модель не загружена. Дождитесь завершения загрузки или повторите попытку в Настройках.",
+  "errorInsufficientRam": "Недостаточно оперативной памяти. Закройте другие приложения и попробуйте снова.",
+  "errorInsufficientDisk": "Недостаточно свободного места на диске. Освободите минимум 2 ГБ и попробуйте снова.",
+  "errorNetworkUnavailable": "Сетевое подключение не удалось. Проверьте подключение к интернету и попробуйте снова.",
+
+  "settingsAiModelsStatus": "AI-модели",
+  "settingsEmbeddingModelReady": "Модель эмбеддингов: готова",
+  "settingsEmbeddingModelMissing": "Модель эмбеддингов: не загружена",
+  "settingsGgufModelReady": "Генеративная модель: готова",
+  "settingsGgufModelMissing": "Генеративная модель: не загружена",
+  "settingsGgufModelSkippedRam": "Генеративная модель: пропущена (мало ОЗУ)",
+  "settingsGgufModelSkippedDisk": "Генеративная модель: пропущена (мало места на диске)",
+  "downloadFailedRetryHint": "Нажмите для повторной загрузки"
 }

@@ -426,4 +426,92 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get settingsLanguageRestartHint =>
       'Reinicia la aplicación para aplicar el nuevo idioma';
+
+  @override
+  String get onboardingAiModelsTitle => 'Modelos de IA';
+
+  @override
+  String get onboardingAiModelsItem1 =>
+      'Los modelos de IA (~1,8 GB) se descargan en el primer inicio';
+
+  @override
+  String get onboardingAiModelsItem2 =>
+      'Los modelos se usan para búsqueda semántica y resúmenes de documentos';
+
+  @override
+  String get onboardingAiModelsItem3 =>
+      'Fuente de descarga: Hugging Face (repositorio público)';
+
+  @override
+  String get onboardingModelsLocation => 'Modelos:';
+
+  @override
+  String get onboardingPrivacyItem3 =>
+      'Los modelos de IA se descargan una vez — sin transferencia continua de datos';
+
+  @override
+  String get downloadFailedTitle => 'Error de descarga';
+
+  @override
+  String get downloadFailedEmbedding =>
+      'No se pudo descargar el modelo de embeddings. La búsqueda semántica no funcionará hasta que se descargue el modelo.';
+
+  @override
+  String get downloadFailedGguf =>
+      'No se pudo descargar el modelo generativo. Los resúmenes, etiquetas y chat RAG no funcionarán hasta que se descargue el modelo.';
+
+  @override
+  String get downloadRetryButton => 'Reintentar descarga';
+
+  @override
+  String downloadSkippedLowRam(int ramMb) {
+    return 'Modelo de IA generativa omitido: se detectó menos de 6 GB de RAM ($ramMb MB). Resúmenes, etiquetas y chat RAG están desactivados.';
+  }
+
+  @override
+  String get downloadSkippedLowDisk =>
+      'Modelo de IA generativa omitido: espacio en disco insuficiente (se necesitan al menos 2 GB). Libera espacio y reinicia la aplicación.';
+
+  @override
+  String get errorModelNotLoaded =>
+      'El modelo de IA no está cargado. Espera a que termine la descarga o reintenta en Configuración.';
+
+  @override
+  String get errorInsufficientRam =>
+      'RAM insuficiente. Cierra otras aplicaciones e inténtalo de nuevo.';
+
+  @override
+  String get errorInsufficientDisk =>
+      'Espacio en disco insuficiente. Libera al menos 2 GB e inténtalo de nuevo.';
+
+  @override
+  String get errorNetworkUnavailable =>
+      'Conexión de red fallida. Verifica tu conexión a internet e inténtalo de nuevo.';
+
+  @override
+  String get settingsAiModelsStatus => 'Modelos de IA';
+
+  @override
+  String get settingsEmbeddingModelReady => 'Modelo de embeddings: listo';
+
+  @override
+  String get settingsEmbeddingModelMissing =>
+      'Modelo de embeddings: no descargado';
+
+  @override
+  String get settingsGgufModelReady => 'Modelo generativo: listo';
+
+  @override
+  String get settingsGgufModelMissing => 'Modelo generativo: no descargado';
+
+  @override
+  String get settingsGgufModelSkippedRam =>
+      'Modelo generativo: omitido (poca RAM)';
+
+  @override
+  String get settingsGgufModelSkippedDisk =>
+      'Modelo generativo: omitido (poco espacio en disco)';
+
+  @override
+  String get downloadFailedRetryHint => 'Toca para reintentar la descarga';
 }

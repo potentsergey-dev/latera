@@ -21,6 +21,8 @@ String _jobTypeLabel(EnrichmentJobType type) {
       return 'теги';
     case EnrichmentJobType.llmModelDownload:
       return 'Загрузка AI-модели…';
+    case EnrichmentJobType.ggufModelDownload:
+      return 'Загрузка генеративной модели…';
   }
 }
 
@@ -122,11 +124,16 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
     final progressValue = _progress.progress;
     final isLlmDownload =
         _progress.currentJobType == EnrichmentJobType.llmModelDownload;
+    final isGgufDownload =
+        _progress.currentJobType == EnrichmentJobType.ggufModelDownload;
+    final isModelDownload = isLlmDownload || isGgufDownload;
 
     // Текст текущей операции
     String detailText;
     if (isLlmDownload) {
-      detailText = 'all-MiniLM-L6-v2 · sentence-embeddings';
+      detailText = 'paraphrase-multilingual-MiniLM-L12-v2 · sentence-embeddings';
+    } else if (isGgufDownload) {
+      detailText = 'qwen2.5-3b-instruct-q4_k_m · генеративная модель (~1.7 ГБ)';
     } else if (_progress.currentFileName != null &&
         _progress.currentJobType != null) {
       final typeLabel = _jobTypeLabel(_progress.currentJobType!);
@@ -139,8 +146,8 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
 
     // Заголовок и счётчик
     final headerText =
-        isLlmDownload ? 'Загрузка AI-модели' : 'Обработка файлов';
-    final counterText = isLlmDownload
+        isModelDownload ? 'Загрузка AI-модели' : 'Обработка файлов';
+    final counterText = isModelDownload
         ? '${_progress.completedCount}%'
         : '${_progress.completedCount} из ${_progress.totalEnqueued}'
             '${remaining > 0 ? '  ·  $remaining осталось' : ''}';

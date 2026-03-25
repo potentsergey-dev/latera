@@ -10,6 +10,7 @@ import '../../../domain/app_config.dart';
 import '../../../domain/core_error.dart';
 import '../../../domain/feature_flags.dart';
 import '../../app_scope.dart';
+import '../../model_download_failure_banner.dart';
 import '../../processing_status_bar.dart';
 
 /// Главная страница (Windows-версия, встроена в NavigationView).
@@ -326,7 +327,10 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
           initialProgress:
               root.contentEnrichmentCoordinator.currentProgress,
         ),
+        const SizedBox(height: 8),
 
+        // Баннер ошибки загрузки AI-модели (если есть)
+        const ModelDownloadFailureBanner(),
         const SizedBox(height: 16),
 
         // Карточки с информацией

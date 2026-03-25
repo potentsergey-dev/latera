@@ -69,7 +69,7 @@ class RustCore
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => -829395273;
+  int get rustContentHash => -829395274;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -183,6 +183,12 @@ abstract class RustCoreApi extends BaseApi {
     required String filePath,
     required String transcript,
   });
+
+  Future<void> crateApiInitLlm({required String dataDir});
+
+  Future<void> crateApiUnloadLlm();
+
+  Future<bool> crateApiIsLlmReady();
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LateraError;
@@ -1229,6 +1235,91 @@ class RustCoreApiImpl extends RustCoreApiImplPlatform implements RustCoreApi {
     debugName: "update_transcript",
     argNames: ["filePath", "transcript"],
   );
+
+  @override
+  Future<void> crateApiInitLlm({required String dataDir}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(dataDir, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 34,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLateraError,
+        ),
+        constMeta: kCrateApiInitLlmConstMeta,
+        argValues: [dataDir],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiInitLlmConstMeta => const TaskConstMeta(
+    debugName: "init_llm",
+    argNames: ["dataDir"],
+  );
+
+  @override
+  Future<void> crateApiUnloadLlm() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 35,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiUnloadLlmConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiUnloadLlmConstMeta =>
+      const TaskConstMeta(debugName: "unload_llm", argNames: []);
+
+  @override
+  Future<bool> crateApiIsLlmReady() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 36,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiIsLlmReadyConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiIsLlmReadyConstMeta =>
+      const TaskConstMeta(debugName: "is_llm_ready", argNames: []);
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_LateraError => wire

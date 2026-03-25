@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import '../domain/app_config.dart';
 import '../domain/license.dart';
 import '../domain/rag.dart';
+import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
+import 'friendly_error.dart';
 
 /// Экран «Спроси свою папку» (Local RAG).
 ///
@@ -113,8 +115,9 @@ class _RagScreenState extends State<RagScreen> {
         },
         onError: (e) {
           if (!mounted) return;
+          final l10n = AppLocalizations.of(context)!;
           setState(() {
-            _error = e.toString();
+            _error = friendlyErrorMessage(e.toString(), l10n);
             _isQuerying = false;
           });
         },
@@ -124,8 +127,9 @@ class _RagScreenState extends State<RagScreen> {
       );
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e.toString(), l10n);
         _isQuerying = false;
       });
     }

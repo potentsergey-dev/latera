@@ -53,6 +53,15 @@ pub enum LateraError {
 
     #[error("LateraError::EmbeddingComputeFailed: {0}")]
     EmbeddingComputeFailed(String),
+
+    #[error("LateraError::LlmLoadFailed: {0}")]
+    LlmLoadFailed(String),
+
+    #[error("LateraError::LlmNotLoaded: Generative LLM is not loaded. Call init_llm() first.")]
+    LlmNotLoaded,
+
+    #[error("LateraError::LlmGenerationFailed: {0}")]
+    LlmGenerationFailed(String),
 }
 
 impl LateraError {
@@ -75,6 +84,9 @@ impl LateraError {
             LateraError::ModelDownloadFailed(_) => "MODEL_DOWNLOAD_FAILED",
             LateraError::ModelNotInitialized => "MODEL_NOT_INITIALIZED",
             LateraError::EmbeddingComputeFailed(_) => "EMBEDDING_COMPUTE_FAILED",
+            LateraError::LlmLoadFailed(_) => "LLM_LOAD_FAILED",
+            LateraError::LlmNotLoaded => "LLM_NOT_LOADED",
+            LateraError::LlmGenerationFailed(_) => "LLM_GENERATION_FAILED",
         }
     }
 
@@ -96,7 +108,10 @@ impl LateraError {
             | LateraError::ModelLoadFailed(_)
             | LateraError::ModelDownloadFailed(_)
             | LateraError::ModelNotInitialized
-            | LateraError::EmbeddingComputeFailed(_) => false,
+            | LateraError::EmbeddingComputeFailed(_)
+            | LateraError::LlmLoadFailed(_)
+            | LateraError::LlmNotLoaded
+            | LateraError::LlmGenerationFailed(_) => false,
         }
     }
 }

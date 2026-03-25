@@ -128,5 +128,32 @@
   "trialExpiredCustomFolderBannerTitle": "Teste PRO expirado",
   "trialExpiredCustomFolderBannerBody": "A pasta de monitoramento personalizada é um recurso PRO. Seus dados indexados são preservados. Mude para a pasta padrão ou atualize para PRO para continuar.",
   "trialExpiredSwitchToDefault": "Usar pasta padrão",
-  "trialExpiredUpgradePro": "Atualizar para PRO"
+  "trialExpiredUpgradePro": "Atualizar para PRO",
+
+  "onboardingAiModelsTitle": "Modelos de IA",
+  "onboardingAiModelsItem1": "Modelos de IA (~1,8 GB) são baixados na primeira execução",
+  "onboardingAiModelsItem2": "Os modelos são usados para busca semântica e resumos de documentos",
+  "onboardingAiModelsItem3": "Fonte de download: Hugging Face (repositório público)",
+  "onboardingModelsLocation": "Modelos:",
+  "onboardingPrivacyItem3": "Modelos de IA são baixados uma vez — sem transferência contínua de dados",
+
+  "downloadFailedTitle": "Falha no download",
+  "downloadFailedEmbedding": "Não foi possível baixar o modelo de embeddings. A busca semântica não funcionará até que o modelo seja baixado.",
+  "downloadFailedGguf": "Não foi possível baixar o modelo generativo. Resumos, tags e chat RAG não funcionarão até que o modelo seja baixado.",
+  "downloadRetryButton": "Tentar download novamente",
+  "downloadSkippedLowRam": "Modelo de IA generativa ignorado: menos de 6 GB de RAM detectados ({ramMb} MB). Resumos, tags e chat RAG estão desativados.",
+  "downloadSkippedLowDisk": "Modelo de IA generativa ignorado: espaço em disco insuficiente (necessário pelo menos 2 GB). Libere espaço e reinicie o aplicativo.",
+  "errorModelNotLoaded": "Modelo de IA não carregado. Aguarde o término do download ou tente novamente nas Configurações.",
+  "errorInsufficientRam": "RAM insuficiente. Feche outros aplicativos e tente novamente.",
+  "errorInsufficientDisk": "Espaço em disco insuficiente. Libere pelo menos 2 GB e tente novamente.",
+  "errorNetworkUnavailable": "Falha na conexão de rede. Verifique sua conexão com a internet e tente novamente.",
+
+  "settingsAiModelsStatus": "Modelos de IA",
+  "settingsEmbeddingModelReady": "Modelo de embeddings: pronto",
+  "settingsEmbeddingModelMissing": "Modelo de embeddings: não baixado",
+  "settingsGgufModelReady": "Modelo generativo: pronto",
+  "settingsGgufModelMissing": "Modelo generativo: não baixado",
+  "settingsGgufModelSkippedRam": "Modelo generativo: ignorado (pouca RAM)",
+  "settingsGgufModelSkippedDisk": "Modelo generativo: ignorado (pouco espaço em disco)",
+  "downloadFailedRetryHint": "Toque para tentar o download novamente"
 }

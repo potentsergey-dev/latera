@@ -23,7 +23,7 @@ typedef _FreeCStringDart = void Function(Pointer<Utf8> ptr);
 /// Реализация [EmbeddingService], делегирующая вычисление эмбеддингов в Rust
 /// через C FFI.
 ///
-/// Использует ту же ONNX-модель (all-MiniLM-L6-v2), что загружена в Rust core.
+/// Использует ту же ONNX-модель (paraphrase-multilingual-MiniLM-L12-v2), что загружена в Rust core.
 /// Это гарантирует совместимость эмбеддингов при индексации и поиске.
 class RustFfiEmbeddingService implements EmbeddingService {
   static final _log = Logger(printer: PrettyPrinter(methodCount: 0));

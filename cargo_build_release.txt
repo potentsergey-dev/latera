@@ -1,9 +1,0 @@
-﻿cargo :     Blocking waiting for file lock on artifact directory
-строка:1 знак:51
-+ ... on\Documents\Projects\latera\rust; cargo build --release *>&1 | Out-F ...
-+                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (    Blocking wa...ifact directory 
-   :String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-    Finished `release` profile [optimized] target(s) in 42.39s

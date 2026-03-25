@@ -31,7 +31,7 @@ const _textExtensions = <String>{
 /// Максимальный размер файла для извлечения текста (10 MB).
 const _maxTextFileSize = 10 * 1024 * 1024;
 
-/// Размерность вектора эмбеддинга (384 для all-MiniLM-L6-v2, 64 для stub).
+/// Размерность вектора эмбеддинга (384 для paraphrase-multilingual-MiniLM-L12-v2, 64 для stub).
 /// При вычислении similarity — используем фактическую размерность из BLOB.
 // ignore_for_file: unused_element
 const _embeddingDimOnnx = 384;

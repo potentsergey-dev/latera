@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:logger/logger.dart';
 
+import '../infrastructure/rust/generated/api.dart' as rust_api;
+
 /// Координатор жизненного цикла генеративной LLM.
 ///
 /// Управляет TTL (Time To Live) — выгружает модель из памяти
@@ -41,8 +43,8 @@ class LlmLifecycleCoordinator {
   void _onIdleTimeout() {
     _logger.i('LLM idle timeout ($idleTimeout) — unloading generative model');
     _isLoaded = false;
-    // FUTURE: вызвать unload через C FFI когда llm_engine станет компилируемым модулем.
-    _logger.d('LLM unload: skipped (generative LLM not yet wired)');
+    rust_api.unloadLlm();
+    _logger.d('LLM unloaded via FFI');
   }
 
   /// Принудительно выгружает LLM (вызывается при dispose приложения).
@@ -51,8 +53,8 @@ class LlmLifecycleCoordinator {
     _idleTimer = null;
     if (_isLoaded) {
       _isLoaded = false;
-      // FUTURE: вызвать unload через C FFI когда llm_engine станет компилируемым модулем.
-      _logger.d('LLM dispose: skipped (generative LLM not yet wired)');
+      rust_api.unloadLlm();
+      _logger.d('LLM disposed via FFI');
     }
   }
 }

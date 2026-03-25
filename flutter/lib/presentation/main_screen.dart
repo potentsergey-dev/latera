@@ -10,6 +10,7 @@ import '../domain/feature_flags.dart';
 import '../domain/license.dart';
 import '../infrastructure/di/app_composition_root.dart';
 import 'app_scope.dart';
+import 'model_download_failure_banner.dart';
 import 'processing_status_bar.dart';
 import 'widgets/license_badge.dart';
 
@@ -575,6 +576,10 @@ class _MainScreenState extends State<MainScreen> {
               initialProgress:
                   root.contentEnrichmentCoordinator.currentProgress,
             ),
+            const SizedBox(height: 8),
+
+            // Баннер ошибки загрузки AI-модели (если есть)
+            const ModelDownloadFailureBanner(),
             const SizedBox(height: 12),
 
             // Карточки с информацией

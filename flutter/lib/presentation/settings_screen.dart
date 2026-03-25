@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -8,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../application/license_coordinator.dart';
 import '../domain/app_config.dart';
 import '../domain/license.dart';
+import '../infrastructure/di/app_composition_root.dart';
 import '../infrastructure/licensing/store_purchase_service.dart';
 import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
@@ -31,6 +33,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final ConfigService _configService;
   late final LicenseCoordinator _licenseCoordinator;
   late final StorePurchaseService _storePurchaseService;
+  late final AppCompositionRoot _root;
+  StreamSubscription<void>? _trackerSub;
   AppConfig _config = const AppConfig();
   bool _isLoading = false;
   bool _isPurchasing = false;
@@ -45,11 +49,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
-    _configService = AppScope.of(context).configService;
-    _licenseCoordinator = AppScope.of(context).licenseCoordinator;
-    _storePurchaseService = AppScope.of(context).storePurchaseService;
+    _root = AppScope.of(context);
+    _configService = _root.configService;
+    _licenseCoordinator = _root.licenseCoordinator;
+    _storePurchaseService = _root.storePurchaseService;
+    _trackerSub = _root.modelDownloadTracker.changes.listen((_) {
+      if (mounted) setState(() {});
+    });
     _loadConfig();
     _loadAppVersion();
+  }
+
+  @override
+  void dispose() {
+    _trackerSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadAppVersion() async {
@@ -259,13 +273,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
-  Future<void> _toggleTranscription(bool value) async {
-    await _configService.updateValue(enableTranscription: value);
-    setState(() {
-      _config = _config.copyWith(enableTranscription: value);
-    });
-  }
-
   Future<void> _toggleRag(bool value) async {
     await _configService.updateValue(enableRag: value);
     setState(() {
@@ -428,17 +435,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               _buildContentFeatureToggle(
-                icon: Icons.mic_outlined,
-                title: l10n.settingsTranscription,
-                subtitle: l10n.settingsTranscriptionHint,
-                value: _config.enableTranscription,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.transcription),
-                onChanged: _toggleTranscription,
-                comingSoonLabel: l10n.settingsComingSoon,
-                disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
-                comingSoon: true,
-              ),
-              _buildContentFeatureToggle(
                 icon: Icons.chat_outlined,
                 title: l10n.settingsRag,
                 subtitle: l10n.settingsRagHint,
@@ -470,6 +466,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+
+          const Divider(),
+
+          // === AI-модели ===
+          _buildAiModelsSection(l10n),
 
           const Divider(),
 
@@ -515,6 +516,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAiModelsSection(AppLocalizations l10n) {
+    final tracker = _root.modelDownloadTracker;
+
+    String embLabel;
+    IconData embIcon;
+    Color? embColor;
+    switch (tracker.embeddingStatus) {
+      case ModelStatus.ready:
+        embLabel = l10n.settingsEmbeddingModelReady;
+        embIcon = Icons.check_circle_outline;
+        embColor = Colors.green;
+      case ModelStatus.downloading:
+        embLabel = l10n.settingsEmbeddingModelMissing;
+        embIcon = Icons.downloading;
+        embColor = null;
+      case ModelStatus.failed:
+        embLabel = l10n.settingsEmbeddingModelMissing;
+        embIcon = Icons.error_outline;
+        embColor = Colors.red;
+      default:
+        embLabel = l10n.settingsEmbeddingModelMissing;
+        embIcon = Icons.cloud_download_outlined;
+        embColor = null;
+    }
+
+    String ggufLabel;
+    IconData ggufIcon;
+    Color? ggufColor;
+    switch (tracker.ggufStatus) {
+      case ModelStatus.ready:
+        ggufLabel = l10n.settingsGgufModelReady;
+        ggufIcon = Icons.check_circle_outline;
+        ggufColor = Colors.green;
+      case ModelStatus.downloading:
+        ggufLabel = l10n.settingsGgufModelMissing;
+        ggufIcon = Icons.downloading;
+        ggufColor = null;
+      case ModelStatus.failed:
+        ggufLabel = l10n.settingsGgufModelMissing;
+        ggufIcon = Icons.error_outline;
+        ggufColor = Colors.red;
+      case ModelStatus.skippedLowRam:
+        ggufLabel = l10n.settingsGgufModelSkippedRam;
+        ggufIcon = Icons.memory;
+        ggufColor = Colors.orange;
+      case ModelStatus.skippedLowDisk:
+        ggufLabel = l10n.settingsGgufModelSkippedDisk;
+        ggufIcon = Icons.storage;
+        ggufColor = Colors.orange;
+      default:
+        ggufLabel = l10n.settingsGgufModelMissing;
+        ggufIcon = Icons.cloud_download_outlined;
+        ggufColor = null;
+    }
+
+    return _buildSection(
+      title: l10n.settingsAiModelsStatus,
+      children: [
+        ListTile(
+          leading: Icon(embIcon, color: embColor),
+          title: Text(embLabel),
+          trailing: tracker.embeddingStatus == ModelStatus.failed
+              ? TextButton(
+                  onPressed: _root.retryEmbeddingDownload,
+                  child: Text(l10n.downloadRetryButton),
+                )
+              : null,
+        ),
+        ListTile(
+          leading: Icon(ggufIcon, color: ggufColor),
+          title: Text(ggufLabel),
+          trailing: tracker.ggufStatus == ModelStatus.failed
+              ? TextButton(
+                  onPressed: _root.retryGgufDownload,
+                  child: Text(l10n.downloadRetryButton),
+                )
+              : null,
+        ),
+      ],
     );
   }
 

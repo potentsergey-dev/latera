@@ -686,11 +686,11 @@ pub fn get_embedding_count() -> Result<i64, LateraError> {
     with_index_db(|conn| indexer::get_embedding_count(conn))
 }
 
-/// Инициализировать semantic-модель (ONNX all-MiniLM-L6-v2).
+/// Инициализировать semantic-модель (ONNX paraphrase-multilingual-MiniLM-L12-v2).
 ///
 /// Скачивает модель при первом вызове и загружает в память.
 /// `data_dir` — путь к папке данных приложения (модель сохраняется
-/// в `{data_dir}/models/all-MiniLM-L6-v2/`).
+/// в `{data_dir}/models/paraphrase-multilingual-MiniLM-L12-v2/`).
 ///
 /// Тяжёлая операция — рекомендуется вызывать в background isolate.
 pub fn init_semantic_model(data_dir: String) -> Result<(), LateraError> {
@@ -722,6 +722,33 @@ pub fn get_embedding_dim() -> u32 {
 pub fn clear_all_embeddings() -> Result<(), LateraError> {
     logging::init_logging();
     with_index_db(|conn| indexer::clear_all_embeddings(conn))
+}
+
+// ============================================================================
+// Generative LLM API (Phase B: llama.cpp CPU-only)
+// ============================================================================
+
+/// Инициализировать генеративную LLM (llama.cpp, GGUF-модель).
+///
+/// Загружает модель из `{data_dir}/models/qwen2.5-3b-instruct-q4_k_m.gguf`.
+/// Безопасен для повторного вызова — если модель уже загружена, вернёт Ok.
+///
+/// Тяжёлая операция (~1.7 ГБ в RAM) — вызывать в background isolate.
+pub fn init_llm(data_dir: String) -> Result<(), LateraError> {
+    logging::init_logging();
+    indexer::llm_engine::init_llm(&data_dir)
+}
+
+/// Выгрузить генеративную LLM из памяти.
+///
+/// Освобождает ~1.7 ГБ RAM. Вызывается при idle timeout или dispose.
+pub fn unload_llm() {
+    indexer::llm_engine::unload_llm();
+}
+
+/// Проверить, загружена ли генеративная LLM.
+pub fn is_llm_ready() -> bool {
+    indexer::llm_engine::is_llm_ready()
 }
 
 // ============================================================================

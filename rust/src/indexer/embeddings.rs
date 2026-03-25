@@ -134,7 +134,7 @@ pub fn is_semantic_model_ready() -> bool {
 
 /// Возвращает текущую размерность эмбеддинга.
 ///
-/// Если модель загружена — 384 (all-MiniLM-L6-v2).
+/// Если модель загружена — 384 (paraphrase-multilingual-MiniLM-L12-v2).
 /// Если нет — 64 (stub fallback).
 pub fn current_embedding_dim() -> usize {
     if is_semantic_model_ready() {
@@ -147,7 +147,7 @@ pub fn current_embedding_dim() -> usize {
 /// Инициализирует semantic-модель: скачивает (при необходимости) и загружает.
 ///
 /// `data_dir` — корневая директория данных приложения.
-/// Модель сохраняется в `{data_dir}/models/all-MiniLM-L6-v2/`.
+/// Модель сохраняется в `{data_dir}/models/paraphrase-multilingual-MiniLM-L12-v2/`.
 ///
 /// Безопасен для повторного вызова — если модель уже загружена, возвращает Ok.
 pub fn init_semantic_model(data_dir: &str) -> Result<(), LateraError> {
@@ -317,7 +317,7 @@ pub fn chunk_text(
 
 /// Вычисляет эмбеддинги для набора чанков.
 ///
-/// Если semantic-модель загружена — использует ONNX Runtime (all-MiniLM-L6-v2).
+/// Если semantic-модель загружена — использует ONNX Runtime (paraphrase-multilingual-MiniLM-L12-v2).
 /// Иначе — возвращает детерминированные stub-векторы (hash-based, dim=64).
 pub fn compute_embeddings(chunks: &[TextChunk]) -> Vec<EmbeddingVector> {
     chunks
@@ -642,7 +642,7 @@ pub fn similarity_search(
     // Фильтрация шума — два сценария:
     //
     // 1) Однословный запрос («упражнени»):
-    //    all-MiniLM-L6-v2 не обучена на русском, поэтому baseline
+    //    paraphrase-multilingual-MiniLM-L12-v2 обучена на 50+ языках включая русский, но baseline
     //    cosine двух любых русских текстов ≈ 0.55–0.70 — это шум.
     //    Решение: показывать ТОЛЬКО файлы с явным лексическим
     //    совпадением (токен встречается в имени файла или тексте чанка).
@@ -843,12 +843,12 @@ fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
 
 /// Калибрует raw cosine similarity в шкалу 0..1.
 ///
-/// Для all-MiniLM-L6-v2 на коротких запросах «случайный» cosine часто заметно
+/// Для paraphrase-multilingual-MiniLM-L12-v2 на коротких запросах «случайный» cosine часто заметно
 /// выше нуля, поэтому простая формула `(cos + 1)/2` даёт завышенные проценты.
 /// Эта калибровка сдвигает baseline вниз, сохраняя порядок ранжирования.
 /// Калибрует raw cosine similarity в шкалу 0..1.
 ///
-/// all-MiniLM-L6-v2: для любых двух русских текстов baseline cosine ≈ 0.45–0.55.
+/// paraphrase-multilingual-MiniLM-L12-v2: для любых двух русских текстов baseline cosine ≈ 0.45–0.55.
 /// Простая формула `(cos+1)/2` давала бы ~72% для несвязанных текстов.
 /// Калибровка поднимает нижнюю границу и растягивает «семантически значимый» диапазон.
 fn calibrate_semantic_score(cosine: f64) -> f64 {

@@ -95,9 +95,16 @@ pub fn init_llm(data_dir: &str) -> Result<(), LateraError> {
     let backend = LlamaBackend::init()
         .map_err(|e| LateraError::LlmLoadFailed(format!("Backend init: {e}")))?;
 
-    // Параметры модели: CPU-only, количество GPU-слоёв = 0
+    // Параметры модели: Vulkan GPU-ускорение с fallback на CPU
+    let gpu_layers = if crate::system_info::get_has_vulkan() {
+        info!("Vulkan GPU detected — offloading all layers to GPU");
+        u32::MAX
+    } else {
+        warn!("Vulkan GPU not available — running on CPU only");
+        0
+    };
     let model_params = LlamaModelParams::default()
-        .with_n_gpu_layers(0);
+        .with_n_gpu_layers(gpu_layers);
 
     let model = LlamaModel::load_from_file(&backend, &model_path, &model_params)
         .map_err(|e| LateraError::LlmLoadFailed(format!("Model load: {e}")))?;

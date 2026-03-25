@@ -58,8 +58,11 @@ enum EnrichmentJobType {
   /// Автоматическая генерация тегов.
   autoTags,
 
-  /// Загрузка LLM-модели.
+  /// Загрузка LLM-модели (embedding ONNX).
   llmModelDownload,
+
+  /// Загрузка генеративной LLM (GGUF).
+  ggufModelDownload,
 }
 
 /// Снимок прогресса обработки очереди обогащения.
@@ -738,6 +741,9 @@ class ContentEnrichmentCoordinator {
           break;
         case EnrichmentJobType.llmModelDownload:
           // Загрузка модели обрабатывается отдельно через addCustomJob, здесь ничего не делаем.
+          break;
+        case EnrichmentJobType.ggufModelDownload:
+          // Загрузка GGUF-модели обрабатывается отдельно через addCustomJob.
           break;
       }
     } catch (e, st) {

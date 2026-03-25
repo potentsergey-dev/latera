@@ -168,7 +168,7 @@ msix:
   # Windows Store may require justification for this capability during submission.
   # internetClient is required for downloading AI model from Hugging Face on first launch.
   capabilities: internetClient, broadFileSystemAccess, picturesLibrary
-  languages: en-us, ru-ru
+  languages: en-us, ru-ru, de-de, es-es, pt-br
   # === Signing (optional for local dev, required for distribution) ===
   # For local testing with a test certificate:
   certificate_path: ../certs/latera-test.pfx

@@ -7,7 +7,9 @@ import 'package:flutter/widgets.dart';
 
 import '../../../domain/app_config.dart';
 import '../../../domain/rag.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../app_scope.dart';
+import '../../friendly_error.dart';
 
 /// Страница RAG «Спроси свою папку» (Windows-версия).
 class WindowsRagPage extends fluent.StatefulWidget {
@@ -110,8 +112,9 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
         },
         onError: (e) {
           if (!mounted) return;
+          final l10n = AppLocalizations.of(context)!;
           setState(() {
-            _error = e.toString();
+            _error = friendlyErrorMessage(e.toString(), l10n);
             _isQuerying = false;
           });
         },
@@ -121,8 +124,9 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
       );
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e.toString(), l10n);
         _isQuerying = false;
       });
     }

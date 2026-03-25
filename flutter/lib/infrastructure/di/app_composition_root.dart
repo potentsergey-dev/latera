@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../application/content_enrichment_coordinator.dart';
 import '../../application/file_events_coordinator.dart';
 import '../../application/license_coordinator.dart';
+import '../../application/llm_lifecycle_coordinator.dart';
 import '../../domain/app_config.dart';
 import '../../domain/auto_summary.dart';
 import '../../domain/auto_tags.dart';
@@ -47,6 +48,56 @@ import '../extraction/dart_rich_text_extractor.dart';
 import '../llm/llm_download_service.dart';
 import '../search/sqlite_index_service.dart';
 
+/// Состояние загрузки AI-моделей (для UI: Settings, Status bar).
+enum ModelStatus {
+  /// Модель загружена и готова к работе.
+  ready,
+  /// Идёт загрузка модели.
+  downloading,
+  /// Загрузка не удалась (можно повторить).
+  failed,
+  /// Загрузка пропущена из-за нехватки RAM.
+  skippedLowRam,
+  /// Загрузка пропущена из-за нехватки места на диске.
+  skippedLowDisk,
+  /// Модель не загружена (начальное состояние).
+  notDownloaded,
+}
+
+/// Трекер состояния загрузки AI-моделей.
+class ModelDownloadTracker {
+  ModelStatus _embeddingStatus = ModelStatus.notDownloaded;
+  ModelStatus _ggufStatus = ModelStatus.notDownloaded;
+  String? _lastEmbeddingError;
+  String? _lastGgufError;
+
+  final _controller = StreamController<void>.broadcast();
+
+  ModelStatus get embeddingStatus => _embeddingStatus;
+  ModelStatus get ggufStatus => _ggufStatus;
+  String? get lastEmbeddingError => _lastEmbeddingError;
+  String? get lastGgufError => _lastGgufError;
+
+  /// Stream уведомлений об изменении состояния.
+  Stream<void> get changes => _controller.stream;
+
+  void _setEmbeddingStatus(ModelStatus status, [String? error]) {
+    _embeddingStatus = status;
+    _lastEmbeddingError = error;
+    _controller.add(null);
+  }
+
+  void _setGgufStatus(ModelStatus status, [String? error]) {
+    _ggufStatus = status;
+    _lastGgufError = error;
+    _controller.add(null);
+  }
+
+  void dispose() {
+    _controller.close();
+  }
+}
+
 /// Конфигурация окружения приложения.
 enum AppEnvironment {
   development,
@@ -72,10 +123,17 @@ class AppCompositionRoot {
   final FileEventsCoordinator fileEventsCoordinator;
   final LicenseCoordinator licenseCoordinator;
   final ContentEnrichmentCoordinator contentEnrichmentCoordinator;
+  final LlmLifecycleCoordinator llmLifecycleCoordinator;
 
   // === Infrastructure ===
   final Logger logger;
   final StorePurchaseService storePurchaseService;
+
+  /// Трекер состояния загрузки AI-моделей.
+  final ModelDownloadTracker modelDownloadTracker;
+
+  /// Путь к директории данных модели.
+  final String _modelDataDir;
 
   /// Общий объём физической оперативной памяти в мегабайтах (0 если Rust DLL недоступна).
   final int totalRamMb;
@@ -102,12 +160,16 @@ class AppCompositionRoot {
     required this.fileEventsCoordinator,
     required this.licenseCoordinator,
     required this.contentEnrichmentCoordinator,
+    required this.llmLifecycleCoordinator,
     required this.logger,
     required this.storePurchaseService,
+    required this.modelDownloadTracker,
+    required String modelDataDir,
     required this.totalRamMb,
     required this.isHardwareConstrained,
     SqliteIndexService? sqliteIndexService,
-  }) : _sqliteIndexService = sqliteIndexService;
+  }) : _sqliteIndexService = sqliteIndexService,
+       _modelDataDir = modelDataDir;
 
   /// Создать Composition Root с настройками окружения.
   ///
@@ -303,11 +365,31 @@ class AppCompositionRoot {
 
     // Проверка и фоновая загрузка LLM-модели с прогрессом в статус-баре.
     // Не блокирует запуск приложения — выполняется асинхронно.
+    final modelDownloadTracker = ModelDownloadTracker();
+
     unawaited(
       _checkAndDownloadLlmModel(
         modelDataDir,
         logger,
         contentEnrichmentCoordinator,
+        modelDownloadTracker,
+      ),
+    );
+
+    // LLM Lifecycle Coordinator — управляет TTL генеративной LLM (3-min idle → unload).
+    final llmLifecycleCoordinator = LlmLifecycleCoordinator(logger: logger);
+
+    // Инициализируем генеративную LLM (llama.cpp GGUF):
+    // скачиваем если нет, проверяем RAM/диск, показываем прогресс.
+    unawaited(
+      _checkAndDownloadGgufModel(
+        modelDataDir,
+        totalRamMb,
+        isHardwareConstrained,
+        logger,
+        contentEnrichmentCoordinator,
+        llmLifecycleCoordinator,
+        modelDownloadTracker,
       ),
     );
 
@@ -356,8 +438,11 @@ class AppCompositionRoot {
       fileEventsCoordinator: fileEventsCoordinator,
       licenseCoordinator: licenseCoordinator,
       contentEnrichmentCoordinator: contentEnrichmentCoordinator,
+      llmLifecycleCoordinator: llmLifecycleCoordinator,
       logger: logger,
       storePurchaseService: storePurchaseService,
+      modelDownloadTracker: modelDownloadTracker,
+      modelDataDir: modelDataDir,
       totalRamMb: totalRamMb,
       isHardwareConstrained: isHardwareConstrained,
       sqliteIndexService: sqliteIndexService,
@@ -373,21 +458,30 @@ class AppCompositionRoot {
     String modelDataDir,
     Logger logger,
     ContentEnrichmentCoordinator coordinator,
+    ModelDownloadTracker tracker,
   ) async {
     final modelPath = p.join(
-      modelDataDir, 'models', 'all-MiniLM-L6-v2', 'model.onnx',
+      modelDataDir, 'models', 'paraphrase-multilingual-MiniLM-L12-v2', 'model.onnx',
+    );
+    final tokenizerPath = p.join(
+      modelDataDir, 'models', 'paraphrase-multilingual-MiniLM-L12-v2', 'tokenizer.json',
     );
 
-    if (File(modelPath).existsSync()) {
+    if (File(modelPath).existsSync() && File(tokenizerPath).existsSync()) {
       logger.i('LLM model file exists, initializing semantic model');
-      await rust_api
-          .initSemanticModel(dataDir: modelDataDir)
-          .then((_) => logger.i('Semantic model loaded from $modelDataDir'))
-          .catchError((Object e) => logger.w('Semantic model init failed: $e'));
+      try {
+        await rust_api.initSemanticModel(dataDir: modelDataDir);
+        logger.i('Semantic model loaded from $modelDataDir');
+        tracker._setEmbeddingStatus(ModelStatus.ready);
+      } catch (e) {
+        logger.w('Semantic model init failed: $e');
+        tracker._setEmbeddingStatus(ModelStatus.failed, e.toString());
+      }
       return;
     }
 
     // Модель не существует на диске — запускаем загрузку с отображением прогресса
+    tracker._setEmbeddingStatus(ModelStatus.downloading);
 
     final job = EnrichmentJob(
       filePath: modelPath,
@@ -403,7 +497,15 @@ class AppCompositionRoot {
         LlmDownloadService.modelUrl,
         modelPath,
       )) {
-        coordinator.updateCustomJobProgress(job, progress);
+        coordinator.updateCustomJobProgress(job, progress * 0.9);
+      }
+
+      // Скачиваем tokenizer.json
+      await for (final progress in llmDownloadService.downloadModel(
+        LlmDownloadService.tokenizerUrl,
+        tokenizerPath,
+      )) {
+        coordinator.updateCustomJobProgress(job, 0.9 + progress * 0.1);
       }
 
       coordinator.completeCustomJob(job);
@@ -412,15 +514,139 @@ class AppCompositionRoot {
       await rust_api.initSemanticModel(dataDir: modelDataDir);
 
       logger.i('LLM model downloaded and initialized');
+      tracker._setEmbeddingStatus(ModelStatus.ready);
     } catch (e, st) {
       coordinator.completeCustomJob(job);
       logger.e('LLM model download failed', error: e, stackTrace: st);
+      tracker._setEmbeddingStatus(ModelStatus.failed, e.toString());
 
       // Всё равно пытаемся инициализировать — возможно, файл уже был скачан ранее
       await rust_api
           .initSemanticModel(dataDir: modelDataDir)
+          .then((_) => tracker._setEmbeddingStatus(ModelStatus.ready))
           .catchError((Object e) => logger.w('Semantic model init failed: $e'));
     }
+  }
+
+  /// Проверяет и скачивает GGUF-модель для генеративной LLM (llama.cpp).
+  ///
+  /// Порядок:
+  /// 1. Если модель уже на диске — init_llm и выход
+  /// 2. Проверка RAM (≥ lowRamThresholdMb) и свободного места (≥ 2 ГБ)
+  /// 3. Скачивание с прогрессом через coordinator
+  /// 4. init_llm → touch lifecycle coordinator
+  static Future<void> _checkAndDownloadGgufModel(
+    String modelDataDir,
+    int totalRamMb,
+    bool isHardwareConstrained,
+    Logger logger,
+    ContentEnrichmentCoordinator coordinator,
+    LlmLifecycleCoordinator llmLifecycleCoordinator,
+    ModelDownloadTracker tracker,
+  ) async {
+    final ggufModelPath = p.join(
+      modelDataDir, 'models', LlmDownloadService.ggufModelFileName,
+    );
+
+    // 1. Модель уже скачана — сразу загружаем
+    if (File(ggufModelPath).existsSync()) {
+      logger.i('GGUF model exists, initializing generative LLM');
+      try {
+        await rust_api.initLlm(dataDir: modelDataDir);
+        llmLifecycleCoordinator.touch();
+        logger.i('Generative LLM loaded from $modelDataDir');
+        tracker._setGgufStatus(ModelStatus.ready);
+      } catch (e) {
+        logger.w('Generative LLM init failed: $e');
+        tracker._setGgufStatus(ModelStatus.failed, e.toString());
+      }
+      return;
+    }
+
+    // 2. Проверка RAM
+    if (isHardwareConstrained) {
+      logger.i('GGUF download skipped: hardware constrained (RAM $totalRamMb MB). '
+          'Generative LLM requires ≥ 6 GB RAM.');
+      tracker._setGgufStatus(ModelStatus.skippedLowRam);
+      return;
+    }
+
+    // 3. Проверка свободного места на диске
+    final modelsDir = p.join(modelDataDir, 'models');
+    final hasSpace = await LlmDownloadService.hasEnoughDiskSpace(modelsDir);
+    if (!hasSpace) {
+      logger.w('GGUF download skipped: insufficient disk space (need ≥ 2 GB)');
+      tracker._setGgufStatus(ModelStatus.skippedLowDisk);
+      return;
+    }
+
+    // 4. Скачиваем с прогрессом
+    logger.i('Starting GGUF model download (~1.7 GB)');
+    tracker._setGgufStatus(ModelStatus.downloading);
+
+    final job = EnrichmentJob(
+      filePath: ggufModelPath,
+      fileName: 'Генеративная модель (GGUF)',
+      type: EnrichmentJobType.ggufModelDownload,
+      status: EnrichmentJobStatus.processing,
+    );
+    coordinator.addCustomJob(job);
+
+    try {
+      final llmDownloadService = LlmDownloadService();
+      await for (final progress in llmDownloadService.downloadGgufModel(
+        ggufModelPath,
+      )) {
+        coordinator.updateCustomJobProgress(job, progress);
+      }
+
+      coordinator.completeCustomJob(job);
+
+      // 5. Инициализируем генеративную LLM после скачивания
+      await rust_api.initLlm(dataDir: modelDataDir);
+      llmLifecycleCoordinator.touch();
+      logger.i('GGUF model downloaded and generative LLM initialized');
+      tracker._setGgufStatus(ModelStatus.ready);
+    } catch (e, st) {
+      coordinator.completeCustomJob(job);
+      logger.e('GGUF model download/init failed', error: e, stackTrace: st);
+      tracker._setGgufStatus(ModelStatus.failed, e.toString());
+    }
+  }
+
+  /// Повторить загрузку embedding-модели (ONNX).
+  void retryEmbeddingDownload() {
+    if (modelDownloadTracker.embeddingStatus != ModelStatus.failed &&
+        modelDownloadTracker.embeddingStatus != ModelStatus.notDownloaded) {
+      return;
+    }
+    unawaited(
+      _checkAndDownloadLlmModel(
+        _modelDataDir,
+        logger,
+        contentEnrichmentCoordinator,
+        modelDownloadTracker,
+      ),
+    );
+  }
+
+  /// Повторить загрузку генеративной модели (GGUF).
+  void retryGgufDownload() {
+    if (modelDownloadTracker.ggufStatus != ModelStatus.failed &&
+        modelDownloadTracker.ggufStatus != ModelStatus.notDownloaded) {
+      return;
+    }
+    unawaited(
+      _checkAndDownloadGgufModel(
+        _modelDataDir,
+        totalRamMb,
+        isHardwareConstrained,
+        logger,
+        contentEnrichmentCoordinator,
+        llmLifecycleCoordinator,
+        modelDownloadTracker,
+      ),
+    );
   }
 
   /// Освободить ресурсы.
@@ -445,6 +671,14 @@ class AppCompositionRoot {
       logger.w('unloadSemanticModel failed: $e');
     }
 
+    // Unload generative LLM and dispose lifecycle coordinator
+    llmLifecycleCoordinator.dispose();
+    try {
+      await rust_api.unloadLlm();
+    } catch (e) {
+      logger.w('unloadLlm failed: $e');
+    }
+
     // Dispose SQLite index service
     _sqliteIndexService?.dispose();
 
@@ -459,5 +693,8 @@ class AppCompositionRoot {
     if (configService is SharedPreferencesConfigService) {
       (configService as SharedPreferencesConfigService).dispose();
     }
+
+    // Dispose model download tracker
+    modelDownloadTracker.dispose();
   }
 }

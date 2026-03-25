@@ -1,5 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../domain/feature_flags.dart';
 import '../infrastructure/rust/generated/api.dart';
@@ -34,6 +36,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String? _selectedPath;
   String? _defaultPath;
   String? _indexPath;
+  String? _modelsPath;
   bool _isProcessing = false;
   bool _useDefaultPath = false;
   bool _isLoadingDefault = true;
@@ -52,6 +55,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         _loadError = null;
         _defaultPath = null;
         _indexPath = null;
+        _modelsPath = null;
       });
     }
 
@@ -68,10 +72,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         getIndexPath(),
       ]);
 
+      // Путь до моделей: {appData}/Latera/models/
+      final appDataDir = await getApplicationSupportDirectory();
+      final modelsPath = p.join(appDataDir.path, 'Latera', 'models');
+
       if (mounted) {
         setState(() {
           _defaultPath = results[0];
           _indexPath = results[1];
+          _modelsPath = modelsPath;
           _isLoadingDefault = false;
         });
       }
@@ -240,8 +249,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     items: [
                       l10n.onboardingPrivacyItem1,
                       l10n.onboardingPrivacyItem2,
+                      l10n.onboardingPrivacyItem3,
                     ],
                     accentColor: colorScheme.tertiary,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // === AI-модели ===
+                  _buildInfoCard(
+                    icon: Icons.smart_toy_outlined,
+                    title: l10n.onboardingAiModelsTitle,
+                    items: [
+                      l10n.onboardingAiModelsItem1,
+                      l10n.onboardingAiModelsItem2,
+                      l10n.onboardingAiModelsItem3,
+                    ],
+                    accentColor: colorScheme.secondary,
                   ),
 
                   const SizedBox(height: 12),
@@ -374,6 +398,40 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           )
                         : Text(
                             _indexPath ?? '—',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 2,
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            // Модели
+            Padding(
+              padding: const EdgeInsets.only(left: 4, top: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${l10n.onboardingModelsLocation} ',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  Expanded(
+                    child: _isLoadingDefault
+                        ? const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(
+                            _modelsPath ?? '—',
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall

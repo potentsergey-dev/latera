@@ -152,7 +152,7 @@ pub extern "C" fn latera_is_semantic_model_ready() -> u32 {
 
 /// Вычисляет эмбеддинг для одного текста.
 ///
-/// Использует загруженную ONNX-модель (all-MiniLM-L6-v2).
+/// Использует загруженную ONNX-модель (paraphrase-multilingual-MiniLM-L12-v2).
 ///
 /// # Параметры
 /// - `text_ptr` — текст для эмбеддинга (UTF-8, null-terminated C string)

@@ -823,6 +823,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restart the app to apply the new language'**
   String get settingsLanguageRestartHint;
+
+  /// Section title: AI models
+  ///
+  /// In en, this message translates to:
+  /// **'AI Models'**
+  String get onboardingAiModelsTitle;
+
+  /// AI models info bullet 1
+  ///
+  /// In en, this message translates to:
+  /// **'AI models (~1.8 GB) are downloaded on first launch'**
+  String get onboardingAiModelsItem1;
+
+  /// AI models info bullet 2
+  ///
+  /// In en, this message translates to:
+  /// **'Models are used for semantic search and document summaries'**
+  String get onboardingAiModelsItem2;
+
+  /// AI models info bullet 3
+  ///
+  /// In en, this message translates to:
+  /// **'Download source: Hugging Face (public repository)'**
+  String get onboardingAiModelsItem3;
+
+  /// Label for models path
+  ///
+  /// In en, this message translates to:
+  /// **'Models:'**
+  String get onboardingModelsLocation;
+
+  /// Privacy bullet 3
+  ///
+  /// In en, this message translates to:
+  /// **'AI models are downloaded once — no ongoing data transfer'**
+  String get onboardingPrivacyItem3;
+
+  /// Title shown when model download fails
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed'**
+  String get downloadFailedTitle;
+
+  /// Error detail for embedding model download failure
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to download the embedding model. Semantic search will not work until the model is downloaded.'**
+  String get downloadFailedEmbedding;
+
+  /// Error detail for GGUF model download failure
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to download the generative model. Summaries, tags, and RAG chat will not work until the model is downloaded.'**
+  String get downloadFailedGguf;
+
+  /// Button to retry failed model download
+  ///
+  /// In en, this message translates to:
+  /// **'Retry download'**
+  String get downloadRetryButton;
+
+  /// Info shown when GGUF skipped due to low RAM
+  ///
+  /// In en, this message translates to:
+  /// **'Generative AI model skipped: less than 6 GB RAM detected ({ramMb} MB). Summaries, tags, and RAG chat are disabled.'**
+  String downloadSkippedLowRam(int ramMb);
+
+  /// Info shown when GGUF skipped due to low disk
+  ///
+  /// In en, this message translates to:
+  /// **'Generative AI model skipped: not enough free disk space (need at least 2 GB). Free up space and restart the app.'**
+  String get downloadSkippedLowDisk;
+
+  /// Error when trying to use a feature that requires a model not yet loaded
+  ///
+  /// In en, this message translates to:
+  /// **'AI model is not loaded. Please wait for the download to complete or retry in Settings.'**
+  String get errorModelNotLoaded;
+
+  /// Error when operation fails due to low RAM
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough RAM for this operation. Close other applications and try again.'**
+  String get errorInsufficientRam;
+
+  /// Error when disk space is insufficient
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough free disk space. Free up at least 2 GB and try again.'**
+  String get errorInsufficientDisk;
+
+  /// Error when network is unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Network connection failed. Check your internet connection and try again.'**
+  String get errorNetworkUnavailable;
+
+  /// Settings section: AI models status
+  ///
+  /// In en, this message translates to:
+  /// **'AI Models'**
+  String get settingsAiModelsStatus;
+
+  /// Status when embedding model is available
+  ///
+  /// In en, this message translates to:
+  /// **'Embedding model: ready'**
+  String get settingsEmbeddingModelReady;
+
+  /// Status when embedding model is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Embedding model: not downloaded'**
+  String get settingsEmbeddingModelMissing;
+
+  /// Status when GGUF model is available
+  ///
+  /// In en, this message translates to:
+  /// **'Generative model: ready'**
+  String get settingsGgufModelReady;
+
+  /// Status when GGUF model is missing
+  ///
+  /// In en, this message translates to:
+  /// **'Generative model: not downloaded'**
+  String get settingsGgufModelMissing;
+
+  /// Status when GGUF is skipped due to low RAM
+  ///
+  /// In en, this message translates to:
+  /// **'Generative model: skipped (low RAM)'**
+  String get settingsGgufModelSkippedRam;
+
+  /// Status when GGUF is skipped due to low disk
+  ///
+  /// In en, this message translates to:
+  /// **'Generative model: skipped (low disk space)'**
+  String get settingsGgufModelSkippedDisk;
+
+  /// Hint on a retry tile
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to retry download'**
+  String get downloadFailedRetryHint;
 }
 
 class _AppLocalizationsDelegate

@@ -374,15 +374,6 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
         ),
         _buildFeatureToggle(
-          icon: Icons.mic_outlined,
-          title: l10n.settingsTranscription,
-          subtitle: l10n.settingsTranscriptionHint,
-          value: _config.enableTranscription,
-          effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.transcription),
-          onChanged: (v) => _updateConfig(enableTranscription: v),
-          disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
-        ),
-        _buildFeatureToggle(
           icon: Icons.chat_outlined,
           title: l10n.settingsRag,
           subtitle: l10n.settingsRagHint,

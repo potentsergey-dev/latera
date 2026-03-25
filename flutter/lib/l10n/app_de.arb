@@ -128,5 +128,32 @@
   "trialExpiredCustomFolderBannerTitle": "PRO-Testphase abgelaufen",
   "trialExpiredCustomFolderBannerBody": "Der benutzerdefinierte Überwachungsordner ist eine PRO-Funktion. Ihre indexierten Daten bleiben erhalten. Wechseln Sie zum Standardordner oder upgraden Sie auf PRO, um fortzufahren.",
   "trialExpiredSwitchToDefault": "Standardordner verwenden",
-  "trialExpiredUpgradePro": "Auf PRO upgraden"
+  "trialExpiredUpgradePro": "Auf PRO upgraden",
+
+  "onboardingAiModelsTitle": "KI-Modelle",
+  "onboardingAiModelsItem1": "KI-Modelle (~1,8 GB) werden beim ersten Start heruntergeladen",
+  "onboardingAiModelsItem2": "Modelle werden für semantische Suche und Dokumentzusammenfassungen verwendet",
+  "onboardingAiModelsItem3": "Download-Quelle: Hugging Face (öffentliches Repository)",
+  "onboardingModelsLocation": "Modelle:",
+  "onboardingPrivacyItem3": "KI-Modelle werden einmalig heruntergeladen — kein dauerhafter Datentransfer",
+
+  "downloadFailedTitle": "Download fehlgeschlagen",
+  "downloadFailedEmbedding": "Das Embedding-Modell konnte nicht heruntergeladen werden. Die semantische Suche funktioniert erst nach dem Download.",
+  "downloadFailedGguf": "Das generative Modell konnte nicht heruntergeladen werden. Zusammenfassungen, Tags und RAG-Chat funktionieren erst nach dem Download.",
+  "downloadRetryButton": "Download wiederholen",
+  "downloadSkippedLowRam": "Generatives KI-Modell übersprungen: weniger als 6 GB RAM erkannt ({ramMb} MB). Zusammenfassungen, Tags und RAG-Chat sind deaktiviert.",
+  "downloadSkippedLowDisk": "Generatives KI-Modell übersprungen: nicht genügend freier Speicherplatz (mindestens 2 GB benötigt). Geben Sie Speicher frei und starten Sie die App neu.",
+  "errorModelNotLoaded": "KI-Modell nicht geladen. Bitte warten Sie auf den Abschluss des Downloads oder versuchen Sie es in den Einstellungen erneut.",
+  "errorInsufficientRam": "Nicht genügend RAM. Schließen Sie andere Anwendungen und versuchen Sie es erneut.",
+  "errorInsufficientDisk": "Nicht genügend freier Speicherplatz. Geben Sie mindestens 2 GB frei und versuchen Sie es erneut.",
+  "errorNetworkUnavailable": "Netzwerkverbindung fehlgeschlagen. Überprüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
+
+  "settingsAiModelsStatus": "KI-Modelle",
+  "settingsEmbeddingModelReady": "Embedding-Modell: bereit",
+  "settingsEmbeddingModelMissing": "Embedding-Modell: nicht heruntergeladen",
+  "settingsGgufModelReady": "Generatives Modell: bereit",
+  "settingsGgufModelMissing": "Generatives Modell: nicht heruntergeladen",
+  "settingsGgufModelSkippedRam": "Generatives Modell: übersprungen (wenig RAM)",
+  "settingsGgufModelSkippedDisk": "Generatives Modell: übersprungen (wenig Speicherplatz)",
+  "downloadFailedRetryHint": "Tippen zum erneuten Herunterladen"
 }

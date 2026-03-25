@@ -359,5 +359,77 @@
   "@settingsLanguageSystem": { "description": "Use system locale" },
 
   "settingsLanguageRestartHint": "Restart the app to apply the new language",
-  "@settingsLanguageRestartHint": { "description": "Hint about restart" }
+  "@settingsLanguageRestartHint": { "description": "Hint about restart" },
+
+  "onboardingAiModelsTitle": "AI Models",
+  "@onboardingAiModelsTitle": { "description": "Section title: AI models" },
+
+  "onboardingAiModelsItem1": "AI models (~1.8 GB) are downloaded on first launch",
+  "@onboardingAiModelsItem1": { "description": "AI models info bullet 1" },
+
+  "onboardingAiModelsItem2": "Models are used for semantic search and document summaries",
+  "@onboardingAiModelsItem2": { "description": "AI models info bullet 2" },
+
+  "onboardingAiModelsItem3": "Download source: Hugging Face (public repository)",
+  "@onboardingAiModelsItem3": { "description": "AI models info bullet 3" },
+
+  "onboardingModelsLocation": "Models:",
+  "@onboardingModelsLocation": { "description": "Label for models path" },
+
+  "onboardingPrivacyItem3": "AI models are downloaded once — no ongoing data transfer",
+  "@onboardingPrivacyItem3": { "description": "Privacy bullet 3" },
+
+  "downloadFailedTitle": "Download failed",
+  "@downloadFailedTitle": { "description": "Title shown when model download fails" },
+
+  "downloadFailedEmbedding": "Failed to download the embedding model. Semantic search will not work until the model is downloaded.",
+  "@downloadFailedEmbedding": { "description": "Error detail for embedding model download failure" },
+
+  "downloadFailedGguf": "Failed to download the generative model. Summaries, tags, and RAG chat will not work until the model is downloaded.",
+  "@downloadFailedGguf": { "description": "Error detail for GGUF model download failure" },
+
+  "downloadRetryButton": "Retry download",
+  "@downloadRetryButton": { "description": "Button to retry failed model download" },
+
+  "downloadSkippedLowRam": "Generative AI model skipped: less than 6 GB RAM detected ({ramMb} MB). Summaries, tags, and RAG chat are disabled.",
+  "@downloadSkippedLowRam": { "description": "Info shown when GGUF skipped due to low RAM", "placeholders": { "ramMb": { "type": "int" } } },
+
+  "downloadSkippedLowDisk": "Generative AI model skipped: not enough free disk space (need at least 2 GB). Free up space and restart the app.",
+  "@downloadSkippedLowDisk": { "description": "Info shown when GGUF skipped due to low disk" },
+
+  "errorModelNotLoaded": "AI model is not loaded. Please wait for the download to complete or retry in Settings.",
+  "@errorModelNotLoaded": { "description": "Error when trying to use a feature that requires a model not yet loaded" },
+
+  "errorInsufficientRam": "Not enough RAM for this operation. Close other applications and try again.",
+  "@errorInsufficientRam": { "description": "Error when operation fails due to low RAM" },
+
+  "errorInsufficientDisk": "Not enough free disk space. Free up at least 2 GB and try again.",
+  "@errorInsufficientDisk": { "description": "Error when disk space is insufficient" },
+
+  "errorNetworkUnavailable": "Network connection failed. Check your internet connection and try again.",
+  "@errorNetworkUnavailable": { "description": "Error when network is unavailable" },
+
+  "settingsAiModelsStatus": "AI Models",
+  "@settingsAiModelsStatus": { "description": "Settings section: AI models status" },
+
+  "settingsEmbeddingModelReady": "Embedding model: ready",
+  "@settingsEmbeddingModelReady": { "description": "Status when embedding model is available" },
+
+  "settingsEmbeddingModelMissing": "Embedding model: not downloaded",
+  "@settingsEmbeddingModelMissing": { "description": "Status when embedding model is missing" },
+
+  "settingsGgufModelReady": "Generative model: ready",
+  "@settingsGgufModelReady": { "description": "Status when GGUF model is available" },
+
+  "settingsGgufModelMissing": "Generative model: not downloaded",
+  "@settingsGgufModelMissing": { "description": "Status when GGUF model is missing" },
+
+  "settingsGgufModelSkippedRam": "Generative model: skipped (low RAM)",
+  "@settingsGgufModelSkippedRam": { "description": "Status when GGUF is skipped due to low RAM" },
+
+  "settingsGgufModelSkippedDisk": "Generative model: skipped (low disk space)",
+  "@settingsGgufModelSkippedDisk": { "description": "Status when GGUF is skipped due to low disk" },
+
+  "downloadFailedRetryHint": "Tap to retry download",
+  "@downloadFailedRetryHint": { "description": "Hint on a retry tile" }
 }

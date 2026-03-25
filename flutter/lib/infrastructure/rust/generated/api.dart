@@ -227,11 +227,11 @@ Future<bool> hasEmbeddings({required String filePath}) =>
 Future<int> getEmbeddingCount() =>
     RustCore.instance.api.crateApiGetEmbeddingCount();
 
-/// Инициализировать semantic-модель (ONNX all-MiniLM-L6-v2).
+/// Инициализировать semantic-модель (ONNX paraphrase-multilingual-MiniLM-L12-v2).
 ///
 /// Скачивает модель при первом вызове и загружает в память.
 /// `data_dir` — путь к папке данных приложения (модель сохраняется
-/// в `{data_dir}/models/all-MiniLM-L6-v2/`).
+/// в `{data_dir}/models/paraphrase-multilingual-MiniLM-L12-v2/`).
 ///
 /// Тяжёлая операция — рекомендуется вызывать в background isolate.
 Future<void> initSemanticModel({required String dataDir}) =>
@@ -257,6 +257,23 @@ Future<int> getEmbeddingDim() =>
 /// с новой размерностью.
 Future<void> clearAllEmbeddings() =>
     RustCore.instance.api.crateApiClearAllEmbeddings();
+
+/// Инициализировать генеративную LLM (llama.cpp, GGUF-модель).
+///
+/// Загружает модель из `{data_dir}/models/qwen2.5-3b-instruct-q4_k_m.gguf`.
+/// Тяжёлая операция (~1.7 ГБ в RAM) — вызывать в background isolate.
+Future<void> initLlm({required String dataDir}) =>
+    RustCore.instance.api.crateApiInitLlm(dataDir: dataDir);
+
+/// Выгрузить генеративную LLM из памяти.
+///
+/// Освобождает ~1.7 ГБ RAM. Вызывается при idle timeout или dispose.
+Future<void> unloadLlm() =>
+    RustCore.instance.api.crateApiUnloadLlm();
+
+/// Проверить, загружена ли генеративная LLM.
+Future<bool> isLlmReady() =>
+    RustCore.instance.api.crateApiIsLlmReady();
 
 /// Выполнить RAG-запрос «Спроси свою папку».
 ///
