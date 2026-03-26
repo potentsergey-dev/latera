@@ -78,9 +78,7 @@ pub fn init_llm(data_dir: &str) -> Result<(), LateraError> {
         return Ok(());
     }
 
-    let model_path = Path::new(data_dir)
-        .join("models")
-        .join(GGUF_MODEL_FILE);
+    let model_path = Path::new(data_dir).join("models").join(GGUF_MODEL_FILE);
 
     if !model_path.exists() {
         return Err(LateraError::LlmLoadFailed(format!(
@@ -103,8 +101,7 @@ pub fn init_llm(data_dir: &str) -> Result<(), LateraError> {
         warn!("Vulkan GPU not available — running on CPU only");
         0
     };
-    let model_params = LlamaModelParams::default()
-        .with_n_gpu_layers(gpu_layers);
+    let model_params = LlamaModelParams::default().with_n_gpu_layers(gpu_layers);
 
     let model = LlamaModel::load_from_file(&backend, &model_path, &model_params)
         .map_err(|e| LateraError::LlmLoadFailed(format!("Model load: {e}")))?;
@@ -162,9 +159,7 @@ pub fn generate_with_context(
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
 
-    let loaded = guard
-        .as_ref()
-        .ok_or(LateraError::LlmNotLoaded)?;
+    let loaded = guard.as_ref().ok_or(LateraError::LlmNotLoaded)?;
 
     let effective_max = if max_tokens == 0 {
         MAX_GENERATION_TOKENS
@@ -258,7 +253,7 @@ pub fn generate_with_context(
 
     let eos_token = loaded.model.token_eos();
     let eot_str = "<|im_end|>";
-    
+
     // Сбрасываем флаг отмены перед началом генерации
     CANCEL_GENERATION.store(false, Ordering::Relaxed);
 

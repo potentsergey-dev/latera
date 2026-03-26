@@ -121,7 +121,11 @@ pub unsafe extern "C" fn latera_generate_tags(
 /// 1 если модель загружена, 0 если нет.
 #[no_mangle]
 pub extern "C" fn latera_is_llm_ready() -> u32 {
-    if llm::is_llm_ready() { 1 } else { 0 }
+    if llm::is_llm_ready() {
+        1
+    } else {
+        0
+    }
 }
 
 // ============================================================================
@@ -144,9 +148,8 @@ fn to_c_string(s: String) -> *mut c_char {
     match CString::new(safe) {
         Ok(c) => c.into_raw(),
         Err(_) => {
-            let fallback =
-                CString::new("{\"error_code\":\"generation_failed\"}")
-                    .unwrap_or_else(|_| CString::new("{}").unwrap());
+            let fallback = CString::new("{\"error_code\":\"generation_failed\"}")
+                .unwrap_or_else(|_| CString::new("{}").unwrap());
             fallback.into_raw()
         }
     }

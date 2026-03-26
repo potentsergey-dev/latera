@@ -200,7 +200,10 @@ pub fn init_semantic_model(data_dir: &str) -> Result<(), LateraError> {
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     *guard = Some(SemanticModel { session, tokenizer });
 
-    info!("Semantic model loaded successfully (dim={}, multilingual)", EMBEDDING_DIM);
+    info!(
+        "Semantic model loaded successfully (dim={}, multilingual)",
+        EMBEDDING_DIM
+    );
     Ok(())
 }
 
@@ -271,11 +274,7 @@ pub fn init_embeddings_tables(conn: &Connection) -> Result<(), LateraError> {
 /// Разбивает текст на чанки фиксированного размера с перекрытием.
 ///
 /// Возвращает вектор [`TextChunk`] с текстом и метаинформацией.
-pub fn chunk_text(
-    text: &str,
-    chunk_size: usize,
-    chunk_overlap: usize,
-) -> Vec<TextChunk> {
+pub fn chunk_text(text: &str, chunk_size: usize, chunk_overlap: usize) -> Vec<TextChunk> {
     if text.is_empty() {
         return Vec::new();
     }
@@ -383,29 +382,21 @@ fn onnx_embed(model: &mut SemanticModel, text: &str) -> Result<Vec<f32>, LateraE
 
     // Создаём Value через (shape, vec) — совместимо с любой версией ort
     let shape = vec![1_usize, seq_len];
-    let input_ids_val = ort::value::Value::from_array(
-        (shape.clone(), input_ids),
-    )
-    .map_err(|e| LateraError::EmbeddingComputeFailed(format!("input_ids value: {e}")))?;
+    let input_ids_val = ort::value::Value::from_array((shape.clone(), input_ids))
+        .map_err(|e| LateraError::EmbeddingComputeFailed(format!("input_ids value: {e}")))?;
     let attn_mask_clone = attention_mask.clone();
-    let attention_mask_val = ort::value::Value::from_array(
-        (shape.clone(), attn_mask_clone),
-    )
-    .map_err(|e| LateraError::EmbeddingComputeFailed(format!("attention_mask value: {e}")))?;
-    let token_type_ids_val = ort::value::Value::from_array(
-        (shape, token_type_ids),
-    )
-    .map_err(|e| LateraError::EmbeddingComputeFailed(format!("token_type_ids value: {e}")))?;
+    let attention_mask_val = ort::value::Value::from_array((shape.clone(), attn_mask_clone))
+        .map_err(|e| LateraError::EmbeddingComputeFailed(format!("attention_mask value: {e}")))?;
+    let token_type_ids_val = ort::value::Value::from_array((shape, token_type_ids))
+        .map_err(|e| LateraError::EmbeddingComputeFailed(format!("token_type_ids value: {e}")))?;
 
     let outputs = model
         .session
-        .run(
-            ort::inputs! {
-                "input_ids" => input_ids_val,
-                "attention_mask" => attention_mask_val,
-                "token_type_ids" => token_type_ids_val,
-            },
-        )
+        .run(ort::inputs! {
+            "input_ids" => input_ids_val,
+            "attention_mask" => attention_mask_val,
+            "token_type_ids" => token_type_ids_val,
+        })
         .map_err(|e| LateraError::EmbeddingComputeFailed(format!("session.run: {e}")))?;
 
     // last_hidden_state: [1, seq_len, 384]
@@ -518,10 +509,7 @@ pub fn store_chunks_and_embeddings(
 }
 
 /// Удаляет чанки и эмбеддинги для файла.
-pub fn remove_embeddings_for_file(
-    conn: &Connection,
-    file_id: i64,
-) -> Result<(), LateraError> {
+pub fn remove_embeddings_for_file(conn: &Connection, file_id: i64) -> Result<(), LateraError> {
     conn.execute("DELETE FROM chunks WHERE file_id = ?1", params![file_id])?;
     debug!("Removed chunks/embeddings for file_id={}", file_id);
     Ok(())
@@ -553,9 +541,7 @@ pub fn similarity_search(
     let query_clean = normalize_for_lexical_match(query_text);
     let query_tokens = tokenize_for_lexical_match(&query_clean);
     let query_token_count = query_tokens.len();
-    let query_is_short = query_tokens
-        .iter()
-        .all(|t| t.chars().count() <= 4);
+    let query_is_short = query_tokens.iter().all(|t| t.chars().count() <= 4);
 
     // Короткие и обрезанные запросы (например, "упражнени")
     // хуже обрабатываются чисто семантически, поэтому усиливаем
@@ -590,7 +576,14 @@ pub fn similarity_search(
         let file_path: String = row.get(3)?;
         let file_name: String = row.get(4)?;
         let file_id: i64 = row.get(5)?;
-        Ok((blob, chunk_text, chunk_offset, file_path, file_name, file_id))
+        Ok((
+            blob,
+            chunk_text,
+            chunk_offset,
+            file_path,
+            file_name,
+            file_id,
+        ))
     })?;
 
     let mut scored: Vec<(SimilarityResult, f64, f64)> = Vec::new();
@@ -601,12 +594,8 @@ pub fn similarity_search(
                 let stored_vec = blob_to_embedding(&blob);
                 let semantic_score = cosine_similarity(&query_vec, &stored_vec);
                 let semantic_score_norm = calibrate_semantic_score(semantic_score);
-                let lexical_score = lexical_match_score(
-                    &query_clean,
-                    &query_tokens,
-                    &file_name,
-                    &chunk_text,
-                );
+                let lexical_score =
+                    lexical_match_score(&query_clean, &query_tokens, &file_name, &chunk_text);
                 let score = (semantic_weight * semantic_score_norm
                     + lexical_weight * lexical_score)
                     .clamp(0.0, 1.0);
@@ -767,7 +756,11 @@ pub fn find_similar_files(
         }
     }
 
-    scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    scored.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     scored.truncate(top_k * 2); // запас перед дедупликацией
 
     // Дедупликация по file_path
@@ -794,8 +787,7 @@ pub fn has_embeddings(conn: &Connection, file_path: &str) -> Result<bool, Latera
 
 /// Возвращает количество чанков с эмбеддингами в БД.
 pub fn get_embedding_count(conn: &Connection) -> Result<i64, LateraError> {
-    let count: i64 =
-        conn.query_row("SELECT COUNT(*) FROM embeddings", [], |row| row.get(0))?;
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM embeddings", [], |row| row.get(0))?;
     Ok(count)
 }
 
@@ -862,8 +854,7 @@ fn calibrate_semantic_score(cosine: f64) -> f64 {
 /// Нормализует строку для простого лексического сопоставления:
 /// lowercase + удаление лишней пунктуации.
 fn normalize_for_lexical_match(text: &str) -> String {
-    text
-        .to_lowercase()
+    text.to_lowercase()
         .chars()
         .map(|c| {
             if c.is_alphanumeric() || c == '_' || c == '-' || c.is_whitespace() {
@@ -877,8 +868,7 @@ fn normalize_for_lexical_match(text: &str) -> String {
 
 /// Токенизация нормализованного текста для лексического матчинга.
 fn tokenize_for_lexical_match(text: &str) -> Vec<String> {
-    text
-        .split_whitespace()
+    text.split_whitespace()
         .filter(|t| !t.is_empty())
         .map(|t| t.to_string())
         .collect()
@@ -900,12 +890,9 @@ fn stem_russian(word: &str) -> String {
     }
     // Окончания от длинных к коротким
     static SUFFIXES: &[&str] = &[
-        "ями", "ого", "его", "ому", "ему", "ами", "ыми", "ими",
-        "ние", "ний", "ные", "ный", "ная", "ное", "ную", "ной",
-        "ном", "ных",
-        "ях", "ам", "ом", "ем", "ей", "ов", "ые", "ие",
-        "ую", "юю", "ой", "им", "ым", "ах",
-        "а", "я", "о", "е", "и", "ы", "у", "ю",
+        "ями", "ого", "его", "ому", "ему", "ами", "ыми", "ими", "ние", "ний", "ные", "ный", "ная",
+        "ное", "ную", "ной", "ном", "ных", "ях", "ам", "ом", "ем", "ей", "ов", "ые", "ие", "ую",
+        "юю", "ой", "им", "ым", "ах", "а", "я", "о", "е", "и", "ы", "у", "ю",
     ];
     let lower = word.to_lowercase();
     for suffix in SUFFIXES {
@@ -1254,8 +1241,14 @@ mod tests {
     fn test_store_and_retrieve_embeddings() {
         let conn = create_test_db();
 
-        indexer::index_file(&conn, "/test/doc.txt", "doc.txt", "test doc", Some("hello world"))
-            .unwrap();
+        indexer::index_file(
+            &conn,
+            "/test/doc.txt",
+            "doc.txt",
+            "test doc",
+            Some("hello world"),
+        )
+        .unwrap();
         let info = indexer::get_indexed_file(&conn, "/test/doc.txt")
             .unwrap()
             .unwrap();
@@ -1346,18 +1339,38 @@ mod tests {
         let conn = create_test_db();
 
         // Файл 1: про программирование
-        indexer::index_file(&conn, "/a.txt", "a.txt", "about coding", Some("rust programming language systems"))
-            .unwrap();
+        indexer::index_file(
+            &conn,
+            "/a.txt",
+            "a.txt",
+            "about coding",
+            Some("rust programming language systems"),
+        )
+        .unwrap();
         let a_info = indexer::get_indexed_file(&conn, "/a.txt").unwrap().unwrap();
-        let a_chunks = chunk_text("rust programming language systems", DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP);
+        let a_chunks = chunk_text(
+            "rust programming language systems",
+            DEFAULT_CHUNK_SIZE,
+            DEFAULT_CHUNK_OVERLAP,
+        );
         let a_embs = compute_embeddings(&a_chunks);
         store_chunks_and_embeddings(&conn, a_info.id, &a_chunks, &a_embs).unwrap();
 
         // Файл 2: про кулинарию
-        indexer::index_file(&conn, "/b.txt", "b.txt", "about cooking", Some("delicious recipes for pasta"))
-            .unwrap();
+        indexer::index_file(
+            &conn,
+            "/b.txt",
+            "b.txt",
+            "about cooking",
+            Some("delicious recipes for pasta"),
+        )
+        .unwrap();
         let b_info = indexer::get_indexed_file(&conn, "/b.txt").unwrap().unwrap();
-        let b_chunks = chunk_text("delicious recipes for pasta", DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP);
+        let b_chunks = chunk_text(
+            "delicious recipes for pasta",
+            DEFAULT_CHUNK_SIZE,
+            DEFAULT_CHUNK_OVERLAP,
+        );
         let b_embs = compute_embeddings(&b_chunks);
         store_chunks_and_embeddings(&conn, b_info.id, &b_chunks, &b_embs).unwrap();
 
@@ -1396,8 +1409,7 @@ mod tests {
         let complex_info = indexer::get_indexed_file(&conn, "/complex.txt")
             .unwrap()
             .unwrap();
-        let complex_chunks =
-            chunk_text("общие заметки", DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP);
+        let complex_chunks = chunk_text("общие заметки", DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP);
         let complex_embs = compute_embeddings(&complex_chunks);
         store_chunks_and_embeddings(&conn, complex_info.id, &complex_chunks, &complex_embs)
             .unwrap();
@@ -1419,8 +1431,7 @@ mod tests {
             DEFAULT_CHUNK_OVERLAP,
         );
         let other_embs = compute_embeddings(&other_chunks);
-        store_chunks_and_embeddings(&conn, other_info.id, &other_chunks, &other_embs)
-            .unwrap();
+        store_chunks_and_embeddings(&conn, other_info.id, &other_chunks, &other_embs).unwrap();
 
         let results = similarity_search(&conn, "упражнени", 5).unwrap();
         assert!(!results.is_empty());
@@ -1470,7 +1481,9 @@ mod tests {
         let conn = create_test_db();
 
         indexer::index_file(&conn, "/del.txt", "del.txt", "will be deleted", None).unwrap();
-        let info = indexer::get_indexed_file(&conn, "/del.txt").unwrap().unwrap();
+        let info = indexer::get_indexed_file(&conn, "/del.txt")
+            .unwrap()
+            .unwrap();
         let chunks = vec![TextChunk {
             text: "delete me".to_string(),
             chunk_index: 0,
@@ -1619,7 +1632,10 @@ mod tests {
             "readme.txt",
             "Создайте новые папки для документов",
         );
-        assert!(score > 0.0, "Stemmed search for 'папка' should match 'папки' in chunk");
+        assert!(
+            score > 0.0,
+            "Stemmed search for 'папка' should match 'папки' in chunk"
+        );
     }
 
     #[test]
@@ -1633,7 +1649,10 @@ mod tests {
             "Документы.txt",
             "some random content",
         );
-        assert!(score > 0.0, "Stemmed search for 'документ' should match 'Документы' in filename");
+        assert!(
+            score > 0.0,
+            "Stemmed search for 'документ' should match 'Документы' in filename"
+        );
     }
 
     #[test]
@@ -1647,8 +1666,11 @@ mod tests {
             "folders.txt",
             "",
             Some("Создайте новые папки для хранения документов"),
-        ).unwrap();
-        let info = indexer::get_indexed_file(&conn, "/folders.txt").unwrap().unwrap();
+        )
+        .unwrap();
+        let info = indexer::get_indexed_file(&conn, "/folders.txt")
+            .unwrap()
+            .unwrap();
         let chunks = chunk_text(
             "Создайте новые папки для хранения документов",
             DEFAULT_CHUNK_SIZE,
@@ -1664,8 +1686,11 @@ mod tests {
             "other.txt",
             "",
             Some("рецепт приготовления борща"),
-        ).unwrap();
-        let other_info = indexer::get_indexed_file(&conn, "/other.txt").unwrap().unwrap();
+        )
+        .unwrap();
+        let other_info = indexer::get_indexed_file(&conn, "/other.txt")
+            .unwrap()
+            .unwrap();
         let other_chunks = chunk_text(
             "рецепт приготовления борща",
             DEFAULT_CHUNK_SIZE,
@@ -1676,7 +1701,10 @@ mod tests {
 
         // Ищем «папка» — должен найтись файл с «папки»
         let results = similarity_search(&conn, "папка", 5).unwrap();
-        assert!(!results.is_empty(), "Search for 'папка' should find file with 'папки'");
+        assert!(
+            !results.is_empty(),
+            "Search for 'папка' should find file with 'папки'"
+        );
         assert_eq!(results[0].file_path, "/folders.txt");
     }
 }

@@ -206,8 +206,7 @@ fn wire__crate__api__extract_text_from_file_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_path = <String>::sse_decode(&mut deserializer);
-            let api_options =
-                <crate::api::ExtractionOptions>::sse_decode(&mut deserializer);
+            let api_options = <crate::api::ExtractionOptions>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
@@ -1091,8 +1090,7 @@ fn wire__crate__api__transcribe_audio_impl(
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_path = <String>::sse_decode(&mut deserializer);
-            let api_options =
-                <crate::api::TranscriptionOptions>::sse_decode(&mut deserializer);
+            let api_options = <crate::api::TranscriptionOptions>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, ()>((move || {
@@ -1880,10 +1878,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::ExtractionOptions {
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::ExtractionOptions
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::ExtractionOptions {}
 impl flutter_rust_bridge::IntoIntoDart<crate::api::ExtractionOptions>
     for crate::api::ExtractionOptions
 {
@@ -1903,10 +1898,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::ExtractionResult {
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::ExtractionResult
-{
-}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::ExtractionResult {}
 impl flutter_rust_bridge::IntoIntoDart<crate::api::ExtractionResult>
     for crate::api::ExtractionResult
 {
@@ -1961,13 +1953,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::OcrOptions {
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::OcrOptions
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::OcrOptions>
-    for crate::api::OcrOptions
-{
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::OcrOptions {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::OcrOptions> for crate::api::OcrOptions {
     fn into_into_dart(self) -> crate::api::OcrOptions {
         self
     }
@@ -1985,13 +1972,8 @@ impl flutter_rust_bridge::IntoDart for crate::api::OcrResult {
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for crate::api::OcrResult
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<crate::api::OcrResult>
-    for crate::api::OcrResult
-{
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::OcrResult {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::OcrResult> for crate::api::OcrResult {
     fn into_into_dart(self) -> crate::api::OcrResult {
         self
     }

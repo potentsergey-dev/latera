@@ -17,15 +17,56 @@ const MAX_TEXT_FILE_SIZE: u64 = 10 * 1024 * 1024;
 
 /// Расширения файлов, из которых извлекается текстовый контент (plain-text).
 const TEXT_EXTENSIONS: &[&str] = &[
-    "txt", "md", "markdown", "rst", "log", "csv", "tsv", "json", "xml", "yaml", "yml", "toml",
-    "ini", "cfg", "conf", "properties",
+    "txt",
+    "md",
+    "markdown",
+    "rst",
+    "log",
+    "csv",
+    "tsv",
+    "json",
+    "xml",
+    "yaml",
+    "yml",
+    "toml",
+    "ini",
+    "cfg",
+    "conf",
+    "properties",
     // Исходный код
-    "rs", "dart", "py", "js", "ts", "java", "kt", "c", "cpp", "h", "hpp", "cs", "go", "rb",
-    "php", "swift", "sh", "bash", "ps1", "bat", "cmd",
+    "rs",
+    "dart",
+    "py",
+    "js",
+    "ts",
+    "java",
+    "kt",
+    "c",
+    "cpp",
+    "h",
+    "hpp",
+    "cs",
+    "go",
+    "rb",
+    "php",
+    "swift",
+    "sh",
+    "bash",
+    "ps1",
+    "bat",
+    "cmd",
     // Web
-    "html", "htm", "css", "scss", "sass", "less",
+    "html",
+    "htm",
+    "css",
+    "scss",
+    "sass",
+    "less",
     // Другие текстовые
-    "sql", "graphql", "proto", "env",
+    "sql",
+    "graphql",
+    "proto",
+    "env",
 ];
 
 /// Расширения PDF файлов.
@@ -202,11 +243,7 @@ pub fn extract_text(file_path: &Path) -> Option<String> {
             Some(content)
         }
         Err(e) => {
-            debug!(
-                "Failed to read text from {}: {}",
-                file_path.display(),
-                e
-            );
+            debug!("Failed to read text from {}: {}", file_path.display(), e);
             None
         }
     }
@@ -295,11 +332,7 @@ fn extract_docx(file_path: &Path) -> ExtractionResult {
     let mut archive = match zip::ZipArchive::new(file) {
         Ok(a) => a,
         Err(e) => {
-            warn!(
-                "Failed to open DOCX as ZIP {}: {}",
-                file_path.display(),
-                e
-            );
+            warn!("Failed to open DOCX as ZIP {}: {}", file_path.display(), e);
             return ExtractionResult::error("docx", "extraction_failed");
         }
     };
@@ -426,11 +459,7 @@ fn extract_plain_text_rich(file_path: &Path) -> ExtractionResult {
             ExtractionResult::success(content, "text", 0)
         }
         Err(e) => {
-            debug!(
-                "Failed to read text from {}: {}",
-                file_path.display(),
-                e
-            );
+            debug!("Failed to read text from {}: {}", file_path.display(), e);
             ExtractionResult::error("text", "extraction_failed")
         }
     }

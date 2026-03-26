@@ -25,10 +25,7 @@ use crate::indexer::rag;
 /// # Safety
 /// `question_ptr` должен быть валидным null-terminated UTF-8 C string.
 #[no_mangle]
-pub unsafe extern "C" fn latera_rag_query_start(
-    question_ptr: *const c_char,
-    top_k: u32,
-) -> u32 {
+pub unsafe extern "C" fn latera_rag_query_start(question_ptr: *const c_char, top_k: u32) -> u32 {
     let question = if question_ptr.is_null() {
         return 0;
     } else {
@@ -58,7 +55,10 @@ pub extern "C" fn latera_rag_poll_event() -> *mut c_char {
         Some(event) => {
             let json = match event {
                 rag::RagStreamEvent::Token(text) => {
-                    format!("{{\"type\":\"token\",\"text\":{}}}", rag::json_escape_pub(&text))
+                    format!(
+                        "{{\"type\":\"token\",\"text\":{}}}",
+                        rag::json_escape_pub(&text)
+                    )
                 }
                 rag::RagStreamEvent::Done { result_json } => {
                     format!("{{\"type\":\"done\",\"result\":{result_json}}}")

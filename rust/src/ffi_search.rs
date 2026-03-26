@@ -24,8 +24,7 @@ use crate::indexer;
 fn open_readonly_db(db_path: &str) -> Result<Connection, crate::error::LateraError> {
     let conn = Connection::open_with_flags(
         db_path,
-        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY
-            | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )?;
     conn.execute_batch("PRAGMA journal_mode=WAL;")?;
     Ok(conn)
@@ -147,7 +146,11 @@ pub unsafe extern "C" fn latera_find_similar_files(
 /// 1 если модель загружена, 0 если нет.
 #[no_mangle]
 pub extern "C" fn latera_is_semantic_model_ready() -> u32 {
-    if indexer::is_semantic_model_ready() { 1 } else { 0 }
+    if indexer::is_semantic_model_ready() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Вычисляет эмбеддинг для одного текста.
@@ -164,9 +167,7 @@ pub extern "C" fn latera_is_semantic_model_ready() -> u32 {
 /// # Safety
 /// - `text_ptr` должен быть валидным null-terminated UTF-8 C string
 #[no_mangle]
-pub unsafe extern "C" fn latera_compute_embedding(
-    text_ptr: *const c_char,
-) -> *mut c_char {
+pub unsafe extern "C" fn latera_compute_embedding(text_ptr: *const c_char) -> *mut c_char {
     let result = std::panic::catch_unwind(|| {
         let text = match ptr_to_str(text_ptr) {
             Some(s) => s,
@@ -328,20 +329,18 @@ fn parse_json_string_array(json: &str) -> Option<Vec<String>> {
         loop {
             match chars.next() {
                 None => return None, // незакрытая строка
-                Some('\\') => {
-                    match chars.next() {
-                        Some('"') => s.push('"'),
-                        Some('\\') => s.push('\\'),
-                        Some('n') => s.push('\n'),
-                        Some('r') => s.push('\r'),
-                        Some('t') => s.push('\t'),
-                        Some(c) => {
-                            s.push('\\');
-                            s.push(c);
-                        }
-                        None => return None,
+                Some('\\') => match chars.next() {
+                    Some('"') => s.push('"'),
+                    Some('\\') => s.push('\\'),
+                    Some('n') => s.push('\n'),
+                    Some('r') => s.push('\r'),
+                    Some('t') => s.push('\t'),
+                    Some(c) => {
+                        s.push('\\');
+                        s.push(c);
                     }
-                }
+                    None => return None,
+                },
                 Some('"') => break, // конец строки
                 Some(c) => s.push(c),
             }

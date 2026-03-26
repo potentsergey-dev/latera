@@ -1,7 +1,7 @@
 //! C FFI bridge для системной информации — вызывается из Dart через `dart:ffi`.
 
-use crate::system_info;
 use crate::indexer::rag;
+use crate::system_info;
 
 /// Возвращает общий объём физической оперативной памяти в мегабайтах.
 #[no_mangle]
@@ -13,7 +13,11 @@ pub extern "C" fn latera_get_total_ram_mb() -> u64 {
 /// Возвращает 1 (true) или 0 (false).
 #[no_mangle]
 pub extern "C" fn latera_get_has_avx2() -> u32 {
-    if system_info::get_has_avx2() { 1 } else { 0 }
+    if system_info::get_has_avx2() {
+        1
+    } else {
+        0
+    }
 }
 
 /// Устанавливает глобальный лимит генерируемых токенов для RAG.
@@ -33,5 +37,9 @@ pub extern "C" fn latera_set_rag_max_tokens(max_tokens: u32) {
 /// Используется для диагностики — фича vulkan в llama.cpp пока не включена.
 #[no_mangle]
 pub extern "C" fn latera_get_has_vulkan() -> u32 {
-    if system_info::get_has_vulkan() { 1 } else { 0 }
+    if system_info::get_has_vulkan() {
+        1
+    } else {
+        0
+    }
 }

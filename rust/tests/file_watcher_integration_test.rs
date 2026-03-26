@@ -210,9 +210,13 @@ fn test_watcher_rejects_empty_path() {
     let collector = EventCollector::new();
     let collector_clone = collector.clone();
 
-    let result = start_watcher(Some(String::new()), move |e| {
-        collector_clone.push(e);
-    }, |_| {});
+    let result = start_watcher(
+        Some(String::new()),
+        move |e| {
+            collector_clone.push(e);
+        },
+        |_| {},
+    );
 
     assert!(result.is_err());
     if let Err(err) = result {
@@ -225,9 +229,13 @@ fn test_watcher_rejects_relative_path() {
     let collector = EventCollector::new();
     let collector_clone = collector.clone();
 
-    let result = start_watcher(Some("relative/path".to_string()), move |e| {
-        collector_clone.push(e);
-    }, |_| {});
+    let result = start_watcher(
+        Some("relative/path".to_string()),
+        move |e| {
+            collector_clone.push(e);
+        },
+        |_| {},
+    );
 
     assert!(result.is_err());
     if let Err(err) = result {

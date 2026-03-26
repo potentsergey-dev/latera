@@ -23,13 +23,12 @@ use crate::error::LateraError;
 pub use embeddings::{
     chunk_text, clear_all_embeddings, compute_embeddings, current_embedding_dim,
     find_similar_files, get_embedding_count, has_embeddings, init_embeddings_tables,
-    init_semantic_model, is_semantic_model_ready, remove_embeddings_for_file,
-    similarity_search, store_chunks_and_embeddings, unload_semantic_model,
-    EmbeddingVector, SimilarityResult, TextChunk,
-    DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, EMBEDDING_DIM,
+    init_semantic_model, is_semantic_model_ready, remove_embeddings_for_file, similarity_search,
+    store_chunks_and_embeddings, unload_semantic_model, EmbeddingVector, SimilarityResult,
+    TextChunk, DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, EMBEDDING_DIM,
 };
-pub use ocr::{is_ocr_supported, ocr_content_type, ocr_extract_text, OcrOptions, OcrResult};
 pub use llm::{generate_summary, generate_tags, is_llm_ready, LlmSummaryResult, LlmTagsResult};
+pub use ocr::{is_ocr_supported, ocr_content_type, ocr_extract_text, OcrOptions, OcrResult};
 pub use rag::{rag_query, rag_query_full_context, RagResult, RagSource};
 pub use text_extractor::extract_text;
 pub use text_extractor::{extract_rich_content, ExtractionOptions, ExtractionResult};
@@ -94,9 +93,7 @@ pub fn init_db(db_path: &str) -> Result<Connection, LateraError> {
         .unwrap_or(0)
         > 0;
     if !has_transcript_col {
-        conn.execute_batch(
-            "ALTER TABLE files ADD COLUMN transcript_text TEXT DEFAULT '';",
-        )?;
+        conn.execute_batch("ALTER TABLE files ADD COLUMN transcript_text TEXT DEFAULT '';")?;
         info!("Migrated: added transcript_text column to files table");
     }
 
@@ -262,7 +259,10 @@ pub fn update_transcript_text(
     )?;
 
     if rows > 0 {
-        debug!("Updated transcript for: {file_path} ({} chars)", transcript.len());
+        debug!(
+            "Updated transcript for: {file_path} ({} chars)",
+            transcript.len()
+        );
     } else {
         debug!("File not found in index for transcript update: {file_path}");
     }

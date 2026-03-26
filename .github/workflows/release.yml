@@ -73,9 +73,9 @@ jobs:
         run: flutter pub get
 
       # --- Codegen ---
-      - name: Run FRB codegen
-        run: cd rust && flutter_rust_bridge_codegen generate --config-file frb_codegen.yaml
-        shell: cmd
+      # NOTE: FRB codegen has a known bug on Windows (\\?\ path prefix).
+      # Generated files are committed to the repo, so we skip codegen here.
+      # Run codegen locally on Linux/macOS/WSL2 when API changes.
 
       # --- Build ---
       - name: Build Rust library (release)

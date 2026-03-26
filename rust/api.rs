@@ -109,7 +109,9 @@ pub fn on_file_removed(sink: frb_generated::StreamSink<FileRemovedEvent>) {
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner);
     if guard.is_some() {
-        warn!("on_file_removed called while previous stream is still bound; closing previous stream");
+        warn!(
+            "on_file_removed called while previous stream is still bound; closing previous stream"
+        );
     }
     *guard = Some(sink);
 }
@@ -178,7 +180,7 @@ pub fn start_watching(override_path: Option<String>) -> Result<String, LateraErr
 /// - Сохранения пути при первом запуске (onboarding)
 pub fn get_default_watch_path() -> Result<String, LateraError> {
     logging::init_logging();
-    
+
     let watch_dir = file_watcher::ensure_default_watch_dir()?;
     Ok(watch_dir.to_string_lossy().to_string())
 }
@@ -496,9 +498,7 @@ pub fn transcribe_audio(path: String, options: TranscriptionOptions) -> Transcri
 /// Если файл не найден в индексе — операция игнорируется.
 pub fn update_transcript(file_path: String, transcript: String) -> Result<(), LateraError> {
     logging::init_logging();
-    with_index_db(|conn| {
-        indexer::update_transcript_text(conn, &file_path, &transcript)
-    })
+    with_index_db(|conn| indexer::update_transcript_text(conn, &file_path, &transcript))
 }
 
 // ============================================================================
@@ -596,9 +596,11 @@ pub fn store_chunks_and_embeddings(
         let file_info = indexer::get_indexed_file(conn, &file_path)?;
         let file_id = match file_info {
             Some(info) => info.id,
-            None => return Err(LateraError::InvalidPath(
-                format!("File not found in index: {file_path}"),
-            )),
+            None => {
+                return Err(LateraError::InvalidPath(format!(
+                    "File not found in index: {file_path}"
+                )))
+            }
         };
 
         let internal_chunks: Vec<indexer::TextChunk> = chunks
@@ -627,10 +629,7 @@ pub fn store_chunks_and_embeddings(
 /// Вычисляет эмбеддинг запроса и ищет ближайшие чанки в БД.
 ///
 /// В Dart: `List<ApiSimilarityResult> semanticSearch(String query, int topK)`.
-pub fn semantic_search(
-    query: String,
-    top_k: u32,
-) -> Result<Vec<ApiSimilarityResult>, LateraError> {
+pub fn semantic_search(query: String, top_k: u32) -> Result<Vec<ApiSimilarityResult>, LateraError> {
     logging::init_logging();
 
     with_index_db(|conn| {

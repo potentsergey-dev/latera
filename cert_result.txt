@@ -1,0 +1,7 @@
+=== Certificate Info ===
+Subject: CN=LateraTeam, O=Latera, C=BY
+Issuer: CN=LateraTeam, O=Latera, C=BY
+NotBefore: 03/17/2026 14:51:31
+NotAfter: 03/17/2031 15:01:30
+Thumbprint: A995B753501D35A3A7244BEC9527DC4BDA16F7F3
+Expired: False

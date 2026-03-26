@@ -16,7 +16,9 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use log::{debug, error, info, warn};
-use notify::{event::CreateKind, event::RemoveKind, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{
+    event::CreateKind, event::RemoveKind, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
+};
 
 pub use events::InternalFileEvent;
 pub use events::InternalFileRemovedEvent;
@@ -126,11 +128,10 @@ impl WatcherHandle {
 /// Иконка берётся из текущего .exe приложения (индекс 0).
 #[cfg(target_os = "windows")]
 fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
-    use windows::Win32::Storage::FileSystem::{
-        SetFileAttributesW, FILE_ATTRIBUTE_HIDDEN,
-        FILE_ATTRIBUTE_SYSTEM, FILE_ATTRIBUTE_READONLY,
-    };
     use windows::core::HSTRING;
+    use windows::Win32::Storage::FileSystem::{
+        SetFileAttributesW, FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_READONLY, FILE_ATTRIBUTE_SYSTEM,
+    };
 
     let ini_path = folder.join("desktop.ini");
 
@@ -151,9 +152,7 @@ fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
         }
     }
 
-    let ini_content = format!(
-        "[.ShellClassInfo]\r\nIconResource={exe_str},0\r\n"
-    );
+    let ini_content = format!("[.ShellClassInfo]\r\nIconResource={exe_str},0\r\n");
 
     std::fs::write(&ini_path, &ini_content)?;
 
@@ -165,10 +164,7 @@ fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
         );
 
         // Атрибуты самой папки: READONLY (активирует чтение desktop.ini)
-        let _ = SetFileAttributesW(
-            &HSTRING::from(folder.as_os_str()),
-            FILE_ATTRIBUTE_READONLY,
-        );
+        let _ = SetFileAttributesW(&HSTRING::from(folder.as_os_str()), FILE_ATTRIBUTE_READONLY);
     }
 
     info!("Folder icon set via desktop.ini in {}", folder.display());
@@ -292,7 +288,7 @@ pub fn start_watcher(
             match event_rx.recv_timeout(Duration::from_millis(50)) {
                 Ok(Ok(event)) => {
                     debug!("notify event: {:?}", event.kind);
-                    
+
                     // Обработка событий удаления файлов
                     if is_remove_file_event(&event.kind) {
                         for path in &event.paths {
@@ -306,7 +302,7 @@ pub fn start_watcher(
                         }
                         continue;
                     }
-                    
+
                     if !is_create_file_event(&event.kind) {
                         continue;
                     }
@@ -335,9 +331,7 @@ pub fn start_watcher(
                                 // 3.1.1) Периодическая очистка устаревших записей
                                 // Выполняется каждые 100 событий или при превышении лимита
                                 cleanup_counter = cleanup_counter.saturating_add(1);
-                                if last_seen.len() > DEDUP_MAP_MAX_SIZE
-                                    || cleanup_counter >= 100
-                                {
+                                if last_seen.len() > DEDUP_MAP_MAX_SIZE || cleanup_counter >= 100 {
                                     let before = last_seen.len();
                                     last_seen.retain(|_, &mut instant| {
                                         now.duration_since(instant) < DEDUP_WINDOW * 10

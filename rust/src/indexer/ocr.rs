@@ -318,10 +318,7 @@ mod win_ocr {
             .get()
             .map_err(|e| format!("Recognition failed: {e}"))?;
 
-        let text = result
-            .Text()
-            .map_err(|e| format!("Text: {e}"))?
-            .to_string();
+        let text = result.Text().map_err(|e| format!("Text: {e}"))?.to_string();
 
         // Windows OCR не предоставляет per-word confidence.
         // Оценка: 0.0 если текст пуст, 0.9 если есть текст.
@@ -420,9 +417,7 @@ mod win_ocr {
         let _ = writer.DetachStream();
 
         // Сбрасываем позицию на начало
-        mem_stream
-            .Seek(0)
-            .map_err(|e| format!("Seek: {e}"))?;
+        mem_stream.Seek(0).map_err(|e| format!("Seek: {e}"))?;
 
         // Распознаём из потока (прямое приведение через windows hierarchy)
         let stream: windows::Storage::Streams::IRandomAccessStream =
@@ -436,10 +431,7 @@ mod win_ocr {
 /// OCR для файла изображения через Windows.Media.Ocr.
 #[cfg(target_os = "windows")]
 fn ocr_image_windows(file_path: &Path, options: &OcrOptions) -> OcrResult {
-    info!(
-        "Starting Windows OCR for image: {}",
-        file_path.display()
-    );
+    info!("Starting Windows OCR for image: {}", file_path.display());
 
     // Преобразуем путь в абсолютный (Windows API требует абсолютный путь)
     let abs_path = match file_path.canonicalize() {
@@ -463,9 +455,7 @@ fn ocr_image_windows(file_path: &Path, options: &OcrOptions) -> OcrResult {
                 // Это решает проблему, когда профиль пользователя = English,
                 // но на изображении текст на другом языке (например, русском).
                 if options.language.is_none() {
-                    if let Some(fallback) =
-                        try_other_ocr_languages_image(&path_str, file_path)
-                    {
+                    if let Some(fallback) = try_other_ocr_languages_image(&path_str, file_path) {
                         return fallback;
                     }
                 }
@@ -568,10 +558,7 @@ fn try_other_ocr_languages_bytes(image_data: &[u8]) -> Option<String> {
 /// OCR для скан-PDF: извлекаем встроенные JPEG-изображения из PDF и распознаём каждое.
 #[cfg(target_os = "windows")]
 fn ocr_scan_pdf_windows(file_path: &Path, options: &OcrOptions) -> OcrResult {
-    info!(
-        "Starting Windows OCR for scan-PDF: {}",
-        file_path.display()
-    );
+    info!("Starting Windows OCR for scan-PDF: {}", file_path.display());
 
     let doc = match lopdf::Document::load(file_path) {
         Ok(d) => d,
@@ -627,10 +614,7 @@ fn ocr_scan_pdf_windows(file_path: &Path, options: &OcrOptions) -> OcrResult {
     }
 
     if all_text.is_empty() {
-        info!(
-            "OCR: no text found in scan-PDF: {}",
-            file_path.display()
-        );
+        info!("OCR: no text found in scan-PDF: {}", file_path.display());
         OcrResult::error("scan_pdf", "empty_image")
     } else {
         let text = all_text.join("\n\n");
@@ -643,7 +627,13 @@ fn ocr_scan_pdf_windows(file_path: &Path, options: &OcrOptions) -> OcrResult {
         );
 
         if total_pages > max_pages {
-            OcrResult::with_warning(text, "scan_pdf", pages_processed, confidence, "too_many_pages")
+            OcrResult::with_warning(
+                text,
+                "scan_pdf",
+                pages_processed,
+                confidence,
+                "too_many_pages",
+            )
         } else {
             OcrResult::success(text, "scan_pdf", pages_processed, confidence)
         }
@@ -756,10 +746,7 @@ fn resolve_as_dict<'a>(
 ) -> Option<&'a lopdf::Dictionary> {
     match obj {
         lopdf::Object::Dictionary(d) => Some(d),
-        lopdf::Object::Reference(r) => doc
-            .get_object(*r)
-            .ok()
-            .and_then(|o| o.as_dict().ok()),
+        lopdf::Object::Reference(r) => doc.get_object(*r).ok().and_then(|o| o.as_dict().ok()),
         _ => None,
     }
 }
@@ -826,10 +813,7 @@ mod tests {
         for ext in &["png", "jpg", "jpeg", "tiff", "tif", "bmp"] {
             let name = format!("test.{ext}");
             let path = Path::new(&name);
-            assert!(
-                is_ocr_supported(path),
-                "Expected OCR support for .{ext}"
-            );
+            assert!(is_ocr_supported(path), "Expected OCR support for .{ext}");
         }
     }
 

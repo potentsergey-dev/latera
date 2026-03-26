@@ -28,8 +28,8 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::mpsc;
 use std::sync::Mutex;
 
-use crate::error::LateraError;
 use super::embeddings::{self, SimilarityResult};
+use crate::error::LateraError;
 
 // ============================================================================
 // Global RAG configuration
@@ -118,29 +118,24 @@ pub fn rag_query_streaming_start(question: String, top_k: usize) {
 }
 
 /// Рабочий поток стримингового RAG-запроса.
-fn rag_query_streaming_thread(
-    question: &str,
-    top_k: usize,
-    tx: &mpsc::Sender<RagStreamEvent>,
-) {
+fn rag_query_streaming_thread(question: &str, top_k: usize, tx: &mpsc::Sender<RagStreamEvent>) {
     // Используем глобальную БД через api::with_index_db
-    let result = match crate::api::with_index_db(|conn| {
-        rag_query_full_context(conn, question, top_k)
-    }) {
-        Ok(r) => r,
-        Err(e) => {
-            let r = RagResult {
-                answer: String::new(),
-                sources: Vec::new(),
-                error_code: Some("query_failed".to_string()),
-            };
-            let _ = tx.send(RagStreamEvent::Done {
-                result_json: rag_result_to_json(&r),
-            });
-            warn!("RAG stream: query failed: {e}");
-            return;
-        }
-    };
+    let result =
+        match crate::api::with_index_db(|conn| rag_query_full_context(conn, question, top_k)) {
+            Ok(r) => r,
+            Err(e) => {
+                let r = RagResult {
+                    answer: String::new(),
+                    sources: Vec::new(),
+                    error_code: Some("query_failed".to_string()),
+                };
+                let _ = tx.send(RagStreamEvent::Done {
+                    result_json: rag_result_to_json(&r),
+                });
+                warn!("RAG stream: query failed: {e}");
+                return;
+            }
+        };
 
     if is_cancelled() {
         let cancelled = RagResult {
@@ -285,7 +280,11 @@ pub fn rag_query(
         });
     }
 
-    info!("RAG query: \"{}\" (top_k={})", truncate(question, 80), top_k);
+    info!(
+        "RAG query: \"{}\" (top_k={})",
+        truncate(question, 80),
+        top_k
+    );
 
     // 1. Similarity search — находим релевантные чанки
     let similar = embeddings::similarity_search(conn, question, top_k)?;
@@ -319,10 +318,7 @@ pub fn rag_query(
     }
 
     // 3. Собираем контекст из релевантных чанков
-    let context_parts: Vec<String> = relevant
-        .iter()
-        .map(|r| r.chunk_snippet.clone())
-        .collect();
+    let context_parts: Vec<String> = relevant.iter().map(|r| r.chunk_snippet.clone()).collect();
 
     let context = context_parts.join("\n\n---\n\n");
 
@@ -489,10 +485,14 @@ fn generate_answer(question: &str, context: &str, source_count: usize) -> String
     let max_tokens = get_rag_max_tokens();
 
     if super::llm_engine::is_llm_ready() {
-        info!("RAG: generate_answer (max_tokens={}, llm=active)", max_tokens);
+        info!(
+            "RAG: generate_answer (max_tokens={}, llm=active)",
+            max_tokens
+        );
         let language = detect_question_language(question);
         let system_prompt = super::llm_engine::rag_system_prompt(&language);
-        let user_prompt = format!("Context from user's files:\n\n{context}\n\nQuestion: {question}");
+        let user_prompt =
+            format!("Context from user's files:\n\n{context}\n\nQuestion: {question}");
         match super::llm_engine::generate_with_context(&system_prompt, &user_prompt, max_tokens) {
             Ok(answer) if !answer.is_empty() => return answer,
             Ok(_) => warn!("RAG: LLM returned empty answer, falling back to stub"),
@@ -510,7 +510,10 @@ fn generate_answer(question: &str, context: &str, source_count: usize) -> String
 /// Если вопрос содержит кириллические символы — «ru», иначе «en».
 #[allow(dead_code)]
 fn detect_question_language(question: &str) -> String {
-    let cyrillic_count = question.chars().filter(|c| matches!(*c, '\u{0400}'..='\u{04FF}')).count();
+    let cyrillic_count = question
+        .chars()
+        .filter(|c| matches!(*c, '\u{0400}'..='\u{04FF}'))
+        .count();
     let total_alpha = question.chars().filter(|c| c.is_alphabetic()).count();
     if total_alpha > 0 && cyrillic_count * 2 > total_alpha {
         "ru".to_string()
@@ -584,8 +587,8 @@ mod tests {
     use super::*;
     use crate::indexer;
     use crate::indexer::embeddings::{
-        chunk_text, compute_embeddings, init_embeddings_tables,
-        store_chunks_and_embeddings, DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE,
+        chunk_text, compute_embeddings, init_embeddings_tables, store_chunks_and_embeddings,
+        DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE,
     };
 
     fn create_test_db() -> Connection {
@@ -609,8 +612,7 @@ mod tests {
             .expect("file not found");
         let chunks = chunk_text(text, DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP);
         let embeddings = compute_embeddings(&chunks);
-        store_chunks_and_embeddings(conn, info.id, &chunks, &embeddings)
-            .expect("store failed");
+        store_chunks_and_embeddings(conn, info.id, &chunks, &embeddings).expect("store failed");
     }
 
     // ------------------------------------------------------------------
@@ -665,7 +667,11 @@ mod tests {
         let result = rag_query(&conn, "programming language", 5).unwrap();
 
         // Stub: должен найти хотя бы один источник
-        assert!(result.error_code.is_none(), "error: {:?}", result.error_code);
+        assert!(
+            result.error_code.is_none(),
+            "error: {:?}",
+            result.error_code
+        );
         assert!(!result.answer.is_empty());
         assert!(!result.sources.is_empty());
     }

@@ -185,11 +185,7 @@ pub fn generate_tags(text_content: &str, file_name: &str) -> LlmTagsResult {
         };
     }
 
-    info!(
-        "Tags generated for \"{}\": {} tags",
-        file_name,
-        tags.len()
-    );
+    info!("Tags generated for \"{}\": {} tags", file_name, tags.len());
 
     LlmTagsResult {
         tags,
@@ -313,9 +309,8 @@ fn extract_keywords(text: &str) -> Vec<String> {
     // Document frequency
     let mut df: HashMap<String, u32> = HashMap::new();
     for para in &paragraphs {
-        let para_words: std::collections::HashSet<String> = tokenize_words(para)
-            .into_iter()
-            .collect();
+        let para_words: std::collections::HashSet<String> =
+            tokenize_words(para).into_iter().collect();
         for word in &para_words {
             *df.entry(word.clone()).or_insert(0) += 1;
         }
@@ -373,10 +368,7 @@ fn deduplicate_via_embeddings(candidates: &[String]) -> Vec<String> {
     'outer: for i in 0..candidates.len() {
         for &j in &selected {
             if i < embedding_vecs.len() && j < embedding_vecs.len() {
-                let sim = cosine_similarity(
-                    &embedding_vecs[i].vector,
-                    &embedding_vecs[j].vector,
-                );
+                let sim = cosine_similarity(&embedding_vecs[i].vector, &embedding_vecs[j].vector);
                 if sim > similarity_threshold {
                     continue 'outer;
                 }
@@ -575,7 +567,12 @@ mod tests {
     fn test_split_sentences() {
         let text = "First sentence. Second one! Third here? Fourth.";
         let sentences = split_sentences(text);
-        assert!(sentences.len() >= 2, "Expected at least 2 sentences, got {}: {:?}", sentences.len(), sentences);
+        assert!(
+            sentences.len() >= 2,
+            "Expected at least 2 sentences, got {}: {:?}",
+            sentences.len(),
+            sentences
+        );
     }
 
     #[test]
@@ -638,7 +635,11 @@ mod tests {
                     Concurrent programming is made safer through the ownership system. \
                     Rust compiles to native code and has zero-cost abstractions.";
         let result = generate_summary(text, "rust_intro.txt");
-        assert!(result.error_code.is_none(), "Error: {:?}", result.error_code);
+        assert!(
+            result.error_code.is_none(),
+            "Error: {:?}",
+            result.error_code
+        );
         assert!(!result.summary.is_empty());
     }
 
@@ -650,7 +651,11 @@ mod tests {
                     Training these models often uses GPU acceleration for performance. \
                     Common frameworks include TensorFlow and PyTorch for development.";
         let result = generate_tags(text, "ml_intro.txt");
-        assert!(result.error_code.is_none(), "Error: {:?}", result.error_code);
+        assert!(
+            result.error_code.is_none(),
+            "Error: {:?}",
+            result.error_code
+        );
         assert!(!result.tags.is_empty());
     }
 
