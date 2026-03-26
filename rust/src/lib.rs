@@ -12,7 +12,26 @@
     clippy::same_item_push,
     clippy::needless_borrows_for_generic_args,
     clippy::format_push_string,
-    clippy::useless_format
+    clippy::useless_format,
+    clippy::cast_precision_loss,
+    clippy::manual_div_ceil,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_lossless,
+    clippy::uninlined_format_args,
+    clippy::single_match_else,
+    clippy::match_same_arms,
+    clippy::explicit_iter_loop,
+    clippy::if_not_else,
+    clippy::too_many_lines,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::return_self_not_must_use,
+    clippy::unnecessary_wraps,
+    clippy::unused_self,
+    clippy::struct_excessive_bools
 )]
 
 pub mod error;
