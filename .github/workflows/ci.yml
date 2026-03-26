@@ -7,7 +7,7 @@ on:
     branches: [main, master]
 
 env:
-  FLUTTER_VERSION: '3.38.0'
+  FLUTTER_VERSION: '3.41.5'
   RUST_VERSION: '1.93'
 
 jobs:
@@ -94,9 +94,10 @@ jobs:
       - name: Install Vulkan SDK
         run: |
           wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          UBUNTU_CODENAME=$(lsb_release -cs)
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan.list "https://packages.lunarg.com/vulkan/lunarg-vulkan-${UBUNTU_CODENAME}.list"
           sudo apt-get update
-          sudo apt-get install -y vulkan-sdk
+          sudo apt-get install -y libvulkan-dev vulkan-headers vulkan-validationlayers
 
       - name: Run Rust tests
         working-directory: rust
