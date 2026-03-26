@@ -25,10 +25,14 @@ jobs:
 
       # --- Vulkan SDK ---
       - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.1.1
-        with:
-          version: latest
-          cache: true
+        run: |
+          $sdkVersion = '1.4.304.1'
+          $installer = "VulkanSDK-$sdkVersion-Installer.exe"
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$sdkVersion/windows/$installer" -OutFile $installer
+          Start-Process -Wait -FilePath .\$installer -ArgumentList "--accept-licenses --default-answer --confirm-command install"
+          echo "VULKAN_SDK=C:\VulkanSDK\$sdkVersion" >> $env:GITHUB_ENV
+          echo "C:\VulkanSDK\$sdkVersion\Bin" >> $env:GITHUB_PATH
+        shell: pwsh
 
       # --- Rust Setup ---
       - name: Install Rust toolchain

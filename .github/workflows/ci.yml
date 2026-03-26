@@ -7,8 +7,8 @@ on:
     branches: [main, master]
 
 env:
-  FLUTTER_VERSION: '3.24.0'
-  RUST_VERSION: '1.75'
+  FLUTTER_VERSION: '3.38.0'
+  RUST_VERSION: '1.93'
 
 jobs:
   # ===========================================
@@ -92,10 +92,11 @@ jobs:
           workspaces: rust
 
       - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.1.1
-        with:
-          version: latest
-          cache: true
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-jammy.list https://packages.lunarg.com/vulkan/lunarg-vulkan-jammy.list
+          sudo apt-get update
+          sudo apt-get install -y vulkan-sdk
 
       - name: Run Rust tests
         working-directory: rust
@@ -149,10 +150,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.1.1
-        with:
-          version: latest
-          cache: true
+        run: |
+          $sdkVersion = '1.4.304.1'
+          $installer = "VulkanSDK-$sdkVersion-Installer.exe"
+          Invoke-WebRequest -Uri "https://sdk.lunarg.com/sdk/download/$sdkVersion/windows/$installer" -OutFile $installer
+          Start-Process -Wait -FilePath .\$installer -ArgumentList "--accept-licenses --default-answer --confirm-command install"
+          echo "VULKAN_SDK=C:\VulkanSDK\$sdkVersion" >> $env:GITHUB_ENV
+          echo "C:\VulkanSDK\$sdkVersion\Bin" >> $env:GITHUB_PATH
+        shell: pwsh
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
