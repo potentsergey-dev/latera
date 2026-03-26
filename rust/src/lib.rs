@@ -4,6 +4,17 @@
 //! Он не зависит от Flutter. Связь с Flutter осуществляется через FFI,
 //! генерируемый `flutter_rust_bridge`.
 
+// Allow clippy lints that are noisy for FFI/generated code
+#![allow(
+    clippy::needless_pass_by_value, // FFI functions require owned types
+    clippy::redundant_closure,
+    clippy::manual_c_str_literals,
+    clippy::same_item_push,
+    clippy::needless_borrows_for_generic_args,
+    clippy::format_push_string,
+    clippy::useless_format
+)]
+
 pub mod error;
 pub mod ffi_llm;
 pub mod ffi_ocr;
