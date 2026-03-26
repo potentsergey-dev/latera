@@ -25,7 +25,7 @@ jobs:
 
       # --- Vulkan SDK ---
       - name: Install Vulkan SDK
-        uses: humbletim/install-vulkan-sdk@v1.2.0
+        uses: humbletim/install-vulkan-sdk@v1.1.1
         with:
           version: latest
           cache: true
