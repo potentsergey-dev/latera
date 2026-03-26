@@ -74,8 +74,8 @@ jobs:
 
       # --- Codegen ---
       - name: Run FRB codegen
-        working-directory: rust
-        run: flutter_rust_bridge_codegen generate --config-file frb_codegen.yaml
+        run: cd rust && flutter_rust_bridge_codegen generate --config-file frb_codegen.yaml
+        shell: cmd
 
       # --- Build ---
       - name: Build Rust library (release)

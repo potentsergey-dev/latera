@@ -24,9 +24,11 @@ certs/
 base64-cert.txt
 # ...existing code...
 rust/test_data/models/**/*.onnx
-# Логи сборки
-*.txt
-!**/*.md  # если хотите сохранить markdown файлы
+# Логи сборки (конкретные файлы, не *.txt — это ломает CMakeLists.txt в llama.cpp)
+/flutter_build_out.txt
+/cargo_build_release.txt
+/flutter_analyze_output.txt
+tmp_*.txt
 
 # Скомпилированные библиотеки
 *.dll

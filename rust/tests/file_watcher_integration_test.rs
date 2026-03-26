@@ -247,9 +247,13 @@ fn test_watcher_creates_directory_if_not_exists() {
     let collector = EventCollector::new();
     let collector_clone = collector.clone();
 
-    let handle = start_watcher(Some(non_existent.to_string_lossy().to_string()), move |e| {
-        collector_clone.push(e);
-    }, |_| {})
+    let handle = start_watcher(
+        Some(non_existent.to_string_lossy().to_string()),
+        move |e| {
+            collector_clone.push(e);
+        },
+        |_| {},
+    )
     .expect("Failed to start watcher");
 
     // Директория должна быть создана
