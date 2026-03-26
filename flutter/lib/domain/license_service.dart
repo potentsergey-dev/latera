@@ -39,6 +39,11 @@ abstract interface class LicenseService {
   ///
   /// [featureId] — идентификатор функции (см. [FeatureId]).
   bool isFeatureAvailable(String featureId);
+
+  /// Активировать покупку Pro-версии.
+  ///
+  /// Переключает лицензию в режим Pro навсегда.
+  Future<void> activateProPurchase();
 }
 
 /// Результат активации лицензии.

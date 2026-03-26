@@ -1,17 +1,24 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../application/file_events_coordinator.dart';
+import '../domain/app_config.dart';
 import '../domain/core_error.dart';
+import '../domain/feature_flags.dart';
+import '../domain/license.dart';
+import '../infrastructure/di/app_composition_root.dart';
 import 'app_scope.dart';
-import 'file_description_dialog.dart';
+import 'model_download_failure_banner.dart';
+import 'processing_status_bar.dart';
+import 'widgets/license_badge.dart';
 
 /// Главный экран.
 ///
 /// Показывает статус наблюдения за папкой, количество проиндексированных
 /// файлов и предоставляет доступ к поиску и настройкам.
-/// При получении события о новом файле показывает диалог ввода описания.
+/// Новые файлы тихо индексируются в Inbox (без всплывающих окон).
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -23,11 +30,15 @@ class _MainScreenState extends State<MainScreen> {
   FileEventsCoordinator? _coordinator;
 
   StreamSubscription<FileAddedUiEvent>? _sub;
+  StreamSubscription<FileRemovedUiEvent>? _removedSub;
+  StreamSubscription<String>? _watchPathChangedSub;
+  StreamSubscription<AppConfig>? _configSub;
   String _status = 'Инициализация…';
   String? _lastFileName;
   int _indexedCount = 0;
+  int _inboxCount = 0;
   bool _initialized = false;
-  bool _isDescriptionDialogOpen = false;
+  Timer? _refreshDebounce;
 
   @override
   void didChangeDependencies() {
@@ -36,6 +47,13 @@ class _MainScreenState extends State<MainScreen> {
     _initialized = true;
 
     _coordinator = AppScope.of(context).fileEventsCoordinator;
+
+    // Подписываемся на изменения конфигурации, чтобы UI обновлялся
+    // при переключении фич (напр. RAG) в настройках.
+    _configSub = AppScope.of(context).configService.configChanges.listen((_) {
+      if (mounted) setState(() {});
+    });
+
     unawaited(_init().catchError((Object error, StackTrace st) {
       debugPrint('Unexpected error in _init(): $error\n$st');
       if (mounted) {
@@ -58,8 +76,9 @@ class _MainScreenState extends State<MainScreen> {
       await root.notifications.init();
       if (!mounted) return;
 
-      // Загружаем количество проиндексированных файлов
+      // Загружаем количество проиндексированных файлов и inbox
       await _refreshIndexedCount();
+      await _refreshInboxCount();
       if (!mounted) return;
 
       final startResult = await coordinator.start();
@@ -82,8 +101,8 @@ class _MainScreenState extends State<MainScreen> {
             _status = 'Новый файл обнаружен';
           });
 
-          // Показываем диалог описания файла
-          _showDescriptionDialog(event);
+          // Тихо индексируем файл в Inbox (без всплывающих окон)
+          unawaited(_silentlyIndexForReview(event));
         },
         onError: (Object error, StackTrace st) {
           root.logger.e('Stream error in UI', error: error, stackTrace: st);
@@ -94,10 +113,34 @@ class _MainScreenState extends State<MainScreen> {
         },
       );
 
+      // Подписываемся на события удаления
+      _removedSub = coordinator.fileRemovedEvents.listen(
+        (event) {
+          root.logger.i('File removed: ${event.fileName}');
+          unawaited(_onFileRemoved(event));
+        },
+      );
+
+      // Подписываемся на смену папки наблюдения
+      _watchPathChangedSub = coordinator.watchPathChangedEvents.listen(
+        (newWatchDir) {
+          root.logger.i('Watch path changed to: $newWatchDir');
+          if (!mounted) return;
+          setState(() {
+            _status = 'Папка изменена. Ожидаю файлы…';
+            _lastFileName = null;
+            _indexedCount = 0;
+          });
+        },
+      );
+
       if (!mounted) return;
       setState(() {
         _status = 'Готово. Ожидаю файлы…';
       });
+
+      // Одноразовое уведомление о слабом ПК
+      unawaited(_showLowRamNotificationIfNeeded());
     } catch (e, st) {
       root.logger.e('Init failed', error: e, stackTrace: st);
       if (!mounted) return;
@@ -107,11 +150,13 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  /// Показывает диалог ввода описания для нового файла.
-  Future<void> _showDescriptionDialog(FileAddedUiEvent event) async {
+  /// Тихо индексирует файл для последующего ревью в Inbox.
+  ///
+  /// Никаких всплывающих окон — файл сразу попадает в индекс
+  /// с пометкой «требует внимания».
+  Future<void> _silentlyIndexForReview(FileAddedUiEvent event) async {
     if (!mounted) return;
 
-    // Не индексируем файлы без пути
     final filePath = event.fullPath;
     if (filePath == null || filePath.isEmpty) {
       final root = AppScope.of(context);
@@ -119,55 +164,72 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    // Предотвращаем наслаивание диалогов при серии событий
-    if (_isDescriptionDialogOpen) return;
-    _isDescriptionDialogOpen = true;
-
     final root = AppScope.of(context);
     try {
-      final result = await FileDescriptionDialog.show(
-        context,
-        fileName: event.fileName,
-        filePath: filePath,
-      );
-
-      if (result == null) {
-        // Пользователь закрыл диалог — индексируем с пустым описанием
-        root.logger.d('Description dialog dismissed for ${event.fileName}');
-        return;
+      // Проверка лимита индексации Basic-режима
+      if (!root.licenseCoordinator.isPro &&
+          !root.licenseCoordinator.isProTrial) {
+        final count = await root.indexer.getIndexedCount();
+        if (count >= FreeTierLimits.maxIndexedFiles) {
+          root.logger.i(
+            'Indexing limit reached ($count), skipping: ${event.fileName}',
+          );
+          return;
+        }
       }
 
-      // Индексируем файл с описанием
-      final success = await root.indexer.indexFile(
-        result.filePath,
-        fileName: result.fileName,
-        description: result.description,
+      final success = await root.indexer.indexFileForReview(
+        filePath,
+        fileName: event.fileName,
       );
 
       if (!mounted) return;
 
       if (success) {
-        root.logger.i('File indexed: ${result.fileName}');
-        await _refreshIndexedCount();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Файл проиндексирован: ${result.fileName}'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        root.logger.i('File indexed for review: ${event.fileName}');
+        // Запускаем обогащение контента (text extraction, embeddings и т.д.)
+        root.contentEnrichmentCoordinator.enqueueFile(
+          filePath,
+          event.fileName,
         );
+        _scheduleCounterRefresh();
       } else {
-        root.logger.w('Failed to index file: ${result.fileName}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка индексации: ${result.fileName}'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        root.logger.w('Failed to index file for review: ${event.fileName}');
       }
-    } finally {
-      _isDescriptionDialogOpen = false;
+    } catch (e, st) {
+      root.logger.e(
+        'Error indexing file for review: ${event.fileName}',
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  /// Обрабатывает событие удаления файла — удаляет из индекса.
+  Future<void> _onFileRemoved(FileRemovedUiEvent event) async {
+    if (!mounted) return;
+
+    final filePath = event.fullPath;
+    if (filePath == null || filePath.isEmpty) return;
+
+    final root = AppScope.of(context);
+    try {
+      await root.indexer.removeFromIndex(filePath);
+      root.logger.i('File removed from index: ${event.fileName}');
+      _scheduleCounterRefresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Файл удалён из индекса: ${event.fileName}'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e, st) {
+      root.logger.e(
+        'Failed to remove file from index: ${event.fileName}',
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 
@@ -187,10 +249,46 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  /// Обновить счётчик файлов, требующих внимания.
+  Future<void> _refreshInboxCount() async {
+    if (!mounted) return;
+    final root = AppScope.of(context);
+    try {
+      final count = await root.indexer.getFilesNeedingReviewCount();
+      if (mounted) {
+        setState(() {
+          _inboxCount = count;
+        });
+      }
+    } catch (e) {
+      root.logger.w('Failed to get inbox count', error: e);
+    }
+  }
+
+  /// Дебаунс обновления счётчиков при массовом добавлении/удалении файлов.
+  ///
+  /// При burst-событиях (11 файлов за раз) запускает один refresh
+  /// через 300 мс после последнего события, вместо 22 синхронных запросов.
+  void _scheduleCounterRefresh() {
+    _refreshDebounce?.cancel();
+    _refreshDebounce = Timer(const Duration(milliseconds: 300), () async {
+      await _refreshIndexedCount();
+      await _refreshInboxCount();
+    });
+  }
+
   @override
   void dispose() {
+    _refreshDebounce?.cancel();
+    _refreshDebounce = null;
     _sub?.cancel();
     _sub = null;
+    _removedSub?.cancel();
+    _removedSub = null;
+    _watchPathChangedSub?.cancel();
+    _watchPathChangedSub = null;
+    _configSub?.cancel();
+    _configSub = null;
 
     final coordinator = _coordinator;
     if (coordinator != null) {
@@ -213,6 +311,143 @@ class _MainScreenState extends State<MainScreen> {
     return error.toString();
   }
 
+  /// Баннер «Пробный период завершён — кастомная папка заблокирована».
+  ///
+  /// Показывается только когда:
+  ///  - лицензия Basic (триал истёк)
+  ///  - И установлена произвольная папка (не null)
+  Widget _buildTrialExpiredBannerIfNeeded(
+    BuildContext context,
+    AppCompositionRoot root,
+    AppConfig config,
+    ThemeData theme,
+  ) {
+    final license = root.licenseCoordinator.currentLicense;
+    if (license.mode != LicenseMode.basic) return const SizedBox.shrink();
+
+    // Показываем баннер только если установлена кастомная папка
+    final watchPath = config.watchPath;
+    if (watchPath == null || watchPath.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        Material(
+          elevation: 0,
+          color: theme.colorScheme.errorContainer,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: theme.colorScheme.onErrorContainer, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Пробный период PRO завершён',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Произвольная папка наблюдения — функция PRO. '
+                  'Ваши данные сохранены. Переключитесь на папку по умолчанию '
+                  'или оформите PRO.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onErrorContainer,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onErrorContainer,
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () => _switchToDefaultFolder(root),
+                      child: const Text('Использовать папку по умолчанию'),
+                    ),
+                    const SizedBox(width: 16),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.onErrorContainer,
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/settings'),
+                      child: const Text('Перейти на PRO'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  /// Переключить папку наблюдения на дефолтную (после окончания триала).
+  Future<void> _switchToDefaultFolder(AppCompositionRoot root) async {
+    try {
+      await root.configService.updateValue(clearWatchPath: true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Папка сброшена на значение по умолчанию'),
+          ),
+        );
+        setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Показывает одноразовое уведомление, если ПК имеет мало RAM.
+  Future<void> _showLowRamNotificationIfNeeded() async {
+    if (!mounted) return;
+    final root = AppScope.of(context);
+    if (!root.isHardwareConstrained) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    const key = 'latera_low_ram_notified';
+    if (prefs.getBool(key) == true) return;
+    await prefs.setBool(key, true);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'На вашем ПК обнаружено менее 6 ГБ ОЗУ. Приложение работает в режиме Basic '
+          'с отключёнными ресурсоёмкими функциями. Для режима PRO и локального AI '
+          'рекомендуется увеличить объём ОЗУ.',
+        ),
+        duration: Duration(seconds: 10),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final root = AppScope.of(context);
@@ -223,6 +458,8 @@ class _MainScreenState extends State<MainScreen> {
       appBar: AppBar(
         title: const Text('Latera'),
         actions: [
+          LicenseBadge(licenseCoordinator: root.licenseCoordinator),
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Настройки',
@@ -237,6 +474,9 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Баннер: пробный период закончился, кастомная папка заблокирована
+            _buildTrialExpiredBannerIfNeeded(context, root, config, theme),
+
             // Поисковая кнопка — основное CTA
             SizedBox(
               width: double.infinity,
@@ -252,12 +492,94 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // Кнопка Inbox — «Требуют внимания»
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await Navigator.pushNamed(context, '/inbox');
+                  // Обновляем счётчики после возврата из Inbox
+                  unawaited(_refreshIndexedCount());
+                  unawaited(_refreshInboxCount());
+                },
+                icon: const Icon(Icons.inbox_outlined),
+                label: Text(
+                  _inboxCount > 0
+                      ? 'Требуют внимания ($_inboxCount)'
+                      : 'Требуют внимания',
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: theme.textTheme.titleSmall,
+                  side: _inboxCount > 0
+                      ? BorderSide(color: theme.colorScheme.primary, width: 2)
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // RAG кнопка — «Спроси свою папку»
+            Builder(
+              builder: (context) {
+                final isBasic = root.licenseCoordinator.currentLicense.mode ==
+                    LicenseMode.basic;
+                final isEnabled =
+                    !isBasic && config.isFeatureEffectivelyEnabled(ContentFeature.rag);
+
+                return Opacity(
+                  opacity: isBasic ? 0.5 : 1.0,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: isEnabled
+                          ? () {
+                              Navigator.pushNamed(context, '/rag');
+                            }
+                          : isBasic
+                              ? () {
+                                  // В Basic-режиме открываем RAG-экран с заглушкой
+                                  Navigator.pushNamed(context, '/rag');
+                                }
+                              : null,
+                      icon: Icon(isBasic ? Icons.lock_outline : Icons.psychology),
+                      label: Text(
+                        isBasic
+                            ? 'Спроси свою папку (PRO)'
+                            : config.isFeatureEffectivelyEnabled(ContentFeature.rag)
+                                ? 'Спроси свою папку'
+                                : 'Спроси свою папку (выкл.)',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        textStyle: theme.textTheme.titleSmall,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 24),
 
             // Статус
             Text(_status, style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             )),
+            const SizedBox(height: 12),
+
+            // Прогресс обработки файлов (pill + status bar)
+            ProcessingStatusBar(
+              progressStream:
+                  root.contentEnrichmentCoordinator.progressStream,
+              initialProgress:
+                  root.contentEnrichmentCoordinator.currentProgress,
+            ),
+            const SizedBox(height: 8),
+
+            // Баннер ошибки загрузки AI-модели (если есть)
+            const ModelDownloadFailureBanner(),
             const SizedBox(height: 12),
 
             // Карточки с информацией

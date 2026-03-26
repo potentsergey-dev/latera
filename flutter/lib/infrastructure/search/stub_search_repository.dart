@@ -36,4 +36,20 @@ class StubSearchRepository implements SearchRepository {
     );
     return null;
   }
+
+  @override
+  Future<List<SearchResult>> semanticSearch(String query, {int limit = 20}) async {
+    _log.w(
+      'SQLite is not connected yet. semanticSearch(query=$query) returning empty list.',
+    );
+    return [];
+  }
+
+  @override
+  Future<List<SearchResult>> findSimilarFiles(String filePath, {int limit = 10}) async {
+    _log.w(
+      'SQLite is not connected yet. findSimilarFiles(filePath=$filePath) returning empty list.',
+    );
+    return [];
+  }
 }

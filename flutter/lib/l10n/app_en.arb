@@ -1,0 +1,435 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Latera",
+  "@appTitle": { "description": "Application title" },
+
+  "buttonStart": "Start",
+  "@buttonStart": { "description": "Start button label" },
+
+  "buttonSave": "Save",
+  "@buttonSave": { "description": "Save button label" },
+
+  "buttonSearch": "Search",
+  "@buttonSearch": { "description": "Search button label" },
+
+  "buttonRetry": "Retry",
+  "@buttonRetry": { "description": "Retry button label" },
+
+  "onboardingTitle": "Welcome to Latera",
+  "@onboardingTitle": { "description": "Onboarding screen title" },
+
+  "onboardingSubtitle": "Your intelligent document assistant",
+  "@onboardingSubtitle": { "description": "Onboarding screen subtitle" },
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": { "description": "Settings screen title" },
+
+  "needsAttentionTitle": "Needs Attention",
+  "@needsAttentionTitle": { "description": "Needs Attention section title" },
+
+  "initializationError": "Initialization error",
+  "@initializationError": { "description": "Error title shown when app fails to initialize" },
+
+  "onboardingDescription": "App for tracking new files in a folder.\nSelect a folder to watch:",
+  "@onboardingDescription": { "description": "Onboarding screen description" },
+
+  "onboardingWhatTracksTitle": "What the app tracks",
+  "@onboardingWhatTracksTitle": { "description": "Section title: what is monitored" },
+
+  "onboardingWhatTracksItem1": "Only new files in the selected folder",
+  "@onboardingWhatTracksItem1": { "description": "Tracking info bullet 1" },
+
+  "onboardingWhatTracksItem2": "File names and paths for search",
+  "@onboardingWhatTracksItem2": { "description": "Tracking info bullet 2" },
+
+  "onboardingWhatTracksItem3": "Content is processed locally",
+  "@onboardingWhatTracksItem3": { "description": "Tracking info bullet 3" },
+
+  "onboardingPrivacyTitle": "Privacy",
+  "@onboardingPrivacyTitle": { "description": "Section title: privacy" },
+
+  "onboardingPrivacyItem1": "Data does not leave your device",
+  "@onboardingPrivacyItem1": { "description": "Privacy bullet 1" },
+
+  "onboardingPrivacyItem2": "Files and their content are not sent to the internet",
+  "@onboardingPrivacyItem2": { "description": "Privacy bullet 2" },
+
+  "onboardingDataStorageTitle": "Where data is stored",
+  "@onboardingDataStorageTitle": { "description": "Section title: data storage" },
+
+  "onboardingIndexLocation": "Index:",
+  "@onboardingIndexLocation": { "description": "Label for index path" },
+
+  "onboardingSettingsStorage": "Settings: local storage",
+  "@onboardingSettingsStorage": { "description": "Settings storage info" },
+
+  "onboardingFolderSectionTitle": "Watch folder",
+  "@onboardingFolderSectionTitle": { "description": "Section title: folder selection" },
+
+  "onboardingSelectFolder": "Select folder...",
+  "@onboardingSelectFolder": { "description": "Button to pick a folder" },
+
+  "onboardingCustomFolderProBadge": "PRO",
+  "@onboardingCustomFolderProBadge": { "description": "PRO badge label next to custom folder selector" },
+
+  "onboardingCustomFolderProHint": "Available in PRO trial — any folder",
+  "@onboardingCustomFolderProHint": { "description": "Hint shown on custom folder option during PRO trial" },
+
+  "onboardingCustomFolderLockedHint": "Requires PRO — upgrade to use a custom folder",
+  "@onboardingCustomFolderLockedHint": { "description": "Hint shown on disabled custom folder option for free users" },
+
+  "onboardingUseDefault": "Use default",
+  "@onboardingUseDefault": { "description": "Use default folder option" },
+
+  "onboardingStartButton": "Start working",
+  "@onboardingStartButton": { "description": "Onboarding accept/start button" },
+
+  "onboardingChangeLater": "You can change the folder later in settings",
+  "@onboardingChangeLater": { "description": "Hint below the start button" },
+
+  "onboardingLoading": "Loading...",
+  "@onboardingLoading": { "description": "Generic loading label" },
+
+  "onboardingLoadError": "Loading error: {error}",
+  "@onboardingLoadError": { "description": "Error loading default path", "placeholders": { "error": { "type": "String" } } },
+
+  "onboardingFolderPickError": "Error selecting folder: {error}",
+  "@onboardingFolderPickError": { "description": "Error picking folder", "placeholders": { "error": { "type": "String" } } },
+
+  "onboardingDefaultPathUnavailable": "Default path could not be loaded. Please select a folder manually.",
+  "@onboardingDefaultPathUnavailable": { "description": "Warning when default path fails" },
+
+  "onboardingSaveError": "Error saving settings: {error}",
+  "@onboardingSaveError": { "description": "Error saving onboarding config", "placeholders": { "error": { "type": "String" } } },
+
+  "settingsSectionWatchFolder": "Watch folder",
+  "@settingsSectionWatchFolder": { "description": "Settings section: watch folder" },
+
+  "settingsCurrentPath": "Current path",
+  "@settingsCurrentPath": { "description": "Label for current watch path" },
+
+  "settingsNotConfigured": "Not configured",
+  "@settingsNotConfigured": { "description": "Shown when watch folder is not set" },
+
+  "settingsSelectFolder": "Select folder",
+  "@settingsSelectFolder": { "description": "Button to select watch folder" },
+
+  "settingsSelectFolderHint": "Choose a folder to monitor for new files",
+  "@settingsSelectFolderHint": { "description": "Subtitle for select folder tile" },
+
+  "settingsOpenInExplorer": "Open in Explorer",
+  "@settingsOpenInExplorer": { "description": "Open folder in file manager" },
+
+  "settingsOpenInExplorerHint": "Open folder in file manager",
+  "@settingsOpenInExplorerHint": { "description": "Subtitle for open folder tile" },
+
+  "settingsSelectFolderFirst": "Select a watch folder first",
+  "@settingsSelectFolderFirst": { "description": "Hint when no folder is selected" },
+
+  "settingsSectionNotifications": "Notifications",
+  "@settingsSectionNotifications": { "description": "Settings section: notifications" },
+
+  "settingsShowNotifications": "Show notifications",
+  "@settingsShowNotifications": { "description": "Toggle label for notifications" },
+
+  "settingsShowNotificationsHint": "Notifications about new files in folder",
+  "@settingsShowNotificationsHint": { "description": "Subtitle for notifications toggle" },
+
+  "settingsSectionPerformance": "Performance",
+  "@settingsSectionPerformance": { "description": "Settings section: performance" },
+
+  "settingsResourceSaver": "Resource saving",
+  "@settingsResourceSaver": { "description": "Toggle label for resource saving mode" },
+
+  "settingsResourceSaverOnHint": "Heavy features disabled, limits reduced",
+  "@settingsResourceSaverOnHint": { "description": "Subtitle when resource saver is ON" },
+
+  "settingsResourceSaverOffHint": "Disable resource-intensive features for low-end PCs",
+  "@settingsResourceSaverOffHint": { "description": "Subtitle when resource saver is OFF" },
+
+  "settingsSectionContentProcessing": "Content processing",
+  "@settingsSectionContentProcessing": { "description": "Settings section: content processing" },
+
+  "settingsTextExtraction": "Text extraction",
+  "@settingsTextExtraction": { "description": "Toggle label for text extraction" },
+
+  "settingsTextExtractionHint": "Search by content of PDF, DOCX and others",
+  "@settingsTextExtractionHint": { "description": "Subtitle for text extraction toggle" },
+
+  "settingsOcr": "Text recognition (OCR)",
+  "@settingsOcr": { "description": "Toggle label for OCR" },
+
+  "settingsOcrHint": "Text from screenshots, scans and photos",
+  "@settingsOcrHint": { "description": "Subtitle for OCR toggle" },
+
+  "settingsSemanticSearch": "Semantic search",
+  "@settingsSemanticSearch": { "description": "Toggle label for semantic search" },
+
+  "settingsSemanticSearchHint": "Find similar documents by meaning",
+  "@settingsSemanticSearchHint": { "description": "Subtitle for semantic search toggle" },
+
+  "settingsTranscription": "Media transcription (Whisper)",
+  "@settingsTranscription": { "description": "Toggle label for media transcription" },
+
+  "settingsTranscriptionHint": "Search by audio and video content",
+  "@settingsTranscriptionHint": { "description": "Subtitle for transcription toggle" },
+
+  "settingsRag": "Ask your folder (RAG)",
+  "@settingsRag": { "description": "Toggle label for RAG" },
+
+  "settingsRagHint": "Chat with answers from your files",
+  "@settingsRagHint": { "description": "Subtitle for RAG toggle" },
+
+  "settingsAutoDescriptions": "Automatic descriptions",
+  "@settingsAutoDescriptions": { "description": "Toggle label for auto descriptions" },
+
+  "settingsAutoDescriptionsHint": "Auto-summary of documents",
+  "@settingsAutoDescriptionsHint": { "description": "Subtitle for auto descriptions toggle" },
+
+  "settingsAutoTags": "Automatic tags",
+  "@settingsAutoTags": { "description": "Toggle label for auto tags" },
+
+  "settingsAutoTagsHint": "Auto-assign tags by content",
+  "@settingsAutoTagsHint": { "description": "Subtitle for auto tags toggle" },
+
+  "settingsComingSoon": "soon",
+  "@settingsComingSoon": { "description": "Badge label for features not yet available" },
+
+  "settingsDisabledByResourceSaver": "disabled by resource saving mode",
+  "@settingsDisabledByResourceSaver": { "description": "Suffix when feature is overridden by resource saver" },
+
+  "settingsSectionAdvanced": "Advanced",
+  "@settingsSectionAdvanced": { "description": "Settings section: advanced" },
+
+  "settingsResetSettings": "Reset settings",
+  "@settingsResetSettings": { "description": "Button to reset all settings" },
+
+  "settingsResetHint": "Return all settings to defaults",
+  "@settingsResetHint": { "description": "Subtitle for reset button" },
+
+  "settingsResetConfirmTitle": "Reset settings?",
+  "@settingsResetConfirmTitle": { "description": "Reset confirmation dialog title" },
+
+  "settingsResetConfirmBody": "All settings will be returned to defaults. The watch folder will be reset.",
+  "@settingsResetConfirmBody": { "description": "Reset confirmation dialog body" },
+
+  "settingsResetDone": "Settings reset",
+  "@settingsResetDone": { "description": "Snackbar after settings reset" },
+
+  "settingsVersion": "Version",
+  "@settingsVersion": { "description": "App version label" },
+
+  "settingsFolderChanged": "Folder changed: {path}",
+  "@settingsFolderChanged": { "description": "Snackbar after folder change", "placeholders": { "path": { "type": "String" } } },
+
+  "settingsChangeFolderConfirmTitle": "Change watch folder?",
+  "@settingsChangeFolderConfirmTitle": { "description": "Confirmation dialog title when changing watch folder" },
+
+  "settingsChangeFolderConfirmBody": "Previously indexed files from the current folder will be removed from the search index. They won't be deleted from disk.\n\nNew folder: {path}",
+  "@settingsChangeFolderConfirmBody": { "description": "Confirmation dialog body when changing watch folder", "placeholders": { "path": { "type": "String" } } },
+
+  "settingsChangeFolderConfirmButton": "Change folder",
+  "@settingsChangeFolderConfirmButton": { "description": "Confirmation button in change folder dialog" },
+
+  "settingsFolderPickError": "Error selecting folder: {error}",
+  "@settingsFolderPickError": { "description": "Error picking folder", "placeholders": { "error": { "type": "String" } } },
+
+  "settingsFolderNotSelected": "Folder not selected",
+  "@settingsFolderNotSelected": { "description": "Error when trying to open unselected folder" },
+
+  "settingsFolderNotExists": "Folder does not exist: {path}",
+  "@settingsFolderNotExists": { "description": "Error when folder does not exist", "placeholders": { "path": { "type": "String" } } },
+
+  "settingsPathDangerousChars": "Path contains invalid characters",
+  "@settingsPathDangerousChars": { "description": "Error for dangerous path chars" },
+
+  "settingsOpenFolderError": "Error opening folder: {error}",
+  "@settingsOpenFolderError": { "description": "Error opening folder", "placeholders": { "error": { "type": "String" } } },
+
+  "settingsLoadError": "Error loading settings",
+  "@settingsLoadError": { "description": "Error title when settings fail to load" },
+
+  "buttonCancel": "Cancel",
+  "@buttonCancel": { "description": "Cancel button label" },
+
+  "buttonReset": "Reset",
+  "@buttonReset": { "description": "Reset button label" },
+
+  "trayShowWindow": "Open Latera",
+  "@trayShowWindow": { "description": "Tray menu: show main window" },
+
+  "trayQuit": "Quit",
+  "@trayQuit": { "description": "Tray menu: quit application" },
+
+  "notificationFileNeedsReviewTitle": "File added without recognition",
+  "@notificationFileNeedsReviewTitle": { "description": "Notification title when file could not be parsed" },
+
+  "notificationFileNeedsReviewBody": "File {fileName} added without recognition. Please add a description manually.",
+  "@notificationFileNeedsReviewBody": { "description": "Notification body for unrecognized file", "placeholders": { "fileName": { "type": "String" } } },
+
+  "settingsSectionLicense": "License",
+  "@settingsSectionLicense": { "description": "Settings section: license" },
+
+  "settingsSectionLegal": "Legal",
+  "@settingsSectionLegal": { "description": "Settings section: legal information" },
+
+  "settingsPrivacyPolicy": "Privacy Policy",
+  "@settingsPrivacyPolicy": { "description": "Link to privacy policy" },
+
+  "settingsTermsOfUse": "Terms of Use",
+  "@settingsTermsOfUse": { "description": "Link to terms of use" },
+
+  "licenseCurrentMode": "Current mode: ",
+  "@licenseCurrentMode": { "description": "Label before license badge" },
+
+  "licenseDescriptionPro": "PRO license active. All features available without restrictions.",
+  "@licenseDescriptionPro": { "description": "Description for PRO mode" },
+
+  "licenseDescriptionTrial": "PRO trial period ({days} days remaining). All features available. After the trial ends, the app will switch to Basic mode with file limits and restricted features.",
+  "@licenseDescriptionTrial": { "description": "Description for trial mode", "placeholders": { "days": { "type": "int" } } },
+
+  "licenseDescriptionBasic": "Free version with restrictions: file index limit, resource-intensive features disabled (semantic search, auto-descriptions, transcription).",
+  "@licenseDescriptionBasic": { "description": "Description for basic mode" },
+
+  "licenseHardwareConstraintsTitle": "Hardware constraints",
+  "@licenseHardwareConstraintsTitle": { "description": "Title for hardware constraint notice" },
+
+  "licenseHardwareConstraintsBody": "Less than 6 GB RAM detected. PRO features are unavailable regardless of license status.",
+  "@licenseHardwareConstraintsBody": { "description": "Body for hardware constraint notice" },
+
+  "licenseBuyPro": "Buy PRO — one-time purchase",
+  "@licenseBuyPro": { "description": "Buy PRO button label" },
+
+  "licensePurchasing": "Processing...",
+  "@licensePurchasing": { "description": "Buy button label while purchasing" },
+
+  "licenseRestorePurchases": "Restore purchase",
+  "@licenseRestorePurchases": { "description": "Restore purchases button label" },
+
+  "licenseRestoring": "Checking...",
+  "@licenseRestoring": { "description": "Restore button label while checking" },
+
+  "licenseActivatedTitle": "PRO activated!",
+  "@licenseActivatedTitle": { "description": "Dialog title after successful purchase" },
+
+  "licenseActivatedBody": "Thank you for your purchase. All PRO features are now available.",
+  "@licenseActivatedBody": { "description": "Dialog body after successful purchase" },
+
+  "licenseRestoredTitle": "Purchase restored!",
+  "@licenseRestoredTitle": { "description": "Dialog title after successful restore" },
+
+  "licenseRestoredBody": "PRO version successfully restored. All features are available.",
+  "@licenseRestoredBody": { "description": "Dialog body after successful restore" },
+
+  "licenseRestoreNotFound": "PRO purchase not found in Microsoft Store.",
+  "@licenseRestoreNotFound": { "description": "Snackbar when restore finds no purchase" },
+
+  "licenseRestoreError": "Error restoring purchase: {error}",
+  "@licenseRestoreError": { "description": "Snackbar on restore error", "placeholders": { "error": { "type": "String" } } },
+
+  "licenseStoreUnavailable": "Microsoft Store is unavailable. Make sure the app was installed from the Store.",
+  "@licenseStoreUnavailable": { "description": "Error when Store is not reachable" },
+
+  "licensePurchaseError": "Purchase error: {error}",
+  "@licensePurchaseError": { "description": "Error during purchase", "placeholders": { "error": { "type": "String" } } },
+
+  "trialExpiredCustomFolderBannerTitle": "PRO trial expired",
+  "@trialExpiredCustomFolderBannerTitle": { "description": "Banner title when trial expired and custom folder is in use" },
+
+  "trialExpiredCustomFolderBannerBody": "The custom watch folder is a PRO feature. Your indexed data is preserved. Switch to the default folder or upgrade to PRO to continue.",
+  "@trialExpiredCustomFolderBannerBody": { "description": "Banner body when trial expired and custom folder is in use" },
+
+  "trialExpiredSwitchToDefault": "Use default folder",
+  "@trialExpiredSwitchToDefault": { "description": "Action button: switch to default folder after trial expiry" },
+
+  "trialExpiredUpgradePro": "Upgrade to PRO",
+  "@trialExpiredUpgradePro": { "description": "Action button: upgrade to PRO after trial expiry" },
+
+  "settingsSectionLanguage": "Language",
+  "@settingsSectionLanguage": { "description": "Settings section: language" },
+
+  "settingsLanguage": "Interface language",
+  "@settingsLanguage": { "description": "Language picker label" },
+
+  "settingsLanguageHint": "Select the app display language",
+  "@settingsLanguageHint": { "description": "Language picker hint" },
+
+  "settingsLanguageSystem": "System default",
+  "@settingsLanguageSystem": { "description": "Use system locale" },
+
+  "settingsLanguageRestartHint": "Restart the app to apply the new language",
+  "@settingsLanguageRestartHint": { "description": "Hint about restart" },
+
+  "onboardingAiModelsTitle": "AI Models",
+  "@onboardingAiModelsTitle": { "description": "Section title: AI models" },
+
+  "onboardingAiModelsItem1": "AI models (~1.8 GB) are downloaded on first launch",
+  "@onboardingAiModelsItem1": { "description": "AI models info bullet 1" },
+
+  "onboardingAiModelsItem2": "Models are used for semantic search and document summaries",
+  "@onboardingAiModelsItem2": { "description": "AI models info bullet 2" },
+
+  "onboardingAiModelsItem3": "Download source: Hugging Face (public repository)",
+  "@onboardingAiModelsItem3": { "description": "AI models info bullet 3" },
+
+  "onboardingModelsLocation": "Models:",
+  "@onboardingModelsLocation": { "description": "Label for models path" },
+
+  "onboardingPrivacyItem3": "AI models are downloaded once — no ongoing data transfer",
+  "@onboardingPrivacyItem3": { "description": "Privacy bullet 3" },
+
+  "downloadFailedTitle": "Download failed",
+  "@downloadFailedTitle": { "description": "Title shown when model download fails" },
+
+  "downloadFailedEmbedding": "Failed to download the embedding model. Semantic search will not work until the model is downloaded.",
+  "@downloadFailedEmbedding": { "description": "Error detail for embedding model download failure" },
+
+  "downloadFailedGguf": "Failed to download the generative model. Summaries, tags, and RAG chat will not work until the model is downloaded.",
+  "@downloadFailedGguf": { "description": "Error detail for GGUF model download failure" },
+
+  "downloadRetryButton": "Retry download",
+  "@downloadRetryButton": { "description": "Button to retry failed model download" },
+
+  "downloadSkippedLowRam": "Generative AI model skipped: less than 6 GB RAM detected ({ramMb} MB). Summaries, tags, and RAG chat are disabled.",
+  "@downloadSkippedLowRam": { "description": "Info shown when GGUF skipped due to low RAM", "placeholders": { "ramMb": { "type": "int" } } },
+
+  "downloadSkippedLowDisk": "Generative AI model skipped: not enough free disk space (need at least 2 GB). Free up space and restart the app.",
+  "@downloadSkippedLowDisk": { "description": "Info shown when GGUF skipped due to low disk" },
+
+  "errorModelNotLoaded": "AI model is not loaded. Please wait for the download to complete or retry in Settings.",
+  "@errorModelNotLoaded": { "description": "Error when trying to use a feature that requires a model not yet loaded" },
+
+  "errorInsufficientRam": "Not enough RAM for this operation. Close other applications and try again.",
+  "@errorInsufficientRam": { "description": "Error when operation fails due to low RAM" },
+
+  "errorInsufficientDisk": "Not enough free disk space. Free up at least 2 GB and try again.",
+  "@errorInsufficientDisk": { "description": "Error when disk space is insufficient" },
+
+  "errorNetworkUnavailable": "Network connection failed. Check your internet connection and try again.",
+  "@errorNetworkUnavailable": { "description": "Error when network is unavailable" },
+
+  "settingsAiModelsStatus": "AI Models",
+  "@settingsAiModelsStatus": { "description": "Settings section: AI models status" },
+
+  "settingsEmbeddingModelReady": "Embedding model: ready",
+  "@settingsEmbeddingModelReady": { "description": "Status when embedding model is available" },
+
+  "settingsEmbeddingModelMissing": "Embedding model: not downloaded",
+  "@settingsEmbeddingModelMissing": { "description": "Status when embedding model is missing" },
+
+  "settingsGgufModelReady": "Generative model: ready",
+  "@settingsGgufModelReady": { "description": "Status when GGUF model is available" },
+
+  "settingsGgufModelMissing": "Generative model: not downloaded",
+  "@settingsGgufModelMissing": { "description": "Status when GGUF model is missing" },
+
+  "settingsGgufModelSkippedRam": "Generative model: skipped (low RAM)",
+  "@settingsGgufModelSkippedRam": { "description": "Status when GGUF is skipped due to low RAM" },
+
+  "settingsGgufModelSkippedDisk": "Generative model: skipped (low disk space)",
+  "@settingsGgufModelSkippedDisk": { "description": "Status when GGUF is skipped due to low disk" },
+
+  "downloadFailedRetryHint": "Tap to retry download",
+  "@downloadFailedRetryHint": { "description": "Hint on a retry tile" }
+}

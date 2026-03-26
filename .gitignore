@@ -22,3 +22,21 @@ certs/
 *.pfx
 *.cer
 base64-cert.txt
+# ...existing code...
+rust/test_data/models/**/*.onnx
+# Логи сборки
+*.txt
+!**/*.md  # если хотите сохранить markdown файлы
+
+# Скомпилированные библиотеки
+*.dll
+*.exe
+*.pdb
+
+# Временные файлы сборки
+flutter/windows/runner/resources/*.dll
+flutter/windows/runner/resources/msix_images/
+flutter_build_out.txt
+cargo_build_release.txt
+msix_create_out.txt
+analyze_current.txt

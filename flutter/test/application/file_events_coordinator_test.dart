@@ -5,7 +5,9 @@ import 'package:latera/application/file_events_coordinator.dart';
 import 'package:latera/domain/app_config.dart';
 import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_added_event.dart';
+import 'package:latera/domain/file_removed_event.dart';
 import 'package:latera/domain/file_watcher.dart';
+import 'package:latera/domain/indexer.dart';
 import 'package:latera/domain/notifications_service.dart';
 import 'package:logger/logger.dart';
 
@@ -15,6 +17,8 @@ import 'package:logger/logger.dart';
 class MockFileWatcher implements FileWatcher {
   final StreamController<FileAddedEvent> _controller =
       StreamController<FileAddedEvent>.broadcast();
+  final StreamController<FileRemovedEvent> _removedController =
+      StreamController<FileRemovedEvent>.broadcast();
 
   bool startWatchingCalled = false;
   String? lastOverridePath;
@@ -28,6 +32,9 @@ class MockFileWatcher implements FileWatcher {
 
   @override
   Stream<FileAddedEvent> get fileAddedEvents => _controller.stream;
+
+  @override
+  Stream<FileRemovedEvent> get fileRemovedEvents => _removedController.stream;
 
   @override
   bool get isWatching => _isWatching;
@@ -65,6 +72,7 @@ class MockFileWatcher implements FileWatcher {
   /// Закрывает внутренний контроллер.
   Future<void> dispose() async {
     await _controller.close();
+    await _removedController.close();
   }
 }
 
@@ -85,6 +93,12 @@ class MockNotificationsService implements NotificationsService {
     showFileAddedCallCount++;
     shownFileNames.add(fileName);
   }
+
+  @override
+  Future<void> showFileNeedsReview({required String fileName}) async {}
+
+  @override
+  Future<void> showIndexingLimitReached() async {}
 
   @override
   Future<void> init() async {}
@@ -139,6 +153,21 @@ class MockConfigService implements ConfigService {
     String? language,
     bool clearWatchPath = false,
     bool clearLanguage = false,
+    // Производительность и контент
+    bool? resourceSaverEnabled,
+    bool? enableOfficeDocs,
+    bool? enableOcr,
+    bool? enableTranscription,
+    bool? enableEmbeddings,
+    bool? enableSemanticSimilarity,
+    bool? enableRag,
+    bool? enableAutoSummary,
+    bool? enableAutoTags,
+    // Лимиты
+    int? maxConcurrentJobs,
+    int? maxFileSizeMbForEnrichment,
+    int? maxMediaMinutes,
+    int? maxPagesPerPdf,
   }) async {
     // ВАЖНО: copyWith() не умеет устанавливать null.
     // Создаём AppConfig напрямую с явными значениями.
@@ -150,6 +179,19 @@ class MockConfigService implements ConfigService {
       logLevel: logLevel ?? _currentConfig.logLevel,
       theme: theme ?? _currentConfig.theme,
       language: clearLanguage ? null : (language ?? _currentConfig.language),
+      resourceSaverEnabled: resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
+      enableOfficeDocs: enableOfficeDocs ?? _currentConfig.enableOfficeDocs,
+      enableOcr: enableOcr ?? _currentConfig.enableOcr,
+      enableTranscription: enableTranscription ?? _currentConfig.enableTranscription,
+      enableEmbeddings: enableEmbeddings ?? _currentConfig.enableEmbeddings,
+      enableSemanticSimilarity: enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
+      enableRag: enableRag ?? _currentConfig.enableRag,
+      enableAutoSummary: enableAutoSummary ?? _currentConfig.enableAutoSummary,
+      enableAutoTags: enableAutoTags ?? _currentConfig.enableAutoTags,
+      maxConcurrentJobs: maxConcurrentJobs ?? _currentConfig.maxConcurrentJobs,
+      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? _currentConfig.maxFileSizeMbForEnrichment,
+      maxMediaMinutes: maxMediaMinutes ?? _currentConfig.maxMediaMinutes,
+      maxPagesPerPdf: maxPagesPerPdf ?? _currentConfig.maxPagesPerPdf,
     );
     _configController.add(_currentConfig);
   }
@@ -169,17 +211,122 @@ class MockConfigService implements ConfigService {
   }
 }
 
+/// Мок для [Indexer].
+///
+/// Позволяет проверять вызовы методов индексатора.
+class MockIndexer implements Indexer {
+  int clearIndexCallCount = 0;
+  int getIndexedCountCallCount = 0;
+  int _indexedCount = 0;
+  final List<String> removedFilePaths = [];
+  final List<String> indexedFilePaths = [];
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> indexFile(
+    String filePath, {
+    required String fileName,
+    required String description,
+  }) async {
+    indexedFilePaths.add(filePath);
+    _indexedCount++;
+    return true;
+  }
+
+  @override
+  Future<void> removeFromIndex(String filePath) async {
+    removedFilePaths.add(filePath);
+    if (_indexedCount > 0) _indexedCount--;
+  }
+
+  @override
+  Future<void> clearIndex() async {
+    clearIndexCallCount++;
+    _indexedCount = 0;
+  }
+
+  @override
+  Future<int> getIndexedCount() async {
+    getIndexedCountCallCount++;
+    return _indexedCount;
+  }
+
+  @override
+  Future<bool> isIndexed(String filePath) async {
+    return indexedFilePaths.contains(filePath);
+  }
+
+  @override
+  Future<void> updateTextContent(String filePath, String textContent) async {}
+
+  @override
+  Future<void> updateTranscriptText(String filePath, String transcript) async {}
+
+  @override
+  Future<String?> getTextContent(String filePath) async => null;
+
+  @override
+  Future<void> storeEmbeddings(
+    String filePath, {
+    required List<String> chunkTexts,
+    required List<int> chunkOffsets,
+    required List<List<double>> embeddingVectors,
+  }) async {}
+
+  @override
+  Future<bool> hasEmbeddings(String filePath) async => false;
+
+  @override
+  Future<bool> indexFileForReview(
+    String filePath, {
+    required String fileName,
+  }) async {
+    indexedFilePaths.add(filePath);
+    _indexedCount++;
+    return true;
+  }
+
+  @override
+  Future<List<InboxFile>> getFilesNeedingReview() async => [];
+
+  @override
+  Future<int> getFilesNeedingReviewCount() async => 0;
+
+  @override
+  Future<void> saveFileReview(
+    String filePath, {
+    required String description,
+    required String tags,
+  }) async {}
+
+  @override
+  Future<void> markFileEnriched(String filePath) async {}
+
+  @override
+  Future<void> updateDescription(String filePath, String description) async {}
+
+  @override
+  Future<void> updateTags(String filePath, String tags) async {}
+
+  @override
+  void dispose() {}
+}
+
 void main() {
   group('FileEventsCoordinator', () {
     late MockFileWatcher mockWatcher;
     late MockNotificationsService mockNotifications;
     late MockConfigService mockConfigService;
+    late MockIndexer mockIndexer;
     late Logger logger;
 
     setUp(() {
       mockWatcher = MockFileWatcher();
       mockNotifications = MockNotificationsService();
       mockConfigService = MockConfigService();
+      mockIndexer = MockIndexer();
       logger = Logger(printer: PrettyPrinter(methodCount: 0));
     });
 
@@ -195,6 +342,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         final result = await coordinator.start();
@@ -216,6 +364,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -229,6 +378,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -244,6 +394,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -259,6 +410,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -274,6 +426,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         // Первый цикл
@@ -301,6 +454,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -320,6 +474,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -337,6 +492,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -368,6 +524,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -397,6 +554,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -442,6 +600,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -478,6 +637,7 @@ void main() {
           watcher: mockWatcher,
           notifications: mockNotifications,
           configService: mockConfigService,
+          indexer: mockIndexer,
         );
 
         await coordinator.start();
@@ -494,6 +654,133 @@ void main() {
         // Watcher должен быть перезапущен
         expect(mockWatcher.startWatchingCallCount, 2);
         expect(mockWatcher.lastOverridePath, '/new/watch/path');
+
+        await coordinator.stop();
+      });
+
+      test('should clear index when watch path changes', () async {
+        final restarted = Completer<void>();
+        mockWatcher.onStartWatching = (callCount, overridePath) {
+          if (callCount >= 2 && !restarted.isCompleted) {
+            restarted.complete();
+          }
+        };
+
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+          indexer: mockIndexer,
+        );
+
+        await coordinator.start();
+
+        // Изменяем путь в конфигурации
+        mockConfigService.setConfig(const AppConfig(
+          watchPath: '/new/watch/path',
+        ));
+
+        await restarted.future.timeout(const Duration(seconds: 1));
+
+        // Индекс должен быть очищен при смене папки
+        expect(mockIndexer.clearIndexCallCount, 1);
+
+        await coordinator.stop();
+      });
+
+      test('should emit watchPathChanged event when path changes', () async {
+        final restarted = Completer<void>();
+        mockWatcher.onStartWatching = (callCount, overridePath) {
+          if (callCount >= 2 && !restarted.isCompleted) {
+            restarted.complete();
+          }
+        };
+
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+          indexer: mockIndexer,
+        );
+
+        await coordinator.start();
+
+        final pathChangeFuture = coordinator.watchPathChangedEvents.first
+            .timeout(const Duration(seconds: 1));
+
+        // Изменяем путь в конфигурации
+        mockConfigService.setConfig(const AppConfig(
+          watchPath: '/new/watch/path',
+        ));
+
+        final newPath = await pathChangeFuture;
+        expect(newPath, '/mock/watch/dir');
+
+        await coordinator.stop();
+      });
+
+      test('should clear index and emit event on start after path changed while stopped', () async {
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+          indexer: mockIndexer,
+        );
+
+        // Запускаем и останавливаем координатор (имитация ухода на Settings)
+        await coordinator.start();
+        await coordinator.stop();
+        expect(coordinator.isRunning, false);
+        expect(mockIndexer.clearIndexCallCount, 0);
+
+        // Меняем путь пока координатор остановлен
+        mockConfigService.setConfig(const AppConfig(
+          watchPath: '/new/watch/path',
+        ));
+        // Даём микротаскам отработать (listener _onConfigChanged)
+        await pumpEventQueue();
+
+        // Подписываемся на событие смены папки ДО старта
+        final pathChangeFuture = coordinator.watchPathChangedEvents.first
+            .timeout(const Duration(seconds: 1));
+
+        // Запускаем координатор снова (имитация возврата на главную)
+        final result = await coordinator.start();
+        expect(result, isA<CoordinatorStartSuccess>());
+
+        // Индекс должен быть очищен
+        expect(mockIndexer.clearIndexCallCount, 1);
+
+        // watchPathChanged должен быть эмитирован
+        final emittedPath = await pathChangeFuture;
+        expect(emittedPath, '/mock/watch/dir');
+
+        // Путь должен быть передан watcher'у
+        expect(mockWatcher.lastOverridePath, '/new/watch/path');
+
+        await coordinator.stop();
+      });
+
+      test('should not clear index on start if path did not change while stopped', () async {
+        final coordinator = FileEventsCoordinator(
+          logger: logger,
+          watcher: mockWatcher,
+          notifications: mockNotifications,
+          configService: mockConfigService,
+          indexer: mockIndexer,
+        );
+
+        // Запускаем, останавливаем, запускаем снова — без смены пути
+        await coordinator.start();
+        await coordinator.stop();
+        final result = await coordinator.start();
+
+        expect(result, isA<CoordinatorStartSuccess>());
+        // clearIndex НЕ должен вызываться
+        expect(mockIndexer.clearIndexCallCount, 0);
 
         await coordinator.stop();
       });

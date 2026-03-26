@@ -1,5 +1,6 @@
 import 'core_error.dart';
 import 'file_added_event.dart';
+import 'file_removed_event.dart';
 
 /// Результат запуска наблюдения.
 ///
@@ -26,6 +27,9 @@ abstract interface class FileWatcher {
   ///
   /// Может завершиться с ошибкой [StreamError].
   Stream<FileAddedEvent> get fileAddedEvents;
+
+  /// Поток событий удаления файлов.
+  Stream<FileRemovedEvent> get fileRemovedEvents;
 
   /// Запуск наблюдения.
   ///

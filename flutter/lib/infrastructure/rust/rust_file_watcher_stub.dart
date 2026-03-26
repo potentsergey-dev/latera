@@ -4,6 +4,7 @@ import 'package:logger/logger.dart';
 
 import '../../domain/core_error.dart';
 import '../../domain/file_added_event.dart';
+import '../../domain/file_removed_event.dart';
 import '../../domain/file_watcher.dart';
 
 /// Заглушка watcher.
@@ -15,6 +16,7 @@ import '../../domain/file_watcher.dart';
 class RustFileWatcherStub implements FileWatcher {
   final Logger _log;
   StreamController<FileAddedEvent>? _controller;
+  StreamController<FileRemovedEvent>? _removedController;
   bool _isWatching = false;
 
   /// Lazy-initialized broadcast controller.
@@ -30,6 +32,10 @@ class RustFileWatcherStub implements FileWatcher {
 
   @override
   Stream<FileAddedEvent> get fileAddedEvents => _eventsController.stream;
+
+  @override
+  Stream<FileRemovedEvent> get fileRemovedEvents =>
+      (_removedController ??= StreamController<FileRemovedEvent>.broadcast()).stream;
 
   @override
   bool get isWatching => _isWatching;
@@ -50,6 +56,9 @@ class RustFileWatcherStub implements FileWatcher {
     final c = _controller;
     _controller = null;
     await c?.close();
+    final rc = _removedController;
+    _removedController = null;
+    await rc?.close();
     return null;
   }
 }

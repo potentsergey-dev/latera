@@ -10,8 +10,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latera/domain/app_config.dart';
 import 'package:latera/domain/core_error.dart';
 import 'package:latera/domain/file_watcher.dart';
+import 'package:latera/domain/indexer.dart';
 import 'package:latera/domain/notifications_service.dart';
 import 'package:latera/domain/file_added_event.dart';
+import 'package:latera/domain/file_removed_event.dart';
 import 'package:latera/application/file_events_coordinator.dart';
 import 'package:logger/logger.dart';
 
@@ -19,6 +21,8 @@ import 'package:logger/logger.dart';
 class E2EMockFileWatcher implements FileWatcher {
   final StreamController<FileAddedEvent> _controller =
       StreamController<FileAddedEvent>.broadcast();
+  final StreamController<FileRemovedEvent> _removedController =
+      StreamController<FileRemovedEvent>.broadcast();
   bool _isStarted = false;
   String? _watchPath;
 
@@ -30,6 +34,9 @@ class E2EMockFileWatcher implements FileWatcher {
 
   @override
   Stream<FileAddedEvent> get fileAddedEvents => _controller.stream;
+
+  @override
+  Stream<FileRemovedEvent> get fileRemovedEvents => _removedController.stream;
 
   @override
   Future<WatchResult> startWatching({String? overridePath}) async {
@@ -51,6 +58,7 @@ class E2EMockFileWatcher implements FileWatcher {
 
   void dispose() {
     _controller.close();
+    _removedController.close();
   }
 }
 
@@ -64,6 +72,16 @@ class E2EMockNotificationsService implements NotificationsService {
   @override
   Future<void> showFileAdded({required String fileName}) async {
     _shownNotifications.add(fileName);
+  }
+
+  @override
+  Future<void> showFileNeedsReview({required String fileName}) async {
+    _shownNotifications.add('needs_review:$fileName');
+  }
+
+  @override
+  Future<void> showIndexingLimitReached() async {
+    _shownNotifications.add('indexing_limit_reached');
   }
 
   @override
@@ -117,9 +135,20 @@ class E2EMockConfigService implements ConfigService {
     String? language,
     bool clearWatchPath = false,
     bool clearLanguage = false,
+    bool? resourceSaverEnabled,
+    bool? enableOfficeDocs,
+    bool? enableOcr,
+    bool? enableTranscription,
+    bool? enableEmbeddings,
+    bool? enableSemanticSimilarity,
+    bool? enableRag,
+    bool? enableAutoSummary,
+    bool? enableAutoTags,
+    int? maxConcurrentJobs,
+    int? maxFileSizeMbForEnrichment,
+    int? maxMediaMinutes,
+    int? maxPagesPerPdf,
   }) async {
-    // ВАЖНО: copyWith() не умеет устанавливать null.
-    // Создаём AppConfig напрямую с явными значениями.
     _currentConfig = AppConfig(
       watchPath: clearWatchPath ? null : (watchPath ?? _currentConfig.watchPath),
       watchIntervalMs: watchIntervalMs ?? _currentConfig.watchIntervalMs,
@@ -128,6 +157,19 @@ class E2EMockConfigService implements ConfigService {
       logLevel: logLevel ?? _currentConfig.logLevel,
       theme: theme ?? _currentConfig.theme,
       language: clearLanguage ? null : (language ?? _currentConfig.language),
+      resourceSaverEnabled: resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
+      enableOfficeDocs: enableOfficeDocs ?? _currentConfig.enableOfficeDocs,
+      enableOcr: enableOcr ?? _currentConfig.enableOcr,
+      enableTranscription: enableTranscription ?? _currentConfig.enableTranscription,
+      enableEmbeddings: enableEmbeddings ?? _currentConfig.enableEmbeddings,
+      enableSemanticSimilarity: enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
+      enableRag: enableRag ?? _currentConfig.enableRag,
+      enableAutoSummary: enableAutoSummary ?? _currentConfig.enableAutoSummary,
+      enableAutoTags: enableAutoTags ?? _currentConfig.enableAutoTags,
+      maxConcurrentJobs: maxConcurrentJobs ?? _currentConfig.maxConcurrentJobs,
+      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? _currentConfig.maxFileSizeMbForEnrichment,
+      maxMediaMinutes: maxMediaMinutes ?? _currentConfig.maxMediaMinutes,
+      maxPagesPerPdf: maxPagesPerPdf ?? _currentConfig.maxPagesPerPdf,
     );
     _configController.add(_currentConfig);
   }
@@ -147,17 +189,107 @@ class E2EMockConfigService implements ConfigService {
   }
 }
 
+/// Мок для Indexer.
+class E2EMockIndexer implements Indexer {
+  int _indexedCount = 0;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<bool> indexFile(
+    String filePath, {
+    required String fileName,
+    required String description,
+  }) async {
+    _indexedCount++;
+    return true;
+  }
+
+  @override
+  Future<void> removeFromIndex(String filePath) async {
+    if (_indexedCount > 0) _indexedCount--;
+  }
+
+  @override
+  Future<void> clearIndex() async {
+    _indexedCount = 0;
+  }
+
+  @override
+  Future<int> getIndexedCount() async => _indexedCount;
+
+  @override
+  Future<bool> isIndexed(String filePath) async => false;
+
+  @override
+  Future<void> updateTextContent(String filePath, String textContent) async {}
+
+  @override
+  Future<void> updateTranscriptText(String filePath, String transcript) async {}
+
+  @override
+  Future<String?> getTextContent(String filePath) async => null;
+
+  @override
+  Future<void> storeEmbeddings(
+    String filePath, {
+    required List<String> chunkTexts,
+    required List<int> chunkOffsets,
+    required List<List<double>> embeddingVectors,
+  }) async {}
+
+  @override
+  Future<bool> hasEmbeddings(String filePath) async => false;
+
+  @override
+  Future<bool> indexFileForReview(
+    String filePath, {
+    required String fileName,
+  }) async {
+    _indexedCount++;
+    return true;
+  }
+
+  @override
+  Future<List<InboxFile>> getFilesNeedingReview() async => [];
+
+  @override
+  Future<int> getFilesNeedingReviewCount() async => 0;
+
+  @override
+  Future<void> saveFileReview(
+    String filePath, {
+    required String description,
+    required String tags,
+  }) async {}
+
+  @override
+  Future<void> markFileEnriched(String filePath) async {}
+
+  @override
+  Future<void> updateDescription(String filePath, String description) async {}
+
+  @override
+  Future<void> updateTags(String filePath, String tags) async {}
+
+  @override
+  void dispose() {}
+}
+
 void main() {
   group('E2E Smoke Tests', () {
     late E2EMockFileWatcher watcher;
     late E2EMockNotificationsService notifications;
     late E2EMockConfigService configService;
+    late E2EMockIndexer indexer;
     late Logger logger;
 
     setUp(() {
       watcher = E2EMockFileWatcher();
       notifications = E2EMockNotificationsService();
       configService = E2EMockConfigService();
+      indexer = E2EMockIndexer();
       logger = Logger(printer: PrettyPrinter(methodCount: 0));
     });
 
@@ -173,6 +305,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         await coordinator.start();
@@ -188,6 +321,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         final uiEvents = <FileAddedUiEvent>[];
@@ -223,6 +357,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         final uiEvents = <FileAddedUiEvent>[];
@@ -260,6 +395,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         await coordinator.start();
@@ -365,6 +501,7 @@ void main() {
           watcher: watcher,
           notifications: notifications,
           configService: configService,
+          indexer: indexer,
         );
 
         await coordinator.start();

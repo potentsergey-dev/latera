@@ -7,6 +7,18 @@ enum LicenseType {
   pro,
 }
 
+/// Режим лицензии (Basic / ProTrial / Pro).
+enum LicenseMode {
+  /// Бесплатная версия с ограничениями (триал истёк, Pro не куплен).
+  basic,
+
+  /// Бесплатный 3-дневный триал Pro-функций.
+  proTrial,
+
+  /// Оплаченная Pro версия.
+  pro,
+}
+
 /// Состояние лицензии.
 enum LicenseStatus {
   /// Лицензия активна.
@@ -35,6 +47,12 @@ class License {
   /// Текущий статус лицензии.
   final LicenseStatus status;
 
+  /// Режим лицензии (basic / proTrial / pro).
+  final LicenseMode mode;
+
+  /// Дата окончания триала (null если триал не активен).
+  final DateTime? trialExpiresAt;
+
   /// Идентификатор лицензии (опционально).
   final String? licenseId;
 
@@ -53,6 +71,8 @@ class License {
   const License({
     required this.type,
     required this.status,
+    this.mode = LicenseMode.basic,
+    this.trialExpiresAt,
     this.licenseId,
     this.userEmail,
     this.expiresAt,
@@ -69,11 +89,16 @@ class License {
   /// Проверяет, активна ли лицензия.
   bool get isActive => status == LicenseStatus.active;
 
-  /// Проверяет, является ли лицензия Pro.
-  bool get isPro => type == LicenseType.pro && isActive;
+  /// Проверяет, является ли лицензия Pro (включая триал).
+  bool get isPro =>
+      (type == LicenseType.pro || mode == LicenseMode.pro || mode == LicenseMode.proTrial) &&
+      isActive;
 
   /// Проверяет, является ли лицензия Free.
-  bool get isFree => type == LicenseType.free || !isActive;
+  bool get isFree => mode == LicenseMode.basic || !isActive;
+
+  /// Проверяет, активен ли Pro-триал.
+  bool get isProTrial => mode == LicenseMode.proTrial && isActive;
 
   /// Проверяет, истекла ли лицензия (по дате).
   bool get isExpiredByDate {
@@ -85,6 +110,8 @@ class License {
   License copyWith({
     LicenseType? type,
     LicenseStatus? status,
+    LicenseMode? mode,
+    DateTime? trialExpiresAt,
     String? licenseId,
     String? userEmail,
     DateTime? expiresAt,
@@ -94,6 +121,8 @@ class License {
     return License(
       type: type ?? this.type,
       status: status ?? this.status,
+      mode: mode ?? this.mode,
+      trialExpiresAt: trialExpiresAt ?? this.trialExpiresAt,
       licenseId: licenseId ?? this.licenseId,
       userEmail: userEmail ?? this.userEmail,
       expiresAt: expiresAt ?? this.expiresAt,
@@ -104,7 +133,7 @@ class License {
 
   @override
   String toString() {
-    return 'License(type: $type, status: $status, licenseId: $licenseId)';
+    return 'License(type: $type, status: $status, mode: $mode, licenseId: $licenseId)';
   }
 
   @override
@@ -113,6 +142,8 @@ class License {
     return other is License &&
         other.type == type &&
         other.status == status &&
+        other.mode == mode &&
+        other.trialExpiresAt == trialExpiresAt &&
         other.licenseId == licenseId &&
         other.userEmail == userEmail &&
         other.expiresAt == expiresAt &&
@@ -124,6 +155,8 @@ class License {
     return Object.hash(
       type,
       status,
+      mode,
+      trialExpiresAt,
       licenseId,
       userEmail,
       expiresAt,

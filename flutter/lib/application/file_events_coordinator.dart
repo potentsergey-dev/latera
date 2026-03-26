@@ -1,11 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:logger/logger.dart';
 
 import '../domain/app_config.dart';
 import '../domain/core_error.dart';
 import '../domain/file_added_event.dart';
+import '../domain/file_removed_event.dart';
 import '../domain/file_watcher.dart';
+import '../domain/indexer.dart';
 import '../domain/notifications_service.dart';
 
 /// UI-friendly событие (application слой).
@@ -22,6 +25,27 @@ class FileAddedUiEvent {
 
   factory FileAddedUiEvent.fromDomain(FileAddedEvent e) {
     return FileAddedUiEvent(
+      fileName: e.fileName,
+      fullPath: e.fullPath,
+      occurredAt: e.occurredAt,
+    );
+  }
+}
+
+/// UI-friendly событие удаления файла (application слой).
+class FileRemovedUiEvent {
+  final String fileName;
+  final String? fullPath;
+  final DateTime occurredAt;
+
+  const FileRemovedUiEvent({
+    required this.fileName,
+    required this.occurredAt,
+    this.fullPath,
+  });
+
+  factory FileRemovedUiEvent.fromDomain(FileRemovedEvent e) {
+    return FileRemovedUiEvent(
       fileName: e.fileName,
       fullPath: e.fullPath,
       occurredAt: e.occurredAt,
@@ -58,10 +82,16 @@ class FileEventsCoordinator {
   final FileWatcher _watcher;
   final NotificationsService _notifications;
   final ConfigService _configService;
+  final Indexer _indexer;
 
   late final StreamController<FileAddedUiEvent> _controller =
       StreamController<FileAddedUiEvent>.broadcast();
+  late final StreamController<FileRemovedUiEvent> _removedController =
+      StreamController<FileRemovedUiEvent>.broadcast();
+  late final StreamController<String> _watchPathChangedController =
+      StreamController<String>.broadcast();
   StreamSubscription<FileAddedEvent>? _sub;
+  StreamSubscription<FileRemovedEvent>? _removedSub;
   StreamSubscription<AppConfig>? _configSub;
   bool _isRunning = false;
   bool _isStarting = false;
@@ -69,6 +99,7 @@ class FileEventsCoordinator {
   bool _isDisposing = false;
   Future<void>? _restartFuture;
   bool _restartRequested = false; // Флаг для отслеживания отложенных restart'ов
+  bool _needsClearOnStart = false; // Путь изменился пока координатор был остановлен
   String? _lastWatchPath; // Последний известный путь для обнаружения изменений
 
   FileEventsCoordinator({
@@ -76,10 +107,12 @@ class FileEventsCoordinator {
     required FileWatcher watcher,
     required NotificationsService notifications,
     required ConfigService configService,
+    required Indexer indexer,
   })  : _log = logger,
         _watcher = watcher,
         _notifications = notifications,
-        _configService = configService {
+        _configService = configService,
+        _indexer = indexer {
     // Сохраняем начальный путь для обнаружения изменений
     _lastWatchPath = _configService.currentConfig.watchPath;
     // Подписываемся на изменения конфигурации
@@ -91,6 +124,16 @@ class FileEventsCoordinator {
   /// Остается активным между циклами start/stop.
   /// Закрывается только при [dispose].
   Stream<FileAddedUiEvent> get fileAddedEvents => _controller.stream;
+
+  /// Broadcast stream событий удаления файлов.
+  Stream<FileRemovedUiEvent> get fileRemovedEvents => _removedController.stream;
+
+  /// Broadcast stream уведомлений о смене папки наблюдения.
+  ///
+  /// Эмитит путь к новой директории наблюдения после очистки индекса.
+  /// UI может подписаться для обновления счётчика и статуса.
+  Stream<String> get watchPathChangedEvents =>
+      _watchPathChangedController.stream;
   bool get isRunning => _isRunning;
   bool get isDisposed => _isDisposed;
 
@@ -130,6 +173,18 @@ class FileEventsCoordinator {
       WatchSuccess(:final watchDir) => _onStartSuccess(watchDir),
       WatchFailure(:final error) => _onStartFailure(error),
     };
+
+    // Если путь изменился пока координатор был остановлен —
+    // очищаем старый индекс и сканируем файлы новой папки.
+    if (_needsClearOnStart && !_isDisposed && !_isDisposing) {
+      _needsClearOnStart = false;
+      if (mapped is CoordinatorStartSuccess) {
+        _log.i('Performing deferred index clear after watch path change');
+        await _indexer.clearIndex();
+        _watchPathChangedController.add(mapped.watchDir);
+        await _scanExistingFiles(mapped.watchDir);
+      }
+    }
 
     // Если watchPath изменился во время await startWatching(),
     // watcher мог запуститься на устаревшем пути.
@@ -197,6 +252,10 @@ class FileEventsCoordinator {
         _restartFuture = null;
       });
       unawaited(_restartFuture);
+    } else if (!_isDisposed && !_isDisposing) {
+      // Координатор остановлен — запоминаем, что нужна очистка при следующем старте.
+      _log.i('Coordinator not running, deferring clear+rescan to next start');
+      _needsClearOnStart = true;
     }
   }
   
@@ -221,13 +280,26 @@ class FileEventsCoordinator {
           break;
         }
 
+        // Очищаем индекс при смене папки наблюдения.
+        // Файлы из предыдущей папки больше не актуальны.
+        _log.i('Clearing index due to watch path change');
+        await _indexer.clearIndex();
+
         // Если пришёл новый запрос во время stop, продолжаем цикл
         if (_restartRequested) {
           _log.i('New restart request during stop, continuing loop');
           continue;
         }
 
-        await start();
+        final result = await start();
+
+        // После успешного старта на новой папке:
+        // 1. Уведомляем UI о смене папки (для обновления счётчика)
+        // 2. Сканируем существующие файлы и эмитим события добавления
+        if (result is CoordinatorStartSuccess) {
+          _watchPathChangedController.add(result.watchDir);
+          await _scanExistingFiles(result.watchDir);
+        }
       } catch (e, st) {
         _log.e(
           'Failed to restart watcher after config change',
@@ -243,23 +315,66 @@ class FileEventsCoordinator {
     }
   }
 
+  /// Сканирует существующие файлы в директории и эмитит события добавления.
+  ///
+  /// Вызывается после смены папки наблюдения, чтобы файлы из новой папки
+  /// были обработаны так же, как если бы их только что добавили.
+  Future<void> _scanExistingFiles(String watchDir) async {
+    _log.i('Scanning existing files in: $watchDir');
+    try {
+      final dir = Directory(watchDir);
+      if (!await dir.exists()) {
+        _log.w('Watch directory does not exist for scanning: $watchDir');
+        return;
+      }
+
+      final entities = await dir.list().toList();
+      for (final entity in entities) {
+        if (_isDisposed || _isDisposing || _restartRequested) break;
+        if (entity is File) {
+          final path = entity.path;
+          final fileName = path.split(Platform.pathSeparator).last;
+          _log.d('Found existing file: $fileName');
+          _controller.add(FileAddedUiEvent(
+            fileName: fileName,
+            fullPath: path,
+            occurredAt: DateTime.now(),
+          ));
+        }
+      }
+      _log.i('Finished scanning existing files in: $watchDir');
+    } catch (e, st) {
+      _log.e('Error scanning existing files', error: e, stackTrace: st);
+    }
+  }
+
   CoordinatorStartResult _onStartSuccess(String watchDir) {
     // Отменяем предыдущую подписку если есть (защита от утечек при повторном start)
     _sub?.cancel();
     _sub = null;
+    _removedSub?.cancel();
+    _removedSub = null;
 
     _isRunning = true;
 
-    // Подписываемся на события файла
-    // Оборачиваем async callback для обработки ошибок
+    // Подписываемся на события добавления файла
     _sub = _watcher.fileAddedEvents.listen(
       (event) {
-        // Запускаем async обработку с обработкой ошибок
-        // unawaited используется намеренно - обработка не должна блокировать stream
         unawaited(_onFileEventSafe(event));
       },
       onError: _onStreamError,
       onDone: _onStreamDone,
+    );
+
+    // Подписываемся на события удаления файлов
+    _removedSub = _watcher.fileRemovedEvents.listen(
+      (event) {
+        _log.i('File removed event: ${event.fileName}');
+        _removedController.add(FileRemovedUiEvent.fromDomain(event));
+      },
+      onError: (Object error, StackTrace st) {
+        _log.e('File removed stream error', error: error, stackTrace: st);
+      },
     );
 
     _log.i('File events coordinator started. Watching: $watchDir');
@@ -325,6 +440,9 @@ class FileEventsCoordinator {
     await _sub?.cancel();
     _sub = null;
 
+    await _removedSub?.cancel();
+    _removedSub = null;
+
     // Останавливаем watcher
     final error = await _watcher.stopWatching();
 
@@ -362,6 +480,8 @@ class FileEventsCoordinator {
 
     // 4) Закрываем поток UI-событий.
     await _controller.close();
+    await _removedController.close();
+    await _watchPathChangedController.close();
 
     _isDisposed = true;
     _isDisposing = false;

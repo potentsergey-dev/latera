@@ -14,20 +14,48 @@ class LicenseCoordinator {
   final Logger _logger;
   final LicenseService _licenseService;
   final FeatureFlags _featureFlags;
+  final bool _isHardwareConstrained;
 
   LicenseCoordinator({
     required Logger logger,
     required LicenseService licenseService,
     required FeatureFlags featureFlags,
+    bool isHardwareConstrained = false,
   })  : _logger = logger,
         _licenseService = licenseService,
-        _featureFlags = featureFlags;
+        _featureFlags = featureFlags,
+        _isHardwareConstrained = isHardwareConstrained;
+
+  /// Флаг аппаратных ограничений (RAM < 6 ГБ).
+  ///
+  /// Когда true — лицензия принудительно ограничена до Basic независимо от статуса покупки.
+  bool get isHardwareConstrained => _isHardwareConstrained;
 
   /// Текущая лицензия.
-  License get currentLicense => _licenseService.currentLicense;
+  ///
+  /// При аппаратных ограничениях всегда возвращает Basic.
+  License get currentLicense {
+    final license = _licenseService.currentLicense;
+    if (_isHardwareConstrained && license.mode != LicenseMode.basic) {
+      return license.copyWith(mode: LicenseMode.basic);
+    }
+    return license;
+  }
 
   /// Stream изменений лицензии.
-  Stream<License> get licenseChanges => _licenseService.licenseChanges;
+  ///
+  /// При аппаратных ограничениях принудительно переопределяет режим на Basic.
+  Stream<License> get licenseChanges {
+    if (_isHardwareConstrained) {
+      return _licenseService.licenseChanges.map((license) {
+        if (license.mode != LicenseMode.basic) {
+          return license.copyWith(mode: LicenseMode.basic);
+        }
+        return license;
+      });
+    }
+    return _licenseService.licenseChanges;
+  }
 
   /// Stream изменений доступных функций.
   Stream<Set<String>> get availableFeaturesChanges =>
@@ -36,11 +64,22 @@ class LicenseCoordinator {
   /// Множество доступных функций.
   Set<String> get availableFeatures => _featureFlags.availableFeatures;
 
-  /// Проверить, активна ли Pro лицензия.
+  /// Проверить, активна ли Pro лицензия (включая триал).
   bool get isPro => currentLicense.isPro;
 
   /// Проверить, используется ли Free версия.
   bool get isFree => currentLicense.isFree;
+
+  /// Проверить, активен ли Pro-триал.
+  bool get isProTrial => currentLicense.isProTrial;
+
+  /// Оставшееся время триала (null если триал неактивен).
+  Duration? get trialTimeRemaining {
+    final expires = currentLicense.trialExpiresAt;
+    if (expires == null || !isProTrial) return null;
+    final remaining = expires.difference(DateTime.now());
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
 
   /// Проверить доступность функции.
   bool isFeatureAvailable(String featureId) =>
@@ -62,6 +101,12 @@ class LicenseCoordinator {
       _logger.e('Failed to refresh license', error: e, stackTrace: st);
       rethrow;
     }
+  }
+
+  /// Активировать покупку Pro-версии (после успешной оплаты через Store).
+  Future<void> activateProPurchase() async {
+    _logger.i('Activating Pro purchase');
+    await _licenseService.activateProPurchase();
   }
 
   /// Активировать лицензию по ключу.

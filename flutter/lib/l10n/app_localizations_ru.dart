@@ -1,0 +1,507 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Russian (`ru`).
+class AppLocalizationsRu extends AppLocalizations {
+  AppLocalizationsRu([String locale = 'ru']) : super(locale);
+
+  @override
+  String get appTitle => 'Latera';
+
+  @override
+  String get buttonStart => 'Начать';
+
+  @override
+  String get buttonSave => 'Сохранить';
+
+  @override
+  String get buttonSearch => 'Поиск';
+
+  @override
+  String get buttonRetry => 'Повторить';
+
+  @override
+  String get onboardingTitle => 'Добро пожаловать в Latera';
+
+  @override
+  String get onboardingSubtitle =>
+      'Ваш интеллектуальный помощник по документам';
+
+  @override
+  String get settingsTitle => 'Настройки';
+
+  @override
+  String get needsAttentionTitle => 'Требуют внимания';
+
+  @override
+  String get initializationError => 'Ошибка инициализации';
+
+  @override
+  String get onboardingDescription =>
+      'Приложение для отслеживания новых файлов в папке.\nВыберите папку, которую хотите наблюдать:';
+
+  @override
+  String get onboardingWhatTracksTitle => 'Что отслеживает приложение';
+
+  @override
+  String get onboardingWhatTracksItem1 =>
+      'Только новые файлы в выбранной папке';
+
+  @override
+  String get onboardingWhatTracksItem2 => 'Имена и пути файлов для поиска';
+
+  @override
+  String get onboardingWhatTracksItem3 => 'Содержимое обрабатывается локально';
+
+  @override
+  String get onboardingPrivacyTitle => 'Конфиденциальность';
+
+  @override
+  String get onboardingPrivacyItem1 => 'Данные не покидают ваше устройство';
+
+  @override
+  String get onboardingPrivacyItem2 =>
+      'Файлы и их содержимое не передаются в интернет';
+
+  @override
+  String get onboardingDataStorageTitle => 'Где хранятся данные';
+
+  @override
+  String get onboardingIndexLocation => 'Индекс:';
+
+  @override
+  String get onboardingSettingsStorage => 'Настройки: локальное хранилище';
+
+  @override
+  String get onboardingFolderSectionTitle => 'Папка для наблюдения';
+
+  @override
+  String get onboardingSelectFolder => 'Выбрать папку...';
+
+  @override
+  String get onboardingCustomFolderProBadge => 'PRO';
+
+  @override
+  String get onboardingCustomFolderProHint =>
+      'Доступно в PRO-триале — любая папка';
+
+  @override
+  String get onboardingCustomFolderLockedHint =>
+      'Требует PRO — оформите подписку, чтобы использовать произвольную папку';
+
+  @override
+  String get onboardingUseDefault => 'Использовать по умолчанию';
+
+  @override
+  String get onboardingStartButton => 'Начать работу';
+
+  @override
+  String get onboardingChangeLater => 'Папку можно изменить позже в настройках';
+
+  @override
+  String get onboardingLoading => 'Загрузка...';
+
+  @override
+  String onboardingLoadError(String error) {
+    return 'Ошибка загрузки: $error';
+  }
+
+  @override
+  String onboardingFolderPickError(String error) {
+    return 'Ошибка выбора папки: $error';
+  }
+
+  @override
+  String get onboardingDefaultPathUnavailable =>
+      'Не удалось получить путь по умолчанию. Выберите папку вручную.';
+
+  @override
+  String onboardingSaveError(String error) {
+    return 'Ошибка сохранения настроек: $error';
+  }
+
+  @override
+  String get settingsSectionWatchFolder => 'Папка для наблюдения';
+
+  @override
+  String get settingsCurrentPath => 'Текущий путь';
+
+  @override
+  String get settingsNotConfigured => 'Не настроена';
+
+  @override
+  String get settingsSelectFolder => 'Выбрать папку';
+
+  @override
+  String get settingsSelectFolderHint =>
+      'Укажите папку для отслеживания новых файлов';
+
+  @override
+  String get settingsOpenInExplorer => 'Открыть в проводнике';
+
+  @override
+  String get settingsOpenInExplorerHint => 'Открыть папку в файловом менеджере';
+
+  @override
+  String get settingsSelectFolderFirst => 'Выберите папку для наблюдения';
+
+  @override
+  String get settingsSectionNotifications => 'Уведомления';
+
+  @override
+  String get settingsShowNotifications => 'Показывать уведомления';
+
+  @override
+  String get settingsShowNotificationsHint =>
+      'Уведомления о новых файлах в папке';
+
+  @override
+  String get settingsSectionPerformance => 'Производительность';
+
+  @override
+  String get settingsResourceSaver => 'Экономия ресурсов';
+
+  @override
+  String get settingsResourceSaverOnHint =>
+      'Тяжёлые функции отключены, лимиты уменьшены';
+
+  @override
+  String get settingsResourceSaverOffHint =>
+      'Отключите ресурсоёмкие функции для слабых ПК';
+
+  @override
+  String get settingsSectionContentProcessing => 'Обработка содержимого';
+
+  @override
+  String get settingsTextExtraction => 'Извлечение текста';
+
+  @override
+  String get settingsTextExtractionHint =>
+      'Поиск по содержимому PDF, DOCX и др.';
+
+  @override
+  String get settingsOcr => 'Распознавание текста (OCR)';
+
+  @override
+  String get settingsOcrHint => 'Текст со скриншотов, сканов и фото';
+
+  @override
+  String get settingsSemanticSearch => 'Семантический поиск';
+
+  @override
+  String get settingsSemanticSearchHint => 'Поиск похожих документов по смыслу';
+
+  @override
+  String get settingsTranscription => 'Транскрибация медиа (Whisper)';
+
+  @override
+  String get settingsTranscriptionHint => 'Поиск по аудио и видео';
+
+  @override
+  String get settingsRag => 'Спроси свою папку (RAG)';
+
+  @override
+  String get settingsRagHint => 'Чат с ответами по файлам';
+
+  @override
+  String get settingsAutoDescriptions => 'Автоматические описания';
+
+  @override
+  String get settingsAutoDescriptionsHint => 'Автосаммари документов';
+
+  @override
+  String get settingsAutoTags => 'Автоматические теги';
+
+  @override
+  String get settingsAutoTagsHint => 'Автоприсвоение тегов по содержимому';
+
+  @override
+  String get settingsComingSoon => 'скоро';
+
+  @override
+  String get settingsDisabledByResourceSaver => 'отключено режимом экономии';
+
+  @override
+  String get settingsSectionAdvanced => 'Дополнительно';
+
+  @override
+  String get settingsResetSettings => 'Сбросить настройки';
+
+  @override
+  String get settingsResetHint =>
+      'Вернуть все настройки к значениям по умолчанию';
+
+  @override
+  String get settingsResetConfirmTitle => 'Сбросить настройки?';
+
+  @override
+  String get settingsResetConfirmBody =>
+      'Все настройки будут возвращены к значениям по умолчанию. Папка наблюдения будет сброшена.';
+
+  @override
+  String get settingsResetDone => 'Настройки сброшены';
+
+  @override
+  String get settingsVersion => 'Версия';
+
+  @override
+  String settingsFolderChanged(String path) {
+    return 'Папка изменена: $path';
+  }
+
+  @override
+  String get settingsChangeFolderConfirmTitle => 'Изменить папку наблюдения?';
+
+  @override
+  String settingsChangeFolderConfirmBody(String path) {
+    return 'Файлы из текущей папки будут удалены из индекса поиска. С диска они не удаляются.\n\nНовая папка: $path';
+  }
+
+  @override
+  String get settingsChangeFolderConfirmButton => 'Изменить папку';
+
+  @override
+  String settingsFolderPickError(String error) {
+    return 'Ошибка выбора папки: $error';
+  }
+
+  @override
+  String get settingsFolderNotSelected => 'Папка не выбрана';
+
+  @override
+  String settingsFolderNotExists(String path) {
+    return 'Папка не существует: $path';
+  }
+
+  @override
+  String get settingsPathDangerousChars => 'Путь содержит недопустимые символы';
+
+  @override
+  String settingsOpenFolderError(String error) {
+    return 'Ошибка открытия папки: $error';
+  }
+
+  @override
+  String get settingsLoadError => 'Ошибка загрузки настроек';
+
+  @override
+  String get buttonCancel => 'Отмена';
+
+  @override
+  String get buttonReset => 'Сбросить';
+
+  @override
+  String get trayShowWindow => 'Открыть Latera';
+
+  @override
+  String get trayQuit => 'Выход';
+
+  @override
+  String get notificationFileNeedsReviewTitle =>
+      'Файл добавлен без распознавания';
+
+  @override
+  String notificationFileNeedsReviewBody(String fileName) {
+    return 'Файл $fileName добавлен без распознавания. Пожалуйста, добавьте описание вручную.';
+  }
+
+  @override
+  String get settingsSectionLicense => 'Лицензия';
+
+  @override
+  String get settingsSectionLegal => 'Правовая информация';
+
+  @override
+  String get settingsPrivacyPolicy => 'Политика конфиденциальности';
+
+  @override
+  String get settingsTermsOfUse => 'Условия использования';
+
+  @override
+  String get licenseCurrentMode => 'Текущий режим: ';
+
+  @override
+  String get licenseDescriptionPro =>
+      'Лицензия PRO активна. Все функции доступны без ограничений.';
+
+  @override
+  String licenseDescriptionTrial(int days) {
+    return 'Пробный период PRO (осталось $days дн.). Все функции доступны. После окончания триала приложение перейдёт в режим Basic с ограничениями на количество файлов и функции.';
+  }
+
+  @override
+  String get licenseDescriptionBasic =>
+      'Бесплатная версия с ограничениями: лимит на количество файлов в индексе, отключены ресурсоёмкие функции (семантический поиск, автоописания, транскрипция).';
+
+  @override
+  String get licenseHardwareConstraintsTitle => 'Аппаратные ограничения';
+
+  @override
+  String get licenseHardwareConstraintsBody =>
+      'Обнаружено менее 6 ГБ ОЗУ. PRO-функции недоступны независимо от статуса лицензии.';
+
+  @override
+  String get licenseBuyPro => 'Купить PRO — разовая покупка';
+
+  @override
+  String get licensePurchasing => 'Обработка...';
+
+  @override
+  String get licenseRestorePurchases => 'Восстановить покупку';
+
+  @override
+  String get licenseRestoring => 'Проверка...';
+
+  @override
+  String get licenseActivatedTitle => 'PRO-версия активирована!';
+
+  @override
+  String get licenseActivatedBody =>
+      'Спасибо за покупку. Все PRO-функции теперь доступны.';
+
+  @override
+  String get licenseRestoredTitle => 'Покупка восстановлена!';
+
+  @override
+  String get licenseRestoredBody =>
+      'PRO-версия успешно восстановлена. Все функции доступны.';
+
+  @override
+  String get licenseRestoreNotFound =>
+      'Покупка PRO не найдена в Microsoft Store.';
+
+  @override
+  String licenseRestoreError(String error) {
+    return 'Ошибка восстановления покупки: $error';
+  }
+
+  @override
+  String get licenseStoreUnavailable =>
+      'Магазин Microsoft Store недоступен. Убедитесь, что приложение установлено из Store.';
+
+  @override
+  String licensePurchaseError(String error) {
+    return 'Ошибка покупки: $error';
+  }
+
+  @override
+  String get trialExpiredCustomFolderBannerTitle =>
+      'Пробный период PRO завершён';
+
+  @override
+  String get trialExpiredCustomFolderBannerBody =>
+      'Произвольная папка наблюдения — функция PRO. Ваши данные сохранены. Переключитесь на папку по умолчанию или оформите PRO.';
+
+  @override
+  String get trialExpiredSwitchToDefault => 'Использовать папку по умолчанию';
+
+  @override
+  String get trialExpiredUpgradePro => 'Перейти на PRO';
+
+  @override
+  String get settingsSectionLanguage => 'Язык';
+
+  @override
+  String get settingsLanguage => 'Язык интерфейса';
+
+  @override
+  String get settingsLanguageHint => 'Выберите язык отображения приложения';
+
+  @override
+  String get settingsLanguageSystem => 'Системный';
+
+  @override
+  String get settingsLanguageRestartHint =>
+      'Перезапустите приложение для применения нового языка';
+
+  @override
+  String get onboardingAiModelsTitle => 'AI-модели';
+
+  @override
+  String get onboardingAiModelsItem1 =>
+      'AI-модели (~1.8 ГБ) загружаются при первом запуске';
+
+  @override
+  String get onboardingAiModelsItem2 =>
+      'Модели используются для семантического поиска и описания документов';
+
+  @override
+  String get onboardingAiModelsItem3 =>
+      'Источник загрузки: Hugging Face (публичный репозиторий)';
+
+  @override
+  String get onboardingModelsLocation => 'Модели:';
+
+  @override
+  String get onboardingPrivacyItem3 =>
+      'AI-модели загружаются один раз — постоянного обмена данными нет';
+
+  @override
+  String get downloadFailedTitle => 'Ошибка загрузки';
+
+  @override
+  String get downloadFailedEmbedding =>
+      'Не удалось загрузить модель эмбеддингов. Семантический поиск не будет работать, пока модель не будет загружена.';
+
+  @override
+  String get downloadFailedGguf =>
+      'Не удалось загрузить генеративную модель. Описания, теги и RAG-чат не будут работать, пока модель не будет загружена.';
+
+  @override
+  String get downloadRetryButton => 'Повторить загрузку';
+
+  @override
+  String downloadSkippedLowRam(int ramMb) {
+    return 'Генеративная AI-модель пропущена: обнаружено менее 6 ГБ ОЗУ ($ramMb МБ). Описания, теги и RAG-чат отключены.';
+  }
+
+  @override
+  String get downloadSkippedLowDisk =>
+      'Генеративная AI-модель пропущена: недостаточно места на диске (нужно минимум 2 ГБ). Освободите место и перезапустите приложение.';
+
+  @override
+  String get errorModelNotLoaded =>
+      'AI-модель не загружена. Дождитесь завершения загрузки или повторите попытку в Настройках.';
+
+  @override
+  String get errorInsufficientRam =>
+      'Недостаточно оперативной памяти. Закройте другие приложения и попробуйте снова.';
+
+  @override
+  String get errorInsufficientDisk =>
+      'Недостаточно свободного места на диске. Освободите минимум 2 ГБ и попробуйте снова.';
+
+  @override
+  String get errorNetworkUnavailable =>
+      'Сетевое подключение не удалось. Проверьте подключение к интернету и попробуйте снова.';
+
+  @override
+  String get settingsAiModelsStatus => 'AI-модели';
+
+  @override
+  String get settingsEmbeddingModelReady => 'Модель эмбеддингов: готова';
+
+  @override
+  String get settingsEmbeddingModelMissing =>
+      'Модель эмбеддингов: не загружена';
+
+  @override
+  String get settingsGgufModelReady => 'Генеративная модель: готова';
+
+  @override
+  String get settingsGgufModelMissing => 'Генеративная модель: не загружена';
+
+  @override
+  String get settingsGgufModelSkippedRam =>
+      'Генеративная модель: пропущена (мало ОЗУ)';
+
+  @override
+  String get settingsGgufModelSkippedDisk =>
+      'Генеративная модель: пропущена (мало места на диске)';
+
+  @override
+  String get downloadFailedRetryHint => 'Нажмите для повторной загрузки';
+}

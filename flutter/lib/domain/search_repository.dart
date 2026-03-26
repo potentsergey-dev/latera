@@ -76,4 +76,19 @@ abstract interface class SearchRepository {
   /// [filePath] — абсолютный путь к файлу.
   /// Возвращает null, если файл не найден в индексе.
   Future<IndexedFile?> getIndexedFile(String filePath);
+
+  // === Phase 3: Semantic Search ===
+
+  /// Семантический поиск по эмбеддингам.
+  ///
+  /// Находит файлы, семантически близкие к [query].
+  /// [limit] — максимальное количество результатов.
+  /// Возвращает список результатов, отсортированных по релевантности.
+  Future<List<SearchResult>> semanticSearch(String query, {int limit = 20});
+
+  /// Находит файлы, похожие на указанный.
+  ///
+  /// [filePath] — файл-источник для поиска похожих.
+  /// [limit] — максимальное количество результатов.
+  Future<List<SearchResult>> findSimilarFiles(String filePath, {int limit = 10});
 }

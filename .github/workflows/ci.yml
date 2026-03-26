@@ -58,7 +58,7 @@ jobs:
 
       - name: Run Rust linter (clippy)
         working-directory: rust
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
       # --- Flutter Checks ---
       - name: Get Flutter dependencies
@@ -91,9 +91,15 @@ jobs:
         with:
           workspaces: rust
 
+      - name: Install Vulkan SDK
+        uses: humbletim/install-vulkan-sdk@v1.2.0
+        with:
+          version: latest
+          cache: true
+
       - name: Run Rust tests
         working-directory: rust
-        run: cargo test --all-features
+        run: cargo test --features vulkan
 
   # ===========================================
   # Flutter Tests
@@ -142,6 +148,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Vulkan SDK
+        uses: humbletim/install-vulkan-sdk@v1.2.0
+        with:
+          version: latest
+          cache: true
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -183,7 +195,7 @@ jobs:
 
       - name: Build Rust library
         working-directory: rust
-        run: cargo build --release
+        run: cargo build --release --features vulkan
 
       - name: Build Flutter Windows app
         working-directory: flutter

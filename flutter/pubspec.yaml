@@ -30,11 +30,24 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+
+  # HTTP client for model download
+  dio: ^5.4.0
+
+  # Adaptive UI: platform-native design systems
+  fluent_ui: ^4.9.2
+  system_theme: ^3.1.2
+  macos_ui: ^2.0.9
+
   flutter_rust_bridge: ^2.11.1
+  ffi: ^2.1.0
   flutter_local_notifications: ^20.1.0
   logger: ^2.6.2
   path: ^1.9.0
@@ -46,6 +59,11 @@ dependencies:
   file_picker: ^10.0.0
   url_launcher: ^6.3.1
   
+  # PDF text extraction (pure Dart, no native deps — works while FRB codegen is broken on Windows)
+  syncfusion_flutter_pdf: ^28.1.33
+  # DOCX / ZIP extraction
+  archive: ^4.0.9
+
   # SQLite for local index (FTS5 full-text search)
   # Used as Dart-side implementation while FRB codegen is broken on Windows.
   # Will be replaced with Rust-backed indexer when codegen is fixed.
@@ -55,6 +73,11 @@ dependencies:
   
   # App version info
   package_info_plus: ^8.0.0
+
+  # System tray & window management
+  tray_manager: ^0.2.3
+  window_manager: ^0.4.3
+  launch_at_startup: ^0.3.1
 
 dev_dependencies:
   flutter_test:
@@ -70,6 +93,9 @@ dev_dependencies:
   # MSIX packaging for Windows Store / sideloading
   msix: ^3.16.8
 
+  # App icon generation
+  flutter_launcher_icons: ^0.14.3
+
 # NOTE:
 # flutter_rust_bridge codegen is a Rust CLI (`flutter_rust_bridge_codegen`),
 # installed via `cargo install flutter_rust_bridge_codegen`.
@@ -80,6 +106,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
@@ -128,21 +155,23 @@ flutter:
 #
 msix:
   display_name: Latera
-  publisher_display_name: Latera Team
+  publisher_display_name: Sergey Voronin
   identity_name: com.latera.latera
   publisher: CN=LateraTeam, O=Latera, C=BY
   version: 1.0.0.0
   install_certificate: false
   build_windows: false  # Build is controlled by build.ps1
-  logo_path: windows/runner/resources/app_icon.ico
+  logo_path: assets/app_icon.png
+  images_folder: windows/runner/resources/msix_images
   # NOTE: broadFileSystemAccess is required for the file watcher/indexer functionality.
   # This capability allows the app to access the file system without per-file picker prompts.
   # Windows Store may require justification for this capability during submission.
-  capabilities: broadFileSystemAccess, picturesLibrary
-  languages: en-us, ru-ru
+  # internetClient is required for downloading AI model from Hugging Face on first launch.
+  capabilities: internetClient, broadFileSystemAccess, picturesLibrary
+  languages: en-us, ru-ru, de-de, es-es, pt-br
   # === Signing (optional for local dev, required for distribution) ===
   # For local testing with a test certificate:
-  #   certificate_path: ../certs/latera-test.pfx
-  #   certificate_password: ""  # Or use environment variable
+  certificate_path: ../certs/latera-test.pfx
+  certificate_password: "WQgln2YUrdk1EHBc" # Or use environment variable
   # For CI/CD, certificate is installed to the certificate store automatically
   # The msix package will use the certificate matching the publisher subject

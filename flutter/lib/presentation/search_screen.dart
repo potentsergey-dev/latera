@@ -4,14 +4,22 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../domain/app_config.dart';
 import '../domain/search_repository.dart';
+import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
+import 'file_description_dialog.dart';
+import 'friendly_error.dart';
 
 /// Экран поиска файлов.
 ///
 /// Пользователь вводит поисковый запрос, результаты обновляются
 /// с debounce 300ms. Результаты показываются в виде карточек
 /// с именем файла, описанием и фрагментом совпадения.
+///
+/// Поддерживает два режима:
+/// - FTS5 (полнотекстовый) — по умолчанию
+/// - Семантический (vector) — при включённом переключателе
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -29,6 +37,9 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _hasSearched = false;
   String? _error;
 
+  /// Текущий режим поиска: true = семантический (vector), false = FTS5.
+  bool _useSemanticSearch = false;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +48,16 @@ class _SearchScreenState extends State<SearchScreen> {
     // Автофокус
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
+      _loadSemanticSearchPreference();
+    });
+  }
+
+  /// Загружает предпочтение семантического поиска из конфига.
+  void _loadSemanticSearchPreference() {
+    final root = AppScope.of(context);
+    final config = root.configService.currentConfig;
+    setState(() {
+      _useSemanticSearch = config.isFeatureEffectivelyEnabled(ContentFeature.embeddings);
     });
   }
 
@@ -72,7 +93,15 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       final root = AppScope.of(context);
-      final results = await root.searchRepository.search(query);
+      final List<SearchResult> results;
+
+      if (_useSemanticSearch) {
+        // Семантический поиск по эмбеддингам
+        results = await root.searchRepository.semanticSearch(query);
+      } else {
+        // FTS5 полнотекстовый поиск (fallback)
+        results = await root.searchRepository.search(query);
+      }
 
       if (!mounted) return;
       setState(() {
@@ -82,8 +111,9 @@ class _SearchScreenState extends State<SearchScreen> {
       });
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _error = e.toString();
+        _error = friendlyErrorMessage(e.toString(), l10n);
         _isSearching = false;
         _hasSearched = true;
       });
@@ -118,6 +148,81 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  /// Находит файлы, похожие на выбранный.
+  Future<void> _findSimilarFiles(String filePath) async {
+    setState(() {
+      _isSearching = true;
+      _error = null;
+    });
+
+    try {
+      final root = AppScope.of(context);
+      final results = await root.searchRepository.findSimilarFiles(filePath);
+      if (!mounted) return;
+      setState(() {
+        _results = results;
+        _isSearching = false;
+        _hasSearched = true;
+      });
+
+      // Обновляем текст поиска чтобы показать контекст
+      final fileName = filePath.split(Platform.pathSeparator).last;
+      _searchController.removeListener(_onSearchChanged);
+      _searchController.text = 'Похожие на: $fileName';
+      _searchController.addListener(_onSearchChanged);
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      setState(() {
+        _error = friendlyErrorMessage(e.toString(), l10n);
+        _isSearching = false;
+        _hasSearched = true;
+      });
+    }
+  }
+
+  Future<void> _editDescription(SearchResult result) async {
+    final newDesc = await FileDescriptionDialog.show(
+      context,
+      fileName: result.fileName,
+      filePath: result.filePath,
+      initialDescription: result.description,
+    );
+
+    if (newDesc != null && mounted) {
+      final root = AppScope.of(context);
+      try {
+        await root.indexer.saveFileReview(
+          result.filePath,
+          description: newDesc.description,
+          tags: '', // Заглушка, если теги не редактируются в этом диалоге
+        );
+
+        // Пересчитываем эмбеддинги по обновлённому описанию
+        root.contentEnrichmentCoordinator.enqueueReEmbedding(
+          result.filePath,
+          result.fileName,
+        );
+
+        // Показываем toast
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Описание сохранено')),
+          );
+        }
+
+        // Обновляем результаты поиска
+        _performSearch(_searchController.text);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ошибка сохранения: $e')),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _openContainingFolder(String filePath) async {
     // Открываем папку, содержащую файл, и выделяем файл
     if (Platform.isWindows) {
@@ -140,6 +245,38 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Поиск файлов'),
+        actions: [
+          // Переключатель FTS5 / Семантический поиск
+          Tooltip(
+            message: _useSemanticSearch
+                ? 'Семантический поиск (по смыслу)'
+                : 'Полнотекстовый поиск (FTS5)',
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _useSemanticSearch ? Icons.hub : Icons.text_fields,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Switch.adaptive(
+                  value: _useSemanticSearch,
+                  onChanged: (value) {
+                    setState(() {
+                      _useSemanticSearch = value;
+                    });
+                    // Перезапустить поиск с новым режимом
+                    if (_searchController.text.isNotEmpty) {
+                      _performSearch(_searchController.text);
+                    }
+                  },
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -150,7 +287,9 @@ class _SearchScreenState extends State<SearchScreen> {
               controller: _searchController,
               focusNode: _focusNode,
               decoration: InputDecoration(
-                hintText: 'Введите ключевые слова…',
+                hintText: _useSemanticSearch
+                    ? 'Опишите что ищете…'
+                    : 'Введите ключевые слова…',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -217,7 +356,9 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Поиск по имени файла, описанию и содержимому',
+              _useSemanticSearch
+                  ? 'Семантический поиск по смыслу документов'
+                  : 'Поиск по имени файла, описанию и содержимому',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -263,6 +404,9 @@ class _SearchScreenState extends State<SearchScreen> {
           result: result,
           onTap: () => _openFile(result.filePath),
           onOpenFolder: () => _openContainingFolder(result.filePath),
+          onFindSimilar: () => _findSimilarFiles(result.filePath),
+          onEditDescription: () => _editDescription(result),
+          showSimilarButton: _useSemanticSearch,
         );
       },
     );
@@ -274,11 +418,17 @@ class _SearchResultCard extends StatelessWidget {
   final SearchResult result;
   final VoidCallback onTap;
   final VoidCallback onOpenFolder;
+  final VoidCallback onFindSimilar;
+  final VoidCallback onEditDescription;
+  final bool showSimilarButton;
 
   const _SearchResultCard({
     required this.result,
     required this.onTap,
     required this.onOpenFolder,
+    required this.onFindSimilar,
+    required this.onEditDescription,
+    this.showSimilarButton = false,
   });
 
   @override
@@ -315,6 +465,19 @@ class _SearchResultCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (showSimilarButton)
+                    IconButton(
+                      icon: const Icon(Icons.hub_outlined, size: 18),
+                      tooltip: 'Найти похожие файлы',
+                      onPressed: onFindSimilar,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    tooltip: 'Редактировать описание',
+                    onPressed: onEditDescription,
+                    visualDensity: VisualDensity.compact,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.folder_open_outlined, size: 18),
                     tooltip: 'Открыть папку',
@@ -349,6 +512,27 @@ class _SearchResultCard extends StatelessWidget {
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
+                ),
+              ],
+
+              // Relevance badge (для семантического поиска)
+              if (result.relevance > 0 && result.relevance < 1.0) ...[                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '${(result.relevance * 100).toStringAsFixed(0)}% совпадение',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
 

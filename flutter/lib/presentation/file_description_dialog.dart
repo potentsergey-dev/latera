@@ -13,10 +13,14 @@ class FileDescriptionDialog extends StatefulWidget {
   /// Полный путь к файлу (для отображения).
   final String filePath;
 
+  /// Начальное описание (если редактируем существующее).
+  final String? initialDescription;
+
   const FileDescriptionDialog({
     super.key,
     required this.fileName,
     required this.filePath,
+    this.initialDescription,
   });
 
   /// Показать диалог и получить результат.
@@ -27,6 +31,7 @@ class FileDescriptionDialog extends StatefulWidget {
     BuildContext context, {
     required String fileName,
     required String filePath,
+    String? initialDescription,
   }) {
     return showDialog<FileDescriptionResult>(
       context: context,
@@ -34,6 +39,7 @@ class FileDescriptionDialog extends StatefulWidget {
       builder: (context) => FileDescriptionDialog(
         fileName: fileName,
         filePath: filePath,
+        initialDescription: initialDescription,
       ),
     );
   }
@@ -43,12 +49,13 @@ class FileDescriptionDialog extends StatefulWidget {
 }
 
 class _FileDescriptionDialogState extends State<FileDescriptionDialog> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
   final _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
+    _controller = TextEditingController(text: widget.initialDescription ?? '');
     // Автофокус на поле ввода
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();

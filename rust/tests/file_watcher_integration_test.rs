@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use tempfile::TempDir;
 
-use latera_rust::file_watcher::{start_watcher, InternalFileEvent};
+use latera_rust::file_watcher::{start_watcher, InternalFileEvent, InternalFileRemovedEvent};
 
 /// Собирает события в потокобезопасную очередь для проверки.
 #[derive(Clone, Default)]
@@ -71,6 +71,7 @@ fn test_watcher_starts_and_stops_successfully() {
         move |e| {
             collector_clone.push(e);
         },
+        |_| {},
     )
     .expect("Failed to start watcher");
 
@@ -92,6 +93,7 @@ fn test_watcher_detects_new_file() {
         move |e| {
             collector_clone.push(e);
         },
+        |_| {},
     )
     .expect("Failed to start watcher");
 
@@ -124,6 +126,7 @@ fn test_watcher_detects_multiple_files() {
         move |e| {
             collector_clone.push(e);
         },
+        |_| {},
     )
     .expect("Failed to start watcher");
 
@@ -167,6 +170,7 @@ fn test_watcher_deduplicates_rapid_events() {
         move |e| {
             collector_clone.push(e);
         },
+        |_| {},
     )
     .expect("Failed to start watcher");
 
@@ -208,7 +212,7 @@ fn test_watcher_rejects_empty_path() {
 
     let result = start_watcher(Some(String::new()), move |e| {
         collector_clone.push(e);
-    });
+    }, |_| {});
 
     assert!(result.is_err());
     if let Err(err) = result {
@@ -223,7 +227,7 @@ fn test_watcher_rejects_relative_path() {
 
     let result = start_watcher(Some("relative/path".to_string()), move |e| {
         collector_clone.push(e);
-    });
+    }, |_| {});
 
     assert!(result.is_err());
     if let Err(err) = result {
@@ -245,7 +249,7 @@ fn test_watcher_creates_directory_if_not_exists() {
 
     let handle = start_watcher(Some(non_existent.to_string_lossy().to_string()), move |e| {
         collector_clone.push(e);
-    })
+    }, |_| {})
     .expect("Failed to start watcher");
 
     // Директория должна быть создана
@@ -270,6 +274,7 @@ fn test_watcher_stops_cleanly() {
         move |e| {
             collector_clone.push(e);
         },
+        |_| {},
     )
     .expect("Failed to start watcher");
 
@@ -304,6 +309,7 @@ fn test_event_contains_correct_metadata() {
         move |e| {
             collector_clone.push(e);
         },
+        |_| {},
     )
     .expect("Failed to start watcher");
 
@@ -360,6 +366,7 @@ fn test_watcher_ignores_directories() {
         move |e| {
             collector_clone.push(e);
         },
+        |_| {},
     )
     .expect("Failed to start watcher");
 

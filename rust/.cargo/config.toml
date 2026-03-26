@@ -1,0 +1,8 @@
+# Ensure maximum CPU compatibility.
+# Target baseline x86-64 (SSE2 only) — works on all 64-bit Intel/AMD CPUs
+# including older ones like Core 2 Duo without AVX/AVX2 support.
+#
+# llama-cpp-sys-2 build.rs reads CARGO_CFG_TARGET_FEATURE to enable
+# GGML SIMD flags, so this config propagates correctly to C/C++ code.
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-cpu=x86-64"]

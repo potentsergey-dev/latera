@@ -38,6 +38,14 @@ abstract final class FeatureId {
   /// Настраиваемые уведомления.
   static const String customNotifications = 'custom_notifications';
 
+  // === Папка наблюдения ===
+
+  /// Кастомная папка наблюдения (не по умолчанию).
+  ///
+  /// Free-версия может использовать только папку по умолчанию.
+  /// PRO / PRO-trial — любую папку.
+  static const String customWatchFolder = 'custom_watch_folder';
+
   // === UI и настройки ===
 
   /// Тёмная тема.

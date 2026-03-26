@@ -23,6 +23,14 @@ if ($Msix) {
     Write-Host "MSIX packaging: enabled" -ForegroundColor Gray
 }
 
+# Pre-check: Vulkan SDK
+if ($env:VULKAN_SDK -and (Test-Path $env:VULKAN_SDK)) {
+    Write-Host "Vulkan SDK: $env:VULKAN_SDK" -ForegroundColor Green
+} else {
+    Write-Host "WARNING: VULKAN_SDK not found — Rust build requires Vulkan SDK for GPU acceleration." -ForegroundColor Yellow
+    Write-Host "Install from https://vulkan.lunarg.com/sdk/home and set VULKAN_SDK env variable." -ForegroundColor Yellow
+}
+
 # Step 1: Codegen
 if (-not $SkipCodegen) {
     Write-Host "`n[1/3] Running FRB codegen..." -ForegroundColor Yellow
@@ -43,6 +51,14 @@ if (-not $SkipRust) {
     $cargoArgs = @("build")
     if ($Release) {
         $cargoArgs += "--release"
+    }
+    # Включаем Vulkan GPU-ускорение если SDK доступен
+    if ($env:VULKAN_SDK -and (Test-Path $env:VULKAN_SDK)) {
+        $cargoArgs += "--features"
+        $cargoArgs += "vulkan"
+        Write-Host "  Vulkan feature: enabled" -ForegroundColor Green
+    } else {
+        Write-Host "  Vulkan feature: disabled (SDK not found)" -ForegroundColor Yellow
     }
     
     & cargo $cargoArgs
