@@ -10,6 +10,10 @@ env:
   FLUTTER_VERSION: '3.41.5'
   RUST_VERSION: '1.93'
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ===========================================
   # Lint & Format Checks
@@ -31,6 +35,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
+          shared-key: lint
 
       # --- Flutter Setup ---
       - name: Install Flutter
@@ -59,6 +64,8 @@ jobs:
       - name: Run Rust linter (clippy)
         working-directory: rust
         run: cargo clippy --all-targets -- -D warnings
+        env:
+          CARGO_INCREMENTAL: '0'
 
       # --- Flutter Checks ---
       - name: Get Flutter dependencies
@@ -90,6 +97,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
+          shared-key: rust-tests
 
       - name: Install Vulkan SDK
         run: |
@@ -171,6 +179,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: rust
+          shared-key: windows-build
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
