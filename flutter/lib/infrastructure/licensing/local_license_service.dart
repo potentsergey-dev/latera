@@ -28,8 +28,8 @@ class LocalLicenseService implements LicenseService {
   LocalLicenseService({
     required Logger logger,
     required SharedPreferences prefs,
-  })  : _logger = logger,
-        _prefs = prefs;
+  }) : _logger = logger,
+       _prefs = prefs;
 
   /// Инициализация: фиксирует дату первого запуска и вычисляет лицензию.
   Future<void> initialize() async {
@@ -40,7 +40,9 @@ class LocalLicenseService implements LicenseService {
       _logger.i('LocalLicenseService: first launch, install date = $now');
     }
     _currentLicense = _computeLicense();
-    _logger.i('LocalLicenseService: initialized, mode = ${_currentLicense.mode}');
+    _logger.i(
+      'LocalLicenseService: initialized, mode = ${_currentLicense.mode}',
+    );
   }
 
   License _computeLicense() {
@@ -143,7 +145,9 @@ class LocalLicenseService implements LicenseService {
       _logger.i('LocalLicenseService: Store purchase detected, activating Pro');
       await activateProPurchase();
     } else if (!isStorePurchased && localPurchased) {
-      _logger.w('LocalLicenseService: Store says not purchased, deactivating Pro');
+      _logger.w(
+        'LocalLicenseService: Store says not purchased, deactivating Pro',
+      );
       await deactivateLicense();
     }
   }

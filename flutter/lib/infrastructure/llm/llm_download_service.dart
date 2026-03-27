@@ -153,13 +153,19 @@ class LlmDownloadService {
           : null;
       if (drive == null) return null;
 
-      final result = await Process.run(
-        'wmic',
-        ['logicaldisk', 'where', 'DeviceID="$drive"', 'get', 'FreeSpace', '/format:value'],
-      );
+      final result = await Process.run('wmic', [
+        'logicaldisk',
+        'where',
+        'DeviceID="$drive"',
+        'get',
+        'FreeSpace',
+        '/format:value',
+      ]);
       if (result.exitCode != 0) return null;
 
-      final match = RegExp(r'FreeSpace=(\d+)').firstMatch(result.stdout as String);
+      final match = RegExp(
+        r'FreeSpace=(\d+)',
+      ).firstMatch(result.stdout as String);
       if (match == null) return null;
       return int.tryParse(match.group(1)!);
     } catch (_) {

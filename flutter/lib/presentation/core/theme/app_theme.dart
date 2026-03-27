@@ -51,17 +51,13 @@ class AppTheme {
   // ─── Material Theme (для Linux / macOS / fallback) ───
 
   static ThemeData get materialTheme {
-    final colorScheme = ColorScheme.fromSeed(
-      seedColor: accentColor,
-    );
+    final colorScheme = ColorScheme.fromSeed(seedColor: accentColor);
 
     return ThemeData(
       colorScheme: colorScheme,
       useMaterial3: true,
       fontFamily: _fontFamily,
-      typography: Typography.material2021(
-        platform: TargetPlatform.linux,
-      ),
+      typography: Typography.material2021(platform: TargetPlatform.linux),
     );
   }
 
@@ -76,9 +72,7 @@ class AppTheme {
       useMaterial3: true,
       fontFamily: _fontFamily,
       brightness: Brightness.dark,
-      typography: Typography.material2021(
-        platform: TargetPlatform.linux,
-      ),
+      typography: Typography.material2021(platform: TargetPlatform.linux),
     );
   }
 

@@ -212,18 +212,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   const SizedBox(height: 24),
                   Text(
                     l10n.onboardingTitle,
-                    style:
-                        Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     l10n.onboardingDescription,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                     textAlign: TextAlign.center,
                   ),
 
@@ -315,10 +314,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(width: 8),
                 Text(
                   title,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -334,8 +332,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: Text(
                         item,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurface,
-                            ),
+                          color: colorScheme.onSurface,
+                        ),
                       ),
                     ),
                   ],
@@ -362,15 +360,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.storage_outlined,
-                    size: 20, color: colorScheme.primary),
+                Icon(
+                  Icons.storage_outlined,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   l10n.onboardingDataStorageTitle,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -383,24 +383,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   Text(
                     '${l10n.onboardingIndexLocation} ',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Expanded(
                     child: _isLoadingDefault
                         ? const SizedBox(
                             width: 12,
                             height: 12,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
                             _indexPath ?? '—',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: colorScheme.onSurfaceVariant),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
@@ -417,24 +413,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   Text(
                     '${l10n.onboardingModelsLocation} ',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   Expanded(
                     child: _isLoadingDefault
                         ? const SizedBox(
                             width: 12,
                             height: 12,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
                             _modelsPath ?? '—',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
+                            style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: colorScheme.onSurfaceVariant),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 2,
@@ -448,10 +440,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               padding: const EdgeInsets.only(left: 4, top: 4),
               child: Text(
                 l10n.onboardingSettingsStorage,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],
@@ -466,9 +457,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     // Определяем, доступна ли произвольная папка (PRO/trial)
     final licenseCoordinator = AppScope.maybeOf(context)?.licenseCoordinator;
-    final canUseCustomFolder = licenseCoordinator == null ||
-        licenseCoordinator
-            .isFeatureAvailable(FeatureId.customWatchFolder);
+    final canUseCustomFolder =
+        licenseCoordinator == null ||
+        licenseCoordinator.isFeatureAvailable(FeatureId.customWatchFolder);
 
     // Показываем ошибку загрузки
     if (_loadError != null) {
@@ -518,10 +509,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(width: 12),
                 Text(
                   l10n.onboardingFolderSectionTitle,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -538,8 +528,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     color: !canUseCustomFolder
                         ? colorScheme.outline.withValues(alpha: 0.3)
                         : _selectedPath != null
-                            ? colorScheme.primary
-                            : colorScheme.outline,
+                        ? colorScheme.primary
+                        : colorScheme.outline,
                   ),
                   borderRadius: BorderRadius.circular(8),
                   color: !canUseCustomFolder
@@ -552,13 +542,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       !canUseCustomFolder
                           ? Icons.lock_outline
                           : _selectedPath != null
-                              ? Icons.check_circle
-                              : Icons.create_new_folder_outlined,
+                          ? Icons.check_circle
+                          : Icons.create_new_folder_outlined,
                       color: !canUseCustomFolder
                           ? colorScheme.outline.withValues(alpha: 0.5)
                           : _selectedPath != null
-                              ? Colors.green
-                              : colorScheme.primary,
+                          ? Colors.green
+                          : colorScheme.primary,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -572,11 +562,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   _selectedPath ?? l10n.onboardingSelectFolder,
                                   style: TextStyle(
                                     color: !canUseCustomFolder
-                                        ? colorScheme.onSurface
-                                            .withValues(alpha: 0.4)
+                                        ? colorScheme.onSurface.withValues(
+                                            alpha: 0.4,
+                                          )
                                         : _selectedPath != null
-                                            ? colorScheme.onSurface
-                                            : colorScheme.onSurfaceVariant,
+                                        ? colorScheme.onSurface
+                                        : colorScheme.onSurfaceVariant,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -585,7 +576,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               Container(
                                 margin: const EdgeInsets.only(left: 8),
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: canUseCustomFolder
                                       ? colorScheme.primaryContainer
@@ -594,15 +587,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   border: Border.all(
                                     color: canUseCustomFolder
                                         ? colorScheme.primary
-                                        : colorScheme.outline
-                                            .withValues(alpha: 0.4),
+                                        : colorScheme.outline.withValues(
+                                            alpha: 0.4,
+                                          ),
                                   ),
                                 ),
                                 child: Text(
                                   l10n.onboardingCustomFolderProBadge,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
+                                  style: Theme.of(context).textTheme.labelSmall
                                       ?.copyWith(
                                         color: canUseCustomFolder
                                             ? colorScheme.onPrimaryContainer
@@ -618,12 +610,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             canUseCustomFolder
                                 ? l10n.onboardingCustomFolderProHint
                                 : l10n.onboardingCustomFolderLockedHint,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -667,9 +655,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         children: [
                           Text(
                             l10n.onboardingUseDefault,
-                            style: TextStyle(
-                              color: colorScheme.onSurface,
-                            ),
+                            style: TextStyle(color: colorScheme.onSurface),
                           ),
                           if (_isLoadingDefault)
                             const SizedBox(
@@ -695,7 +681,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ],
         ),
-
       ),
     );
   }
@@ -717,8 +702,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.arrow_forward),
-          label:
-              Text(_isProcessing ? l10n.onboardingLoading : l10n.onboardingStartButton),
+          label: Text(
+            _isProcessing ? l10n.onboardingLoading : l10n.onboardingStartButton,
+          ),
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
@@ -727,8 +713,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         Text(
           l10n.onboardingChangeLater,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.outline,
-              ),
+            color: Theme.of(context).colorScheme.outline,
+          ),
           textAlign: TextAlign.center,
         ),
       ],

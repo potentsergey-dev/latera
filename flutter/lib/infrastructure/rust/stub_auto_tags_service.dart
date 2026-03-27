@@ -14,15 +14,9 @@ class StubAutoTagsService implements AutoTagsService {
     required String fileName,
   }) async {
     if (textContent.trim().isEmpty) {
-      return const AutoTagsResult(
-        tags: [],
-        errorCode: 'empty_content',
-      );
+      return const AutoTagsResult(tags: [], errorCode: 'empty_content');
     }
 
-    return const AutoTagsResult(
-      tags: [],
-      errorCode: 'not_implemented',
-    );
+    return const AutoTagsResult(tags: [], errorCode: 'not_implemented');
   }
 }

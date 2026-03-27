@@ -14,15 +14,9 @@ class StubAutoSummaryService implements AutoSummaryService {
     required String fileName,
   }) async {
     if (textContent.trim().isEmpty) {
-      return const AutoSummaryResult(
-        summary: '',
-        errorCode: 'empty_content',
-      );
+      return const AutoSummaryResult(summary: '', errorCode: 'empty_content');
     }
 
-    return const AutoSummaryResult(
-      summary: '',
-      errorCode: 'not_implemented',
-    );
+    return const AutoSummaryResult(summary: '', errorCode: 'not_implemented');
   }
 }

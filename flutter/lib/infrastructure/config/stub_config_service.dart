@@ -80,24 +80,32 @@ class StubConfigService implements ConfigService {
     // ВАЖНО: copyWith() не умеет устанавливать null (паттерн newValue ?? oldValue).
     // Поэтому создаём AppConfig напрямую с явными значениями для всех полей.
     _currentConfig = AppConfig(
-      watchPath: clearWatchPath ? null : (watchPath ?? _currentConfig.watchPath),
+      watchPath: clearWatchPath
+          ? null
+          : (watchPath ?? _currentConfig.watchPath),
       watchIntervalMs: watchIntervalMs ?? _currentConfig.watchIntervalMs,
-      notificationsEnabled: notificationsEnabled ?? _currentConfig.notificationsEnabled,
+      notificationsEnabled:
+          notificationsEnabled ?? _currentConfig.notificationsEnabled,
       loggingEnabled: loggingEnabled ?? _currentConfig.loggingEnabled,
       logLevel: logLevel ?? _currentConfig.logLevel,
       theme: theme ?? _currentConfig.theme,
       language: clearLanguage ? null : (language ?? _currentConfig.language),
-      resourceSaverEnabled: resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
+      resourceSaverEnabled:
+          resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
       enableOfficeDocs: enableOfficeDocs ?? _currentConfig.enableOfficeDocs,
       enableOcr: enableOcr ?? _currentConfig.enableOcr,
-      enableTranscription: enableTranscription ?? _currentConfig.enableTranscription,
+      enableTranscription:
+          enableTranscription ?? _currentConfig.enableTranscription,
       enableEmbeddings: enableEmbeddings ?? _currentConfig.enableEmbeddings,
-      enableSemanticSimilarity: enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
+      enableSemanticSimilarity:
+          enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
       enableRag: enableRag ?? _currentConfig.enableRag,
       enableAutoSummary: enableAutoSummary ?? _currentConfig.enableAutoSummary,
       enableAutoTags: enableAutoTags ?? _currentConfig.enableAutoTags,
       maxConcurrentJobs: maxConcurrentJobs ?? _currentConfig.maxConcurrentJobs,
-      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? _currentConfig.maxFileSizeMbForEnrichment,
+      maxFileSizeMbForEnrichment:
+          maxFileSizeMbForEnrichment ??
+          _currentConfig.maxFileSizeMbForEnrichment,
       maxMediaMinutes: maxMediaMinutes ?? _currentConfig.maxMediaMinutes,
       maxPagesPerPdf: maxPagesPerPdf ?? _currentConfig.maxPagesPerPdf,
     );

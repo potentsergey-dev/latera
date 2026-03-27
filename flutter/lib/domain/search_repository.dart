@@ -90,5 +90,8 @@ abstract interface class SearchRepository {
   ///
   /// [filePath] — файл-источник для поиска похожих.
   /// [limit] — максимальное количество результатов.
-  Future<List<SearchResult>> findSimilarFiles(String filePath, {int limit = 10});
+  Future<List<SearchResult>> findSimilarFiles(
+    String filePath, {
+    int limit = 10,
+  });
 }

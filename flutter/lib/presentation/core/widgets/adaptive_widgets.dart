@@ -32,11 +32,7 @@ class AdaptiveFilledButton extends StatelessWidget {
     }
 
     if (icon != null) {
-      return FilledButton.icon(
-        onPressed: onPressed,
-        icon: icon!,
-        label: child,
-      );
+      return FilledButton.icon(onPressed: onPressed, icon: icon!, label: child);
     }
     return FilledButton(onPressed: onPressed, child: child);
   }
@@ -95,10 +91,7 @@ class AdaptiveTextButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (PlatformInfo.isWindows) {
-      return fluent.HyperlinkButton(
-        onPressed: onPressed,
-        child: child,
-      );
+      return fluent.HyperlinkButton(onPressed: onPressed, child: child);
     }
     return TextButton(onPressed: onPressed, child: child);
   }
@@ -168,9 +161,7 @@ class AdaptiveTextField extends StatelessWidget {
         hintText: placeholder,
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
       ),
     );
@@ -201,10 +192,7 @@ class AdaptiveToggle extends StatelessWidget {
         leading: leading,
         title: label != null ? Text(label!) : null,
         subtitle: subtitle != null ? Text(subtitle!) : null,
-        trailing: fluent.ToggleSwitch(
-          checked: value,
-          onChanged: onChanged,
-        ),
+        trailing: fluent.ToggleSwitch(checked: value, onChanged: onChanged),
         selected: false,
       );
     }
@@ -224,11 +212,7 @@ class AdaptiveProgressRing extends StatelessWidget {
   final double? value;
   final double strokeWidth;
 
-  const AdaptiveProgressRing({
-    super.key,
-    this.value,
-    this.strokeWidth = 4.0,
-  });
+  const AdaptiveProgressRing({super.key, this.value, this.strokeWidth = 4.0});
 
   @override
   Widget build(BuildContext context) {
@@ -236,10 +220,7 @@ class AdaptiveProgressRing extends StatelessWidget {
       return fluent.ProgressRing(value: value != null ? value! * 100 : null);
     }
 
-    return CircularProgressIndicator(
-      value: value,
-      strokeWidth: strokeWidth,
-    );
+    return CircularProgressIndicator(value: value, strokeWidth: strokeWidth);
   }
 }
 
@@ -284,7 +265,9 @@ class AdaptiveCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      color: backgroundColor ?? Theme.of(context).colorScheme.surfaceContainerHighest,
+      color:
+          backgroundColor ??
+          Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: padding ?? const EdgeInsets.all(16),
         child: child,
@@ -302,13 +285,18 @@ void showAdaptiveInfoBar(
   bool isError = false,
 }) {
   if (PlatformInfo.isWindows) {
-    fluent.displayInfoBar(context, builder: (context, close) {
-      return fluent.InfoBar(
-        title: Text(message),
-        severity: isError ? fluent.InfoBarSeverity.error : fluent.InfoBarSeverity.info,
-        onClose: close,
-      );
-    });
+    fluent.displayInfoBar(
+      context,
+      builder: (context, close) {
+        return fluent.InfoBar(
+          title: Text(message),
+          severity: isError
+              ? fluent.InfoBarSeverity.error
+              : fluent.InfoBarSeverity.info,
+          onClose: close,
+        );
+      },
+    );
     return;
   }
 

@@ -4,10 +4,7 @@ import 'package:latera/domain/ocr.dart';
 void main() {
   group('OcrOptions', () {
     test('constructs with required parameters', () {
-      const options = OcrOptions(
-        maxPagesPerPdf: 50,
-        maxFileSizeMb: 25,
-      );
+      const options = OcrOptions(maxPagesPerPdf: 50, maxFileSizeMb: 25);
 
       expect(options.maxPagesPerPdf, 50);
       expect(options.maxFileSizeMb, 25);

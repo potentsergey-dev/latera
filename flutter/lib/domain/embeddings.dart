@@ -39,10 +39,7 @@ class EmbeddingVector {
   /// Вектор эмбеддинга (f32).
   final List<double> vector;
 
-  const EmbeddingVector({
-    required this.chunkIndex,
-    required this.vector,
-  });
+  const EmbeddingVector({required this.chunkIndex, required this.vector});
 }
 
 /// Результат similarity search.
@@ -104,10 +101,7 @@ abstract interface class EmbeddingService {
   ///
   /// [query] — текстовый запрос.
   /// [topK] — максимальное количество результатов.
-  Future<List<SimilarityResult>> similaritySearch(
-    String query, {
-    int topK = 5,
-  });
+  Future<List<SimilarityResult>> similaritySearch(String query, {int topK = 5});
 
   /// Ищет файлы, похожие на данный файл.
   ///

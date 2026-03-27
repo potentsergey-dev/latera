@@ -128,10 +128,7 @@ class RustFfiEmbeddingService implements EmbeddingService {
     // чтобы не блокировать UI thread.
     try {
       final result = await Isolate.run(() {
-        return _doComputeEmbeddings(
-          libraryPath: libPath,
-          textsJson: textsJson,
-        );
+        return _doComputeEmbeddings(libraryPath: libPath, textsJson: textsJson);
       });
 
       if (result == null) {
@@ -167,10 +164,10 @@ class RustFfiEmbeddingService implements EmbeddingService {
     required String textsJson,
   }) {
     final lib = DynamicLibrary.open(libraryPath);
-    final computeBatch = lib.lookupFunction<
-      _ComputeEmbeddingsBatchC,
-      _ComputeEmbeddingsBatchDart
-    >('latera_compute_embeddings_batch');
+    final computeBatch = lib
+        .lookupFunction<_ComputeEmbeddingsBatchC, _ComputeEmbeddingsBatchDart>(
+          'latera_compute_embeddings_batch',
+        );
     final freeCString = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
       'latera_free_cstring',
     );

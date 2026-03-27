@@ -45,8 +45,9 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
     final root = AppScope.of(context);
     final config = root.configService.currentConfig;
     setState(() {
-      _useSemanticSearch =
-          config.isFeatureEffectivelyEnabled(ContentFeature.embeddings);
+      _useSemanticSearch = config.isFeatureEffectivelyEnabled(
+        ContentFeature.embeddings,
+      );
     });
   }
 
@@ -111,13 +112,16 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
     final file = File(filePath);
     if (!file.existsSync()) {
       if (!mounted) return;
-      fluent.displayInfoBar(context, builder: (context, close) {
-        return fluent.InfoBar(
-          title: const Text('Файл не найден на диске'),
-          severity: fluent.InfoBarSeverity.warning,
-          onClose: close,
-        );
-      });
+      fluent.displayInfoBar(
+        context,
+        builder: (context, close) {
+          return fluent.InfoBar(
+            title: const Text('Файл не найден на диске'),
+            severity: fluent.InfoBarSeverity.warning,
+            onClose: close,
+          );
+        },
+      );
       return;
     }
     final uri = Uri.file(filePath);
@@ -310,8 +314,12 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
       'doc' || 'docx' => Icons.article_outlined,
       'xls' || 'xlsx' => Icons.table_chart_outlined,
       'ppt' || 'pptx' => Icons.slideshow_outlined,
-      'jpg' || 'jpeg' || 'png' || 'gif' || 'bmp' || 'webp' =>
-        Icons.image_outlined,
+      'jpg' ||
+      'jpeg' ||
+      'png' ||
+      'gif' ||
+      'bmp' ||
+      'webp' => Icons.image_outlined,
       'mp4' || 'avi' || 'mov' || 'mkv' => Icons.video_file_outlined,
       'mp3' || 'wav' || 'flac' || 'ogg' => Icons.audio_file_outlined,
       'zip' || 'rar' || '7z' || 'tar' || 'gz' => Icons.folder_zip_outlined,

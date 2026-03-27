@@ -41,23 +41,21 @@ class RustFfiSystemService {
     try {
       final lib = DynamicLibrary.open(libPath);
 
-      _getTotalRamMbFfi =
-          lib.lookupFunction<_GetTotalRamMbC, _GetTotalRamMbDart>(
-        'latera_get_total_ram_mb',
-      );
+      _getTotalRamMbFfi = lib
+          .lookupFunction<_GetTotalRamMbC, _GetTotalRamMbDart>(
+            'latera_get_total_ram_mb',
+          );
 
-      _getHasAvx2Ffi =
-          lib.lookupFunction<_GetHasAvx2C, _GetHasAvx2Dart>(
+      _getHasAvx2Ffi = lib.lookupFunction<_GetHasAvx2C, _GetHasAvx2Dart>(
         'latera_get_has_avx2',
       );
 
-      _setRagMaxTokensFfi =
-          lib.lookupFunction<_SetRagMaxTokensC, _SetRagMaxTokensDart>(
-        'latera_set_rag_max_tokens',
-      );
+      _setRagMaxTokensFfi = lib
+          .lookupFunction<_SetRagMaxTokensC, _SetRagMaxTokensDart>(
+            'latera_set_rag_max_tokens',
+          );
 
-      _getHasVulkanFfi =
-          lib.lookupFunction<_GetHasVulkanC, _GetHasVulkanDart>(
+      _getHasVulkanFfi = lib.lookupFunction<_GetHasVulkanC, _GetHasVulkanDart>(
         'latera_get_has_vulkan',
       );
 

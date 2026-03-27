@@ -15,7 +15,8 @@ class NotificationException implements Exception {
   const NotificationException(this.message, {this.cause});
 
   @override
-  String toString() => 'NotificationException: $message${cause != null ? ' ($cause)' : ''}';
+  String toString() =>
+      'NotificationException: $message${cause != null ? ' ($cause)' : ''}';
 }
 
 /// Конфигурация каналов уведомлений.
@@ -108,9 +109,9 @@ class LocalNotificationsService implements NotificationsService {
   LocalNotificationsService({
     required Logger logger,
     ThrottlePolicy? throttlePolicy,
-  })  : _log = logger,
-        _throttlePolicy = throttlePolicy ?? ThrottlePolicy.defaultPolicy,
-        _plugin = FlutterLocalNotificationsPlugin();
+  }) : _log = logger,
+       _throttlePolicy = throttlePolicy ?? ThrottlePolicy.defaultPolicy,
+       _plugin = FlutterLocalNotificationsPlugin();
 
   /// Создать сервис с кастомным плагином (для тестов).
   @visibleForTesting
@@ -118,9 +119,9 @@ class LocalNotificationsService implements NotificationsService {
     required Logger logger,
     required FlutterLocalNotificationsPlugin plugin,
     ThrottlePolicy? throttlePolicy,
-  })  : _log = logger,
-        _plugin = plugin,
-        _throttlePolicy = throttlePolicy ?? ThrottlePolicy.defaultPolicy;
+  }) : _log = logger,
+       _plugin = plugin,
+       _throttlePolicy = throttlePolicy ?? ThrottlePolicy.defaultPolicy;
 
   @override
   Future<void> init() {
@@ -141,10 +142,18 @@ class LocalNotificationsService implements NotificationsService {
       _isInitialized = true;
       _log.infoWithContext('Local notifications initialized', ctx);
     } catch (e, st) {
-      _log.errorWithContext('Failed to initialize notifications', ctx, error: e, stackTrace: st);
+      _log.errorWithContext(
+        'Failed to initialize notifications',
+        ctx,
+        error: e,
+        stackTrace: st,
+      );
       // Сбрасываем Future чтобы позволить повторную попытку инициализации
       _initFuture = null;
-      throw NotificationException('Не удалось инициализировать уведомления', cause: e);
+      throw NotificationException(
+        'Не удалось инициализировать уведомления',
+        cause: e,
+      );
     }
   }
 
@@ -155,14 +164,20 @@ class LocalNotificationsService implements NotificationsService {
     // Для Android/iOS/macOS запрашиваем.
     try {
       // Android 13+ требует POST_NOTIFICATIONS permission
-      final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       if (android != null) {
         final granted = await android.requestNotificationsPermission();
         _log.debugWithContext('Android notification permission: $granted', ctx);
       }
 
       // iOS/macOS
-      final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+      final ios = _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
       if (ios != null) {
         final granted = await ios.requestPermissions(
           alert: true,
@@ -172,7 +187,10 @@ class LocalNotificationsService implements NotificationsService {
         _log.debugWithContext('iOS notification permission: $granted', ctx);
       }
 
-      final macos = _plugin.resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
+      final macos = _plugin
+          .resolvePlatformSpecificImplementation<
+            MacOSFlutterLocalNotificationsPlugin
+          >();
       if (macos != null) {
         final granted = await macos.requestPermissions(
           alert: true,
@@ -183,7 +201,11 @@ class LocalNotificationsService implements NotificationsService {
       }
     } catch (e) {
       // Не критично, если permissions не удалось запросить
-      _log.warnWithContext('Could not request permissions (non-critical)', ctx, error: e);
+      _log.warnWithContext(
+        'Could not request permissions (non-critical)',
+        ctx,
+        error: e,
+      );
     }
   }
 
@@ -274,7 +296,12 @@ class LocalNotificationsService implements NotificationsService {
       _recordNotification('file_added');
       _log.infoWithContext('Notification shown: $fileName', ctx);
     } catch (e, st) {
-      _log.errorWithContext('Failed to show notification', ctx, error: e, stackTrace: st);
+      _log.errorWithContext(
+        'Failed to show notification',
+        ctx,
+        error: e,
+        stackTrace: st,
+      );
       throw NotificationException('Не удалось показать уведомление', cause: e);
     }
   }
@@ -299,7 +326,8 @@ class LocalNotificationsService implements NotificationsService {
       await _plugin.show(
         id: id,
         title: 'Файл добавлен без распознавания',
-        body: 'Файл $fileName добавлен без распознавания. '
+        body:
+            'Файл $fileName добавлен без распознавания. '
             'Пожалуйста, добавьте описание вручную.',
         notificationDetails: details,
         payload: 'file_needs_review:$fileName',
@@ -308,7 +336,12 @@ class LocalNotificationsService implements NotificationsService {
       _recordNotification('file_needs_review');
       _log.infoWithContext('Needs-review notification shown: $fileName', ctx);
     } catch (e, st) {
-      _log.errorWithContext('Failed to show needs-review notification', ctx, error: e, stackTrace: st);
+      _log.errorWithContext(
+        'Failed to show needs-review notification',
+        ctx,
+        error: e,
+        stackTrace: st,
+      );
       // Не пробрасываем — это тихое уведомление, ошибка не должна прерывать поток
     }
   }
@@ -328,7 +361,8 @@ class LocalNotificationsService implements NotificationsService {
 
     // 2. Очистка старых timestamps
     final windowStart = now.subtract(_throttlePolicy.windowSize);
-    while (_notificationTimestamps.isNotEmpty && _notificationTimestamps.first.isBefore(windowStart)) {
+    while (_notificationTimestamps.isNotEmpty &&
+        _notificationTimestamps.first.isBefore(windowStart)) {
       _notificationTimestamps.removeFirst();
     }
 
@@ -356,9 +390,7 @@ class LocalNotificationsService implements NotificationsService {
   /// Построить детали уведомления.
   NotificationDetails _buildNotificationDetails() {
     return NotificationDetails(
-      windows: const WindowsNotificationDetails(
-        subtitle: 'Latera',
-      ),
+      windows: const WindowsNotificationDetails(subtitle: 'Latera'),
       android: AndroidNotificationDetails(
         NotificationChannelConfig.fileAdded.id,
         NotificationChannelConfig.fileAdded.name,
@@ -386,7 +418,9 @@ class LocalNotificationsService implements NotificationsService {
   Future<void> showIndexingLimitReached() async {
     await init();
 
-    final ctx = LogContext.withOperation('notification.showIndexingLimitReached');
+    final ctx = LogContext.withOperation(
+      'notification.showIndexingLimitReached',
+    );
 
     if (!_shouldShowNotification('indexing_limit_reached')) {
       _log.debugWithContext('Indexing limit notification throttled', ctx);
@@ -400,7 +434,8 @@ class LocalNotificationsService implements NotificationsService {
       await _plugin.show(
         id: id,
         title: 'Лимит Basic-режима',
-        body: 'Достигнут лимит Basic-режима (100 файлов). '
+        body:
+            'Достигнут лимит Basic-режима (100 файлов). '
             'Перейдите на PRO для неограниченной индексации.',
         notificationDetails: details,
         payload: 'indexing_limit_reached',
@@ -425,7 +460,12 @@ class LocalNotificationsService implements NotificationsService {
       await _plugin.cancelAll();
       _log.infoWithContext('All notifications cancelled', ctx);
     } catch (e, st) {
-      _log.errorWithContext('Failed to cancel notifications', ctx, error: e, stackTrace: st);
+      _log.errorWithContext(
+        'Failed to cancel notifications',
+        ctx,
+        error: e,
+        stackTrace: st,
+      );
     }
   }
 

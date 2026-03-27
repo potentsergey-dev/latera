@@ -68,16 +68,16 @@ final class WatcherError extends CoreError {
   });
 
   factory WatcherError.alreadyRunning([Object? error]) => WatcherError(
-        message: 'Watcher is already running',
-        originalError: error,
-        code: 'WATCHER_ALREADY_RUNNING',
-      );
+    message: 'Watcher is already running',
+    originalError: error,
+    code: 'WATCHER_ALREADY_RUNNING',
+  );
 
   factory WatcherError.notRunning([Object? error]) => WatcherError(
-        message: 'Watcher is not running',
-        originalError: error,
-        code: 'WATCHER_NOT_RUNNING',
-      );
+    message: 'Watcher is not running',
+    originalError: error,
+    code: 'WATCHER_NOT_RUNNING',
+  );
 
   factory WatcherError.fromRust(Object error, [StackTrace? st]) {
     final errorStr = error.toString().toLowerCase();
@@ -114,18 +114,17 @@ final class ConfigError extends CoreError {
     this.code = 'CONFIG_ERROR',
   });
 
-  factory ConfigError.invalidPath(String path, [Object? error]) =>
-      ConfigError(
-        message: 'Invalid path: $path',
-        originalError: error,
-        code: 'INVALID_PATH',
-      );
+  factory ConfigError.invalidPath(String path, [Object? error]) => ConfigError(
+    message: 'Invalid path: $path',
+    originalError: error,
+    code: 'INVALID_PATH',
+  );
 
   factory ConfigError.desktopNotFound([Object? error]) => ConfigError(
-        message: 'Desktop directory is not available on this OS/user',
-        originalError: error,
-        code: 'DESKTOP_DIR_NOT_FOUND',
-      );
+    message: 'Desktop directory is not available on this OS/user',
+    originalError: error,
+    code: 'DESKTOP_DIR_NOT_FOUND',
+  );
 }
 
 /// Ошибки платформы (неподдерживаемая ОС и т.д.)
@@ -147,10 +146,10 @@ final class PlatformError extends CoreError {
   });
 
   factory PlatformError.unsupported([Object? error]) => PlatformError(
-        message: 'Unsupported platform for this operation',
-        originalError: error,
-        code: 'UNSUPPORTED_PLATFORM',
-      );
+    message: 'Unsupported platform for this operation',
+    originalError: error,
+    code: 'UNSUPPORTED_PLATFORM',
+  );
 }
 
 /// Ошибки инициализации
@@ -225,17 +224,17 @@ final class StreamError extends CoreError {
   });
 
   factory StreamError.disconnected([Object? error]) => StreamError(
-        message: 'Stream disconnected unexpectedly',
-        originalError: error,
-        code: 'STREAM_DISCONNECTED',
-      );
+    message: 'Stream disconnected unexpectedly',
+    originalError: error,
+    code: 'STREAM_DISCONNECTED',
+  );
 
   factory StreamError.fromRust(Object error, [StackTrace? st]) => StreamError(
-        message: _extractRustMessage(error),
-        originalError: error,
-        stackTrace: st,
-        code: _extractRustCode(error),
-      );
+    message: _extractRustMessage(error),
+    originalError: error,
+    stackTrace: st,
+    code: _extractRustCode(error),
+  );
 }
 
 // Helper functions для извлечения информации из Rust ошибок
@@ -246,8 +245,9 @@ String _extractRustMessage(Object error) {
   // Формат: "LateraError::Variant: message" или просто "message"
 
   // Ищем паттерны LateraError
-  final lateraMatch = RegExp(r'LateraError::(\w+)(?::\s*(.+))?')
-      .firstMatch(str);
+  final lateraMatch = RegExp(
+    r'LateraError::(\w+)(?::\s*(.+))?',
+  ).firstMatch(str);
   if (lateraMatch != null) {
     final variant = lateraMatch.group(1) ?? '';
     final msg = lateraMatch.group(2);

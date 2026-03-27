@@ -21,10 +21,10 @@ class LicenseCoordinator {
     required LicenseService licenseService,
     required FeatureFlags featureFlags,
     bool isHardwareConstrained = false,
-  })  : _logger = logger,
-        _licenseService = licenseService,
-        _featureFlags = featureFlags,
-        _isHardwareConstrained = isHardwareConstrained;
+  }) : _logger = logger,
+       _licenseService = licenseService,
+       _featureFlags = featureFlags,
+       _isHardwareConstrained = isHardwareConstrained;
 
   /// Флаг аппаратных ограничений (RAM < 6 ГБ).
   ///
@@ -95,7 +95,9 @@ class LicenseCoordinator {
     _logger.i('Refreshing license status');
     try {
       final license = await _licenseService.refreshLicense();
-      _logger.i('License refreshed: ${license.type}, status: ${license.status}');
+      _logger.i(
+        'License refreshed: ${license.type}, status: ${license.status}',
+      );
       return license;
     } catch (e, st) {
       _logger.e('Failed to refresh license', error: e, stackTrace: st);

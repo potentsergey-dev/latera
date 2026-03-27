@@ -22,8 +22,8 @@ class StubFeatureFlags implements FeatureFlags {
   StubFeatureFlags({
     required Logger logger,
     required LicenseService licenseService,
-  })  : _logger = logger,
-        _licenseService = licenseService {
+  }) : _logger = logger,
+       _licenseService = licenseService {
     _init();
   }
 
@@ -86,7 +86,8 @@ class StubFeatureFlags implements FeatureFlags {
   }
 
   @override
-  Stream<Set<String>> get availableFeaturesChanges => _featuresController.stream;
+  Stream<Set<String>> get availableFeaturesChanges =>
+      _featuresController.stream;
 
   @override
   Set<String> get availableFeatures {

@@ -95,10 +95,7 @@ abstract interface class Indexer {
   ///
   /// Файл сразу попадает в индекс (и FTS5), но помечается как нераспознанный.
   /// Пользователь позже добавит описание и теги через экран Inbox.
-  Future<bool> indexFileForReview(
-    String filePath, {
-    required String fileName,
-  });
+  Future<bool> indexFileForReview(String filePath, {required String fileName});
 
   /// Возвращает файлы, требующие внимания (без описания).
   Future<List<InboxFile>> getFilesNeedingReview();

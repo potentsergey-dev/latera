@@ -90,8 +90,9 @@ class DartRichTextExtractor implements RichTextExtractor {
       final totalPages = doc.pages.count;
       _log.d('PDF opened: $totalPages pages');
 
-      final pagesToProcess =
-          totalPages < options.maxPagesPerPdf ? totalPages : options.maxPagesPerPdf;
+      final pagesToProcess = totalPages < options.maxPagesPerPdf
+          ? totalPages
+          : options.maxPagesPerPdf;
 
       // Извлекаем текст используя PdfTextExtractor
       final extractor = sf.PdfTextExtractor(doc);
@@ -100,7 +101,10 @@ class DartRichTextExtractor implements RichTextExtractor {
 
       for (var i = 0; i < pagesToProcess; i++) {
         try {
-          final pageText = extractor.extractText(startPageIndex: i, endPageIndex: i);
+          final pageText = extractor.extractText(
+            startPageIndex: i,
+            endPageIndex: i,
+          );
           if (pageText.isNotEmpty) {
             if (buffer.isNotEmpty) {
               buffer.write('\n\n');
@@ -116,7 +120,9 @@ class DartRichTextExtractor implements RichTextExtractor {
       }
 
       final text = buffer.toString().trim();
-      _log.i('PDF extraction done: $pagesExtracted pages, ${text.length} chars');
+      _log.i(
+        'PDF extraction done: $pagesExtracted pages, ${text.length} chars',
+      );
 
       // Если извлечено 0 символов — PDF может быть image-only
       if (text.isEmpty) {
@@ -133,7 +139,9 @@ class DartRichTextExtractor implements RichTextExtractor {
         text: text,
         contentType: 'pdf',
         pagesExtracted: pagesExtracted,
-        errorCode: totalPages > options.maxPagesPerPdf ? 'too_many_pages' : null,
+        errorCode: totalPages > options.maxPagesPerPdf
+            ? 'too_many_pages'
+            : null,
       );
     } catch (e, st) {
       _log.e('PDF extraction failed: $filePath', error: e, stackTrace: st);

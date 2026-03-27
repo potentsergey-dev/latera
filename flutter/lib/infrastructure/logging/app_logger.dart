@@ -19,10 +19,7 @@ class AppLogger {
   ///
   /// [isProduction] — если true, отключает debug/trace уровни.
   /// [enableColors] — цветной вывод (отключить для CI/лог-файлов).
-  static Logger create({
-    bool isProduction = false,
-    bool enableColors = true,
-  }) {
+  static Logger create({bool isProduction = false, bool enableColors = true}) {
     return Logger(
       filter: _AppLogFilter(isProduction: isProduction),
       printer: _AppLogPrinter(enableColors: enableColors),
@@ -122,16 +119,11 @@ class LogContext {
   /// Опциональный контекст операции.
   final String? operation;
 
-  LogContext._({
-    required this.correlationId,
-    this.operation,
-  });
+  LogContext._({required this.correlationId, this.operation});
 
   /// Создать новый контекст с уникальным correlation_id.
   factory LogContext() {
-    return LogContext._(
-      correlationId: _generateCorrelationId(),
-    );
+    return LogContext._(correlationId: _generateCorrelationId());
   }
 
   /// Создать контекст с указанным operation name.
@@ -144,24 +136,17 @@ class LogContext {
 
   /// Создать контекст с существующим correlation ID (из Rust).
   factory LogContext.fromId(String correlationId, {String? operation}) {
-    return LogContext._(
-      correlationId: correlationId,
-      operation: operation,
-    );
+    return LogContext._(correlationId: correlationId, operation: operation);
   }
 
   /// Установить operation name.
   LogContext withOperationName(String op) {
-    return LogContext._(
-      correlationId: correlationId,
-      operation: op,
-    );
+    return LogContext._(correlationId: correlationId, operation: op);
   }
 
   /// Форматированный префикс для логов.
-  String get prefix => operation != null
-      ? '[$correlationId] [$operation]'
-      : '[$correlationId]';
+  String get prefix =>
+      operation != null ? '[$correlationId] [$operation]' : '[$correlationId]';
 
   /// Генерирует уникальный correlation ID.
   ///

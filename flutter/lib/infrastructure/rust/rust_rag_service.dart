@@ -51,12 +51,11 @@ class RustRagService implements domain.RagService {
     try {
       final lib = DynamicLibrary.open(libPath);
 
-      _ragQueryStartFfi =
-          lib.lookupFunction<_RagQueryStartC, _RagQueryStartDart>(
-        'latera_rag_query_start',
-      );
-      _ragPollEventFfi =
-          lib.lookupFunction<_RagPollEventC, _RagPollEventDart>(
+      _ragQueryStartFfi = lib
+          .lookupFunction<_RagQueryStartC, _RagQueryStartDart>(
+            'latera_rag_query_start',
+          );
+      _ragPollEventFfi = lib.lookupFunction<_RagPollEventC, _RagPollEventDart>(
         'latera_rag_poll_event',
       );
       _ragCancelFfi = lib.lookupFunction<_RagCancelC, _RagCancelDart>(
@@ -75,10 +74,7 @@ class RustRagService implements domain.RagService {
   }
 
   @override
-  Future<domain.RagQueryResult> query(
-    String question, {
-    int topK = 10,
-  }) async {
+  Future<domain.RagQueryResult> query(String question, {int topK = 10}) async {
     if (question.trim().isEmpty) {
       return const domain.RagQueryResult(
         answer: '',
@@ -88,20 +84,19 @@ class RustRagService implements domain.RagService {
     }
 
     try {
-      final result = await rust_api.ragQuery(
-        question: question,
-        topK: topK,
-      );
+      final result = await rust_api.ragQuery(question: question, topK: topK);
 
       return domain.RagQueryResult(
         answer: result.answer,
         errorCode: result.errorCode,
         sources: result.sources
-            .map((s) => domain.RagSource(
-                  filePath: s.filePath,
-                  chunkSnippet: s.chunkSnippet,
-                  chunkOffset: s.chunkOffset,
-                ))
+            .map(
+              (s) => domain.RagSource(
+                filePath: s.filePath,
+                chunkSnippet: s.chunkSnippet,
+                chunkOffset: s.chunkOffset,
+              ),
+            )
             .toList(),
       );
     } catch (e, st) {
@@ -115,10 +110,7 @@ class RustRagService implements domain.RagService {
   }
 
   @override
-  Stream<domain.RagStreamEvent> queryStream(
-    String question, {
-    int topK = 10,
-  }) {
+  Stream<domain.RagStreamEvent> queryStream(String question, {int topK = 10}) {
     _ensureFfiInitialized();
 
     final controller = StreamController<domain.RagStreamEvent>();
@@ -134,11 +126,15 @@ class RustRagService implements domain.RagService {
     try {
       final started = _ragQueryStartFfi!(questionPtr, topK);
       if (started == 0) {
-        controller.add(domain.RagDoneEvent(const domain.RagQueryResult(
-          answer: '',
-          sources: [],
-          errorCode: 'query_failed',
-        )));
+        controller.add(
+          domain.RagDoneEvent(
+            const domain.RagQueryResult(
+              answer: '',
+              sources: [],
+              errorCode: 'query_failed',
+            ),
+          ),
+        );
         controller.close();
         return controller.stream;
       }
@@ -182,7 +178,9 @@ class RustRagService implements domain.RagService {
           controller.add(domain.RagTokenEvent(text));
         } else if (type == 'done') {
           pollTimer?.cancel();
-          final result = _parseDoneResult(map['result'] as Map<String, dynamic>);
+          final result = _parseDoneResult(
+            map['result'] as Map<String, dynamic>,
+          );
           controller.add(domain.RagDoneEvent(result));
           controller.close();
           return;
@@ -200,11 +198,13 @@ class RustRagService implements domain.RagService {
 
     final sources = sourcesJson
         .cast<Map<String, dynamic>>()
-        .map((s) => domain.RagSource(
-              filePath: s['file_path'] as String? ?? '',
-              chunkSnippet: s['chunk_snippet'] as String? ?? '',
-              chunkOffset: (s['chunk_offset'] as num?)?.toInt() ?? 0,
-            ))
+        .map(
+          (s) => domain.RagSource(
+            filePath: s['file_path'] as String? ?? '',
+            chunkSnippet: s['chunk_snippet'] as String? ?? '',
+            chunkOffset: (s['chunk_offset'] as num?)?.toInt() ?? 0,
+          ),
+        )
         .toList();
 
     return domain.RagQueryResult(

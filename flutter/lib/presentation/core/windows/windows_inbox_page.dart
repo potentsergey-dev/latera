@@ -106,13 +106,16 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
       root.logger.e('Failed to save review', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() => _isSaving = false);
-      fluent.displayInfoBar(context, builder: (context, close) {
-        return fluent.InfoBar(
-          title: Text('Ошибка сохранения: $e'),
-          severity: fluent.InfoBarSeverity.error,
-          onClose: close,
-        );
-      });
+      fluent.displayInfoBar(
+        context,
+        builder: (context, close) {
+          return fluent.InfoBar(
+            title: Text('Ошибка сохранения: $e'),
+            severity: fluent.InfoBarSeverity.error,
+            onClose: close,
+          );
+        },
+      );
     }
   }
 
@@ -120,13 +123,16 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
     final file = File(filePath);
     if (!file.existsSync()) {
       if (!mounted) return;
-      fluent.displayInfoBar(context, builder: (context, close) {
-        return fluent.InfoBar(
-          title: const Text('Файл не найден на диске'),
-          severity: fluent.InfoBarSeverity.warning,
-          onClose: close,
-        );
-      });
+      fluent.displayInfoBar(
+        context,
+        builder: (context, close) {
+          return fluent.InfoBar(
+            title: const Text('Файл не найден на диске'),
+            severity: fluent.InfoBarSeverity.warning,
+            onClose: close,
+          );
+        },
+      );
       return;
     }
     final uri = Uri.file(filePath);
@@ -150,10 +156,7 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
     return Row(
       children: [
         // Master: список файлов
-        SizedBox(
-          width: 300,
-          child: _buildFileList(theme),
-        ),
+        SizedBox(width: 300, child: _buildFileList(theme)),
         const fluent.Divider(direction: Axis.vertical),
         // Detail: панель свойств
         Expanded(
@@ -211,10 +214,7 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
         return fluent.ListTile.selectable(
           selected: isSelected,
           onPressed: () => _selectFile(file),
-          leading: Icon(
-            _getFileIcon(file.fileName),
-            size: 20,
-          ),
+          leading: Icon(_getFileIcon(file.fileName), size: 20),
           title: Text(
             file.fileName,
             overflow: TextOverflow.ellipsis,
@@ -288,8 +288,11 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
                     height: 120,
                     color: theme.inactiveColor.withValues(alpha: 0.1),
                     child: Center(
-                      child: Icon(Icons.broken_image_outlined,
-                          size: 48, color: theme.inactiveColor),
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        size: 48,
+                        color: theme.inactiveColor,
+                      ),
                     ),
                   ),
                 ),
@@ -356,8 +359,12 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
       'doc' || 'docx' => Icons.article_outlined,
       'xls' || 'xlsx' => Icons.table_chart_outlined,
       'ppt' || 'pptx' => Icons.slideshow_outlined,
-      'jpg' || 'jpeg' || 'png' || 'gif' || 'bmp' || 'webp' =>
-        Icons.image_outlined,
+      'jpg' ||
+      'jpeg' ||
+      'png' ||
+      'gif' ||
+      'bmp' ||
+      'webp' => Icons.image_outlined,
       'mp4' || 'avi' || 'mov' || 'mkv' => Icons.video_file_outlined,
       'mp3' || 'wav' || 'flac' || 'ogg' => Icons.audio_file_outlined,
       _ => Icons.insert_drive_file_outlined,

@@ -137,9 +137,7 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
     final theme = fluent.FluentTheme.of(context);
 
     return fluent.ScaffoldPage(
-      header: const fluent.PageHeader(
-        title: Text('Спроси свою папку'),
-      ),
+      header: const fluent.PageHeader(title: Text('Спроси свою папку')),
       content: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -219,8 +217,11 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_awesome,
-                size: 64, color: theme.accentColor.withValues(alpha: 0.4)),
+            Icon(
+              Icons.auto_awesome,
+              size: 64,
+              color: theme.accentColor.withValues(alpha: 0.4),
+            ),
             const SizedBox(height: 16),
             Text(
               'Задайте вопрос по проиндексированным документам',
@@ -252,9 +253,16 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.format_quote, size: 18, color: theme.accentColor),
+                        Icon(
+                          Icons.format_quote,
+                          size: 18,
+                          color: theme.accentColor,
+                        ),
                         const SizedBox(width: 8),
-                        Text('Генерация ответа…', style: theme.typography.bodyStrong),
+                        Text(
+                          'Генерация ответа…',
+                          style: theme.typography.bodyStrong,
+                        ),
                         const SizedBox(width: 8),
                         const SizedBox(
                           width: 14,
@@ -315,7 +323,11 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.format_quote, size: 18, color: theme.accentColor),
+                    Icon(
+                      Icons.format_quote,
+                      size: 18,
+                      color: theme.accentColor,
+                    ),
                     const SizedBox(width: 8),
                     Text('Результат', style: theme.typography.bodyStrong),
                   ],

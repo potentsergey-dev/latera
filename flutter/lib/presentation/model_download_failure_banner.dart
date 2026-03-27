@@ -139,10 +139,7 @@ class _FailureCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          TextButton(
-            onPressed: onRetry,
-            child: Text(retryLabel),
-          ),
+          TextButton(onPressed: onRetry, child: Text(retryLabel)),
         ],
       ),
     );

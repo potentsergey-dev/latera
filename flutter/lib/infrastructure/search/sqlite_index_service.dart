@@ -254,9 +254,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
                 .first['cnt']
             as int;
     if (hasTagsCol == 0) {
-      db.execute(
-        "ALTER TABLE files ADD COLUMN tags TEXT DEFAULT '';",
-      );
+      db.execute("ALTER TABLE files ADD COLUMN tags TEXT DEFAULT '';");
       _log.i('Migrated: added tags column to files table');
     }
 
@@ -544,7 +542,11 @@ class SqliteIndexService implements Indexer, SearchRepository {
       _log.d('Indexed file for review: $fileName (path=$filePath)');
       return true;
     } catch (e, st) {
-      _log.e('Failed to index file for review: $filePath', error: e, stackTrace: st);
+      _log.e(
+        'Failed to index file for review: $filePath',
+        error: e,
+        stackTrace: st,
+      );
       return false;
     }
   }
@@ -589,7 +591,9 @@ class SqliteIndexService implements Indexer, SearchRepository {
          WHERE file_path = ?''',
       [description, tags, filePath],
     );
-    _log.i('Saved review for: $filePath (desc=${description.length} chars, tags=$tags)');
+    _log.i(
+      'Saved review for: $filePath (desc=${description.length} chars, tags=$tags)',
+    );
   }
 
   @override
@@ -615,17 +619,14 @@ class SqliteIndexService implements Indexer, SearchRepository {
 
     try {
       // --- Шаг 1: удаляем из индекса файлы, которых нет на диске ---
-      final indexed = _database.select(
-        'SELECT file_path FROM files',
-      );
+      final indexed = _database.select('SELECT file_path FROM files');
 
       for (final row in indexed) {
         final filePath = row['file_path'] as String;
         if (!File(filePath).existsSync()) {
-          _database.execute(
-            'DELETE FROM files WHERE file_path = ?',
-            [filePath],
-          );
+          _database.execute('DELETE FROM files WHERE file_path = ?', [
+            filePath,
+          ]);
           removedCount++;
           _log.d('Sync: removed stale file from index: $filePath');
         }
@@ -646,10 +647,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
               final fileName = p.basename(path);
               // Пропускаем desktop.ini и системные файлы
               if (fileName == 'desktop.ini') continue;
-              newFiles.add({
-                'filePath': path,
-                'fileName': fileName,
-              });
+              newFiles.add({'filePath': path, 'fileName': fileName});
               _log.d('Sync: discovered new file: $fileName');
             }
           }
@@ -665,10 +663,7 @@ class SqliteIndexService implements Indexer, SearchRepository {
       _log.e('Filesystem sync error', error: e, stackTrace: st);
     }
 
-    return SyncResult(
-      removedCount: removedCount,
-      newFiles: newFiles,
-    );
+    return SyncResult(removedCount: removedCount, newFiles: newFiles);
   }
 
   /// Возвращает список файлов (filePath, fileName), у которых нет эмбеддингов.
@@ -1005,10 +1000,7 @@ class SyncResult {
   /// Каждый элемент содержит 'filePath' и 'fileName'.
   final List<Map<String, String>> newFiles;
 
-  const SyncResult({
-    required this.removedCount,
-    required this.newFiles,
-  });
+  const SyncResult({required this.removedCount, required this.newFiles});
 }
 
 // ======================================================================

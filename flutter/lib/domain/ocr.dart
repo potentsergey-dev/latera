@@ -83,10 +83,7 @@ abstract interface class OcrService {
   ///
   /// [filePath] — абсолютный путь к файлу (png, jpg, tiff, bmp, webp, pdf).
   /// [options] — лимиты из конфигурации.
-  Future<OcrResult> extractText(
-    String filePath,
-    OcrOptions options,
-  );
+  Future<OcrResult> extractText(String filePath, OcrOptions options);
 
   /// Проверяет, поддерживается ли файл для OCR.
   bool isSupported(String filePath);

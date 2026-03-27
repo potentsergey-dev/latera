@@ -57,7 +57,9 @@ class _SearchScreenState extends State<SearchScreen> {
     final root = AppScope.of(context);
     final config = root.configService.currentConfig;
     setState(() {
-      _useSemanticSearch = config.isFeatureEffectivelyEnabled(ContentFeature.embeddings);
+      _useSemanticSearch = config.isFeatureEffectivelyEnabled(
+        ContentFeature.embeddings,
+      );
     });
   }
 
@@ -206,18 +208,18 @@ class _SearchScreenState extends State<SearchScreen> {
 
         // Показываем toast
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Описание сохранено')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Описание сохранено')));
         }
 
         // Обновляем результаты поиска
         _performSearch(_searchController.text);
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Ошибка сохранения: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Ошибка сохранения: $e')));
         }
       }
     }
@@ -309,13 +311,10 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
 
           // Индикатор загрузки
-          if (_isSearching)
-            const LinearProgressIndicator(),
+          if (_isSearching) const LinearProgressIndicator(),
 
           // Результаты
-          Expanded(
-            child: _buildBody(theme),
-          ),
+          Expanded(child: _buildBody(theme)),
         ],
       ),
     );
@@ -379,10 +378,7 @@ class _SearchScreenState extends State<SearchScreen> {
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Ничего не найдено',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('Ничего не найдено', style: theme.textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(
               'Попробуйте другие ключевые слова',
@@ -503,9 +499,7 @@ class _SearchResultCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   // Убираем HTML-теги из snippet для plain-text отображения
-                  result.snippet!
-                      .replaceAll('<b>', '')
-                      .replaceAll('</b>', ''),
+                  result.snippet!.replaceAll('<b>', '').replaceAll('</b>', ''),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                     fontStyle: FontStyle.italic,
@@ -516,11 +510,15 @@ class _SearchResultCard extends StatelessWidget {
               ],
 
               // Relevance badge (для семантического поиска)
-              if (result.relevance > 0 && result.relevance < 1.0) ...[                const SizedBox(height: 4),
+              if (result.relevance > 0 && result.relevance < 1.0) ...[
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(4),
@@ -541,7 +539,9 @@ class _SearchResultCard extends StatelessWidget {
               Text(
                 result.filePath,
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.6,
+                  ),
                   fontSize: 11,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -560,7 +560,12 @@ class _SearchResultCard extends StatelessWidget {
       'doc' || 'docx' => Icons.article_outlined,
       'xls' || 'xlsx' => Icons.table_chart_outlined,
       'ppt' || 'pptx' => Icons.slideshow_outlined,
-      'jpg' || 'jpeg' || 'png' || 'gif' || 'bmp' || 'webp' => Icons.image_outlined,
+      'jpg' ||
+      'jpeg' ||
+      'png' ||
+      'gif' ||
+      'bmp' ||
+      'webp' => Icons.image_outlined,
       'mp4' || 'avi' || 'mov' || 'mkv' => Icons.video_file_outlined,
       'mp3' || 'wav' || 'flac' || 'ogg' => Icons.audio_file_outlined,
       'zip' || 'rar' || '7z' || 'tar' || 'gz' => Icons.folder_zip_outlined,

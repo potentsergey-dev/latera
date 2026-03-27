@@ -150,24 +150,32 @@ class E2EMockConfigService implements ConfigService {
     int? maxPagesPerPdf,
   }) async {
     _currentConfig = AppConfig(
-      watchPath: clearWatchPath ? null : (watchPath ?? _currentConfig.watchPath),
+      watchPath: clearWatchPath
+          ? null
+          : (watchPath ?? _currentConfig.watchPath),
       watchIntervalMs: watchIntervalMs ?? _currentConfig.watchIntervalMs,
-      notificationsEnabled: notificationsEnabled ?? _currentConfig.notificationsEnabled,
+      notificationsEnabled:
+          notificationsEnabled ?? _currentConfig.notificationsEnabled,
       loggingEnabled: loggingEnabled ?? _currentConfig.loggingEnabled,
       logLevel: logLevel ?? _currentConfig.logLevel,
       theme: theme ?? _currentConfig.theme,
       language: clearLanguage ? null : (language ?? _currentConfig.language),
-      resourceSaverEnabled: resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
+      resourceSaverEnabled:
+          resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
       enableOfficeDocs: enableOfficeDocs ?? _currentConfig.enableOfficeDocs,
       enableOcr: enableOcr ?? _currentConfig.enableOcr,
-      enableTranscription: enableTranscription ?? _currentConfig.enableTranscription,
+      enableTranscription:
+          enableTranscription ?? _currentConfig.enableTranscription,
       enableEmbeddings: enableEmbeddings ?? _currentConfig.enableEmbeddings,
-      enableSemanticSimilarity: enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
+      enableSemanticSimilarity:
+          enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
       enableRag: enableRag ?? _currentConfig.enableRag,
       enableAutoSummary: enableAutoSummary ?? _currentConfig.enableAutoSummary,
       enableAutoTags: enableAutoTags ?? _currentConfig.enableAutoTags,
       maxConcurrentJobs: maxConcurrentJobs ?? _currentConfig.maxConcurrentJobs,
-      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? _currentConfig.maxFileSizeMbForEnrichment,
+      maxFileSizeMbForEnrichment:
+          maxFileSizeMbForEnrichment ??
+          _currentConfig.maxFileSizeMbForEnrichment,
       maxMediaMinutes: maxMediaMinutes ?? _currentConfig.maxMediaMinutes,
       maxPagesPerPdf: maxPagesPerPdf ?? _currentConfig.maxPagesPerPdf,
     );
@@ -330,11 +338,13 @@ void main() {
         await coordinator.start();
 
         // Симулируем обнаружение файла
-        watcher.emitEvent(FileAddedEvent(
-          fileName: 'test_document.pdf',
-          fullPath: '/Desktop/Latera/test_document.pdf',
-          occurredAt: DateTime.now(),
-        ));
+        watcher.emitEvent(
+          FileAddedEvent(
+            fileName: 'test_document.pdf',
+            fullPath: '/Desktop/Latera/test_document.pdf',
+            occurredAt: DateTime.now(),
+          ),
+        );
 
         await Future.delayed(const Duration(milliseconds: 100));
 
@@ -368,10 +378,9 @@ void main() {
         // Симулируем обнаружение нескольких файлов
         final files = ['file1.txt', 'file2.pdf', 'file3.docx'];
         for (final file in files) {
-          watcher.emitEvent(FileAddedEvent(
-            fileName: file,
-            occurredAt: DateTime.now(),
-          ));
+          watcher.emitEvent(
+            FileAddedEvent(fileName: file, occurredAt: DateTime.now()),
+          );
           await Future.delayed(const Duration(milliseconds: 50));
         }
 
@@ -384,28 +393,31 @@ void main() {
         await coordinator.stop();
       });
 
-      test('should handle startWatching with override path from config', () async {
-        // Устанавливаем путь в конфигурации
-        configService.setConfig(const AppConfig(
-          watchPath: '/custom/watch/path',
-        ));
+      test(
+        'should handle startWatching with override path from config',
+        () async {
+          // Устанавливаем путь в конфигурации
+          configService.setConfig(
+            const AppConfig(watchPath: '/custom/watch/path'),
+          );
 
-        final coordinator = FileEventsCoordinator(
-          logger: logger,
-          watcher: watcher,
-          notifications: notifications,
-          configService: configService,
-          indexer: indexer,
-        );
+          final coordinator = FileEventsCoordinator(
+            logger: logger,
+            watcher: watcher,
+            notifications: notifications,
+            configService: configService,
+            indexer: indexer,
+          );
 
-        await coordinator.start();
+          await coordinator.start();
 
-        // Coordinator должен передать путь из конфигурации
-        expect(watcher.isStarted, true);
-        expect(watcher.watchPath, '/custom/watch/path');
+          // Coordinator должен передать путь из конфигурации
+          expect(watcher.isStarted, true);
+          expect(watcher.watchPath, '/custom/watch/path');
 
-        await coordinator.stop();
-      });
+          await coordinator.stop();
+        },
+      );
     });
 
     group('Domain Types E2E', () {
@@ -455,10 +467,9 @@ void main() {
         final sub1 = watcher.fileAddedEvents.listen(events1.add);
         final sub2 = watcher.fileAddedEvents.listen(events2.add);
 
-        watcher.emitEvent(FileAddedEvent(
-          fileName: 'test.txt',
-          occurredAt: DateTime.now(),
-        ));
+        watcher.emitEvent(
+          FileAddedEvent(fileName: 'test.txt', occurredAt: DateTime.now()),
+        );
 
         await Future.delayed(const Duration(milliseconds: 10));
 
@@ -474,20 +485,18 @@ void main() {
 
         final sub = watcher.fileAddedEvents.listen(events.add);
 
-        watcher.emitEvent(FileAddedEvent(
-          fileName: 'file1.txt',
-          occurredAt: DateTime.now(),
-        ));
+        watcher.emitEvent(
+          FileAddedEvent(fileName: 'file1.txt', occurredAt: DateTime.now()),
+        );
 
         await Future.delayed(const Duration(milliseconds: 10));
         expect(events.length, 1);
 
         await sub.cancel();
 
-        watcher.emitEvent(FileAddedEvent(
-          fileName: 'file2.txt',
-          occurredAt: DateTime.now(),
-        ));
+        watcher.emitEvent(
+          FileAddedEvent(fileName: 'file2.txt', occurredAt: DateTime.now()),
+        );
 
         await Future.delayed(const Duration(milliseconds: 10));
         expect(events.length, 1); // Не изменилось после отмены подписки
@@ -508,10 +517,9 @@ void main() {
 
         // Эмитируем много событий быстро
         for (var i = 0; i < 100; i++) {
-          watcher.emitEvent(FileAddedEvent(
-            fileName: 'file_$i.txt',
-            occurredAt: DateTime.now(),
-          ));
+          watcher.emitEvent(
+            FileAddedEvent(fileName: 'file_$i.txt', occurredAt: DateTime.now()),
+          );
         }
 
         await Future.delayed(const Duration(milliseconds: 500));

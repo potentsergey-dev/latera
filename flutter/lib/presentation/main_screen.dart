@@ -54,14 +54,16 @@ class _MainScreenState extends State<MainScreen> {
       if (mounted) setState(() {});
     });
 
-    unawaited(_init().catchError((Object error, StackTrace st) {
-      debugPrint('Unexpected error in _init(): $error\n$st');
-      if (mounted) {
-        setState(() {
-          _status = 'Unexpected error: $error';
-        });
-      }
-    }));
+    unawaited(
+      _init().catchError((Object error, StackTrace st) {
+        debugPrint('Unexpected error in _init(): $error\n$st');
+        if (mounted) {
+          setState(() {
+            _status = 'Unexpected error: $error';
+          });
+        }
+      }),
+    );
   }
 
   Future<void> _init() async {
@@ -114,25 +116,23 @@ class _MainScreenState extends State<MainScreen> {
       );
 
       // Подписываемся на события удаления
-      _removedSub = coordinator.fileRemovedEvents.listen(
-        (event) {
-          root.logger.i('File removed: ${event.fileName}');
-          unawaited(_onFileRemoved(event));
-        },
-      );
+      _removedSub = coordinator.fileRemovedEvents.listen((event) {
+        root.logger.i('File removed: ${event.fileName}');
+        unawaited(_onFileRemoved(event));
+      });
 
       // Подписываемся на смену папки наблюдения
-      _watchPathChangedSub = coordinator.watchPathChangedEvents.listen(
-        (newWatchDir) {
-          root.logger.i('Watch path changed to: $newWatchDir');
-          if (!mounted) return;
-          setState(() {
-            _status = 'Папка изменена. Ожидаю файлы…';
-            _lastFileName = null;
-            _indexedCount = 0;
-          });
-        },
-      );
+      _watchPathChangedSub = coordinator.watchPathChangedEvents.listen((
+        newWatchDir,
+      ) {
+        root.logger.i('Watch path changed to: $newWatchDir');
+        if (!mounted) return;
+        setState(() {
+          _status = 'Папка изменена. Ожидаю файлы…';
+          _lastFileName = null;
+          _indexedCount = 0;
+        });
+      });
 
       if (!mounted) return;
       setState(() {
@@ -188,10 +188,7 @@ class _MainScreenState extends State<MainScreen> {
       if (success) {
         root.logger.i('File indexed for review: ${event.fileName}');
         // Запускаем обогащение контента (text extraction, embeddings и т.д.)
-        root.contentEnrichmentCoordinator.enqueueFile(
-          filePath,
-          event.fileName,
-        );
+        root.contentEnrichmentCoordinator.enqueueFile(filePath, event.fileName);
         _scheduleCounterRefresh();
       } else {
         root.logger.w('Failed to index file for review: ${event.fileName}');
@@ -342,8 +339,11 @@ class _MainScreenState extends State<MainScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded,
-                        color: theme.colorScheme.onErrorContainer, size: 18),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: theme.colorScheme.onErrorContainer,
+                      size: 18,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -414,10 +414,7 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -524,10 +521,12 @@ class _MainScreenState extends State<MainScreen> {
             // RAG кнопка — «Спроси свою папку»
             Builder(
               builder: (context) {
-                final isBasic = root.licenseCoordinator.currentLicense.mode ==
+                final isBasic =
+                    root.licenseCoordinator.currentLicense.mode ==
                     LicenseMode.basic;
                 final isEnabled =
-                    !isBasic && config.isFeatureEffectivelyEnabled(ContentFeature.rag);
+                    !isBasic &&
+                    config.isFeatureEffectivelyEnabled(ContentFeature.rag);
 
                 return Opacity(
                   opacity: isBasic ? 0.5 : 1.0,
@@ -539,18 +538,22 @@ class _MainScreenState extends State<MainScreen> {
                               Navigator.pushNamed(context, '/rag');
                             }
                           : isBasic
-                              ? () {
-                                  // В Basic-режиме открываем RAG-экран с заглушкой
-                                  Navigator.pushNamed(context, '/rag');
-                                }
-                              : null,
-                      icon: Icon(isBasic ? Icons.lock_outline : Icons.psychology),
+                          ? () {
+                              // В Basic-режиме открываем RAG-экран с заглушкой
+                              Navigator.pushNamed(context, '/rag');
+                            }
+                          : null,
+                      icon: Icon(
+                        isBasic ? Icons.lock_outline : Icons.psychology,
+                      ),
                       label: Text(
                         isBasic
                             ? 'Спроси свою папку (PRO)'
-                            : config.isFeatureEffectivelyEnabled(ContentFeature.rag)
-                                ? 'Спроси свою папку'
-                                : 'Спроси свою папку (выкл.)',
+                            : config.isFeatureEffectivelyEnabled(
+                                ContentFeature.rag,
+                              )
+                            ? 'Спроси свою папку'
+                            : 'Спроси свою папку (выкл.)',
                       ),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -564,15 +567,17 @@ class _MainScreenState extends State<MainScreen> {
             const SizedBox(height: 24),
 
             // Статус
-            Text(_status, style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            )),
+            Text(
+              _status,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 12),
 
             // Прогресс обработки файлов (pill + status bar)
             ProcessingStatusBar(
-              progressStream:
-                  root.contentEnrichmentCoordinator.progressStream,
+              progressStream: root.contentEnrichmentCoordinator.progressStream,
               initialProgress:
                   root.contentEnrichmentCoordinator.currentProgress,
             ),

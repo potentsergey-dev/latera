@@ -1,11 +1,7 @@
 import 'dart:io';
 
 /// Определяет текущую платформу для выбора UI-фреймворка.
-enum AppPlatformType {
-  windows,
-  macos,
-  linux,
-}
+enum AppPlatformType { windows, macos, linux }
 
 /// Синглтон для определения текущей платформы.
 ///

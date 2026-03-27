@@ -114,8 +114,9 @@ void main() {
       });
 
       test('should store override path', () async {
-        final result =
-            await mockWatcher.startWatching(overridePath: '/custom/path');
+        final result = await mockWatcher.startWatching(
+          overridePath: '/custom/path',
+        );
         expect(mockWatcher.currentPath, '/custom/path');
         expect(result, isA<WatchSuccess>());
         expect((result as WatchSuccess).watchDir, '/custom/path');
@@ -175,10 +176,10 @@ void main() {
         mockWatcher.simulateFileAdded(fileName: 'file2.txt');
 
         expect(mockWatcher.emittedEvents.length, 2);
-        expect(
-          mockWatcher.emittedEvents.map((e) => e.fileName),
-          ['file1.txt', 'file2.txt'],
-        );
+        expect(mockWatcher.emittedEvents.map((e) => e.fileName), [
+          'file1.txt',
+          'file2.txt',
+        ]);
       });
 
       test('should use custom fullPath if provided', () async {

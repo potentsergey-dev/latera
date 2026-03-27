@@ -42,7 +42,8 @@ class TrayService with TrayListener, WindowListener {
       final exeDir = File(Platform.resolvedExecutable).parent.path;
       iconPath = p.join(exeDir, 'app_icon.ico');
     } else {
-      iconPath = 'macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png';
+      iconPath =
+          'macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png';
     }
 
     await trayManager.setIcon(iconPath);
@@ -54,11 +55,13 @@ class TrayService with TrayListener, WindowListener {
     required String showLabel,
     required String quitLabel,
   }) async {
-    final menu = Menu(items: [
-      MenuItem(key: 'show', label: showLabel),
-      MenuItem.separator(),
-      MenuItem(key: 'quit', label: quitLabel),
-    ]);
+    final menu = Menu(
+      items: [
+        MenuItem(key: 'show', label: showLabel),
+        MenuItem.separator(),
+        MenuItem(key: 'quit', label: quitLabel),
+      ],
+    );
     await trayManager.setContextMenu(menu);
   }
 

@@ -9,10 +9,7 @@ import '../../domain/ocr.dart';
 /// который вызывает `api::ocr_extract_text` через FRB.
 class StubOcrService implements OcrService {
   @override
-  Future<OcrResult> extractText(
-    String filePath,
-    OcrOptions options,
-  ) async {
+  Future<OcrResult> extractText(String filePath, OcrOptions options) async {
     return const OcrResult(
       text: '',
       contentType: 'unsupported',
@@ -24,7 +21,15 @@ class StubOcrService implements OcrService {
   @override
   bool isSupported(String filePath) {
     final ext = filePath.split('.').last.toLowerCase();
-    return const {'png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'pdf'}
-        .contains(ext);
+    return const {
+      'png',
+      'jpg',
+      'jpeg',
+      'tiff',
+      'tif',
+      'bmp',
+      'webp',
+      'pdf',
+    }.contains(ext);
   }
 }

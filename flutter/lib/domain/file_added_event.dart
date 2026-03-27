@@ -12,4 +12,3 @@ class FileAddedEvent {
     this.fullPath,
   });
 }
-

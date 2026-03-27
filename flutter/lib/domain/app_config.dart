@@ -144,7 +144,8 @@ class AppConfig {
       ContentFeature.ocr => enableOcr,
       ContentFeature.transcription => enableTranscription,
       ContentFeature.embeddings => enableEmbeddings,
-      ContentFeature.semanticSimilarity => enableSemanticSimilarity && enableEmbeddings,
+      ContentFeature.semanticSimilarity =>
+        enableSemanticSimilarity && enableEmbeddings,
       ContentFeature.rag => enableRag,
       ContentFeature.autoSummary => enableAutoSummary,
       ContentFeature.autoTags => enableAutoTags,
@@ -205,12 +206,14 @@ class AppConfig {
       enableOcr: enableOcr ?? this.enableOcr,
       enableTranscription: enableTranscription ?? this.enableTranscription,
       enableEmbeddings: enableEmbeddings ?? this.enableEmbeddings,
-      enableSemanticSimilarity: enableSemanticSimilarity ?? this.enableSemanticSimilarity,
+      enableSemanticSimilarity:
+          enableSemanticSimilarity ?? this.enableSemanticSimilarity,
       enableRag: enableRag ?? this.enableRag,
       enableAutoSummary: enableAutoSummary ?? this.enableAutoSummary,
       enableAutoTags: enableAutoTags ?? this.enableAutoTags,
       maxConcurrentJobs: maxConcurrentJobs ?? this.maxConcurrentJobs,
-      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? this.maxFileSizeMbForEnrichment,
+      maxFileSizeMbForEnrichment:
+          maxFileSizeMbForEnrichment ?? this.maxFileSizeMbForEnrichment,
       maxMediaMinutes: maxMediaMinutes ?? this.maxMediaMinutes,
       maxPagesPerPdf: maxPagesPerPdf ?? this.maxPagesPerPdf,
     );
@@ -341,7 +344,7 @@ abstract interface class ConfigService {
   Future<void> reset();
 
   /// Обновить отдельное поле конфигурации.
-  /// 
+  ///
   /// Для очистки nullable полей (watchPath, language) используйте
   /// соответствующие флаги clearWatchPath и clearLanguage.
   Future<void> updateValue({

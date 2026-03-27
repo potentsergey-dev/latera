@@ -139,8 +139,7 @@ class _RagScreenState extends State<RagScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final licenseCoordinator = AppScope.of(context).licenseCoordinator;
-    final isBasic =
-        licenseCoordinator.currentLicense.mode == LicenseMode.basic;
+    final isBasic = licenseCoordinator.currentLicense.mode == LicenseMode.basic;
 
     if (isBasic) {
       return Scaffold(
@@ -154,9 +153,11 @@ class _RagScreenState extends State<RagScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.lock_outline,
-                    size: 64,
-                    color: theme.colorScheme.outline),
+                Icon(
+                  Icons.lock_outline,
+                  size: 64,
+                  color: theme.colorScheme.outline,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Функция «Спроси свою папку»',
@@ -187,10 +188,7 @@ class _RagScreenState extends State<RagScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Спроси свою папку'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Спроси свою папку'), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -234,9 +232,7 @@ class _RagScreenState extends State<RagScreen> {
             const SizedBox(height: 16),
 
             // === Результат ===
-            Expanded(
-              child: _buildResultArea(theme),
-            ),
+            Expanded(child: _buildResultArea(theme)),
           ],
         ),
       ),
@@ -250,8 +246,11 @@ class _RagScreenState extends State<RagScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.warning_amber_rounded,
-                size: 48, color: theme.colorScheme.error),
+            Icon(
+              Icons.warning_amber_rounded,
+              size: 48,
+              color: theme.colorScheme.error,
+            ),
             const SizedBox(height: 8),
             Text(
               _error!,
@@ -271,8 +270,11 @@ class _RagScreenState extends State<RagScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_awesome,
-                size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+            Icon(
+              Icons.auto_awesome,
+              size: 64,
+              color: theme.colorScheme.primary.withValues(alpha: 0.4),
+            ),
             const SizedBox(height: 16),
             Text(
               'Задайте вопрос по проиндексированным документам',
@@ -311,13 +313,18 @@ class _RagScreenState extends State<RagScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.format_quote,
-                              size: 20, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.format_quote,
+                            size: 20,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
-                          Text('Генерация ответа…',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              )),
+                          Text(
+                            'Генерация ответа…',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           const SizedBox(
                             width: 14,
@@ -357,8 +364,7 @@ class _RagScreenState extends State<RagScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off,
-                size: 48, color: theme.colorScheme.outline),
+            Icon(Icons.search_off, size: 48, color: theme.colorScheme.outline),
             const SizedBox(height: 8),
             Text(
               _ragErrorMessage(_result!.errorCode),
@@ -387,13 +393,18 @@ class _RagScreenState extends State<RagScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.format_quote,
-                          size: 20, color: theme.colorScheme.primary),
+                      Icon(
+                        Icons.format_quote,
+                        size: 20,
+                        color: theme.colorScheme.primary,
+                      ),
                       const SizedBox(width: 8),
-                      Text('Результат',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          )),
+                      Text(
+                        'Результат',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -458,8 +469,11 @@ class _SourceCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.description,
-                    size: 16, color: theme.colorScheme.secondary),
+                Icon(
+                  Icons.description,
+                  size: 16,
+                  color: theme.colorScheme.secondary,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(

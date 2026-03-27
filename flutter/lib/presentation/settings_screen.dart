@@ -203,11 +203,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return;
         }
 
-        await Process.start(
-          'explorer.exe',
-          [path],
-          mode: ProcessStartMode.detached,
-        );
+        await Process.start('explorer.exe', [
+          path,
+        ], mode: ProcessStartMode.detached);
       } else {
         final uri = Uri.directory(path);
         if (await canLaunchUrl(uri)) {
@@ -319,9 +317,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _configService.reset();
       await _loadConfig();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.settingsResetDone)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.settingsResetDone)));
       }
     }
   }
@@ -331,34 +329,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.settingsTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text(l10n.settingsLoadError),
-                      const SizedBox(height: 8),
-                      Text(_error!, 
-                        style: const TextStyle(color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        onPressed: _loadConfig,
-                        icon: const Icon(Icons.refresh),
-                        label: Text(l10n.buttonRetry),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(l10n.settingsLoadError),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
                   ),
-                )
-              : _buildContent(l10n),
+                  const SizedBox(height: 16),
+                  FilledButton.icon(
+                    onPressed: _loadConfig,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(l10n.buttonRetry),
+                  ),
+                ],
+              ),
+            )
+          : _buildContent(l10n),
     );
   }
 
@@ -382,9 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // === Уведомления ===
           _buildSection(
             title: l10n.settingsSectionNotifications,
-            children: [
-              _buildNotificationsToggle(l10n),
-            ],
+            children: [_buildNotificationsToggle(l10n)],
           ),
 
           const Divider(),
@@ -392,9 +387,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // === Производительность ===
           _buildSection(
             title: l10n.settingsSectionPerformance,
-            children: [
-              _buildResourceSaverToggle(l10n),
-            ],
+            children: [_buildResourceSaverToggle(l10n)],
           ),
 
           const Divider(),
@@ -408,7 +401,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l10n.settingsTextExtraction,
                 subtitle: l10n.settingsTextExtractionHint,
                 value: _config.enableOfficeDocs,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs),
+                effectiveValue: _config.isFeatureEffectivelyEnabled(
+                  ContentFeature.officeDocs,
+                ),
                 onChanged: _toggleOfficeDocs,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
@@ -418,7 +413,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l10n.settingsOcr,
                 subtitle: l10n.settingsOcrHint,
                 value: _config.enableOcr,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.ocr),
+                effectiveValue: _config.isFeatureEffectivelyEnabled(
+                  ContentFeature.ocr,
+                ),
                 onChanged: _toggleOcr,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
@@ -428,7 +425,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l10n.settingsSemanticSearch,
                 subtitle: l10n.settingsSemanticSearchHint,
                 value: _config.enableEmbeddings,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.embeddings),
+                effectiveValue: _config.isFeatureEffectivelyEnabled(
+                  ContentFeature.embeddings,
+                ),
                 onChanged: _toggleEmbeddings,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
@@ -439,7 +438,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l10n.settingsRag,
                 subtitle: l10n.settingsRagHint,
                 value: _config.enableRag,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.rag),
+                effectiveValue: _config.isFeatureEffectivelyEnabled(
+                  ContentFeature.rag,
+                ),
                 onChanged: _toggleRag,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
@@ -449,7 +450,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l10n.settingsAutoDescriptions,
                 subtitle: l10n.settingsAutoDescriptionsHint,
                 value: _config.enableAutoSummary,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary),
+                effectiveValue: _config.isFeatureEffectivelyEnabled(
+                  ContentFeature.autoSummary,
+                ),
                 onChanged: _toggleAutoSummary,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
@@ -459,7 +462,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: l10n.settingsAutoTags,
                 subtitle: l10n.settingsAutoTagsHint,
                 value: _config.enableAutoTags,
-                effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoTags),
+                effectiveValue: _config.isFeatureEffectivelyEnabled(
+                  ContentFeature.autoTags,
+                ),
                 onChanged: _toggleAutoTags,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
@@ -488,7 +493,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: Text(l10n.settingsPrivacyPolicy),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: () => launchUrl(
-                  Uri.parse('https://potentsergey-dev.github.io/latera/privacy'),
+                  Uri.parse(
+                    'https://potentsergey-dev.github.io/latera/privacy',
+                  ),
                   mode: LaunchMode.externalApplication,
                 ),
               ),
@@ -509,10 +516,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // === Дополнительно ===
           _buildSection(
             title: l10n.settingsSectionAdvanced,
-            children: [
-              _buildResetTile(l10n),
-              _buildVersionTile(l10n),
-            ],
+            children: [_buildResetTile(l10n), _buildVersionTile(l10n)],
           ),
         ],
       ),
@@ -641,7 +645,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         if (isConstrained)
           ListTile(
-            leading: Icon(Icons.memory, color: Theme.of(context).colorScheme.error),
+            leading: Icon(
+              Icons.memory,
+              color: Theme.of(context).colorScheme.error,
+            ),
             title: Text(l10n.licenseHardwareConstraintsTitle),
             subtitle: Text(l10n.licenseHardwareConstraintsBody),
           ),
@@ -766,9 +773,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.licenseRestoreNotFound)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.licenseRestoreNotFound)));
       }
     } on Exception catch (e) {
       if (!mounted) return;
@@ -810,7 +817,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildCurrentPathTile(AppLocalizations l10n) {
     final path = _config.watchPath;
     final displayPath = path ?? l10n.settingsNotConfigured;
-    
+
     return ListTile(
       leading: const Icon(Icons.folder_outlined),
       title: Text(l10n.settingsCurrentPath),
@@ -819,9 +826,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: path == null 
-            ? Theme.of(context).colorScheme.outline
-            : null,
+          color: path == null ? Theme.of(context).colorScheme.outline : null,
         ),
       ),
     );
@@ -835,13 +840,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       leading: const Icon(Icons.create_new_folder_outlined),
       title: Text(l10n.settingsSelectFolder),
       subtitle: Text(
-        isBasic ? '${l10n.settingsSelectFolderHint} • Доступно в PRO' : l10n.settingsSelectFolderHint,
+        isBasic
+            ? '${l10n.settingsSelectFolderHint} • Доступно в PRO'
+            : l10n.settingsSelectFolderHint,
       ),
       trailing: isBasic
           ? Tooltip(
               message: 'Доступно в PRO',
-              child: Icon(Icons.lock_outline,
-                  size: 20, color: Theme.of(context).disabledColor),
+              child: Icon(
+                Icons.lock_outline,
+                size: 20,
+                color: Theme.of(context).disabledColor,
+              ),
             )
           : const Icon(Icons.chevron_right),
       enabled: !isBasic,
@@ -852,7 +862,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildOpenFolderTile(AppLocalizations l10n) {
     final path = _config.watchPath;
     final canOpen = path != null && path.isNotEmpty && _folderExists;
-    
+
     return ListTile(
       leading: Icon(
         Icons.open_in_new,
@@ -865,12 +875,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
       subtitle: Text(
-        canOpen 
-          ? l10n.settingsOpenInExplorerHint
-          : l10n.settingsSelectFolderFirst,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.outline,
-        ),
+        canOpen
+            ? l10n.settingsOpenInExplorerHint
+            : l10n.settingsSelectFolderFirst,
+        style: TextStyle(color: Theme.of(context).colorScheme.outline),
       ),
       trailing: canOpen ? const Icon(Icons.chevron_right) : null,
       enabled: canOpen,
@@ -965,15 +973,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildResetTile(AppLocalizations l10n) {
     return ListTile(
-      leading: Icon(
-        Icons.restore,
-        color: Theme.of(context).colorScheme.error,
-      ),
+      leading: Icon(Icons.restore, color: Theme.of(context).colorScheme.error),
       title: Text(
         l10n.settingsResetSettings,
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.error,
-        ),
+        style: TextStyle(color: Theme.of(context).colorScheme.error),
       ),
       subtitle: Text(l10n.settingsResetHint),
       onTap: _resetSettings,

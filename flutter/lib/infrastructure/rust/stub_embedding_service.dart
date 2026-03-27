@@ -24,13 +24,14 @@ class StubEmbeddingService implements EmbeddingService {
     var index = 0;
 
     while (start < text.length) {
-      final end =
-          (start + effectiveChunkSize).clamp(0, text.length);
-      chunks.add(TextChunk(
-        text: text.substring(start, end),
-        chunkIndex: index,
-        chunkOffset: start,
-      ));
+      final end = (start + effectiveChunkSize).clamp(0, text.length);
+      chunks.add(
+        TextChunk(
+          text: text.substring(start, end),
+          chunkIndex: index,
+          chunkOffset: start,
+        ),
+      );
       index++;
       final step = effectiveChunkSize - effectiveOverlap;
       if (step <= 0) break;
@@ -46,10 +47,12 @@ class StubEmbeddingService implements EmbeddingService {
   ) async {
     // Stub: возвращает нулевые векторы
     return chunks
-        .map((c) => EmbeddingVector(
-              chunkIndex: c.chunkIndex,
-              vector: List.filled(64, 0.0),
-            ))
+        .map(
+          (c) => EmbeddingVector(
+            chunkIndex: c.chunkIndex,
+            vector: List.filled(64, 0.0),
+          ),
+        )
         .toList();
   }
 

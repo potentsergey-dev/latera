@@ -106,8 +106,9 @@ void main() {
 
     test('deactivateLicense removes pro purchase', () async {
       SharedPreferences.setMockInitialValues({
-        'latera_install_date':
-            DateTime.now().subtract(const Duration(days: 10)).toIso8601String(),
+        'latera_install_date': DateTime.now()
+            .subtract(const Duration(days: 10))
+            .toIso8601String(),
         'latera_is_pro_purchased': true,
       });
       final prefs = await SharedPreferences.getInstance();

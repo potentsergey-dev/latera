@@ -9,14 +9,16 @@ import '../../domain/auto_tags.dart';
 import 'rust_ocr_service.dart' show RustOcrService;
 
 // FFI type definitions
-typedef _GenerateTagsC = Pointer<Utf8> Function(
-  Pointer<Utf8> textContentPtr,
-  Pointer<Utf8> fileNamePtr,
-);
-typedef _GenerateTagsDart = Pointer<Utf8> Function(
-  Pointer<Utf8> textContentPtr,
-  Pointer<Utf8> fileNamePtr,
-);
+typedef _GenerateTagsC =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> textContentPtr,
+      Pointer<Utf8> fileNamePtr,
+    );
+typedef _GenerateTagsDart =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> textContentPtr,
+      Pointer<Utf8> fileNamePtr,
+    );
 
 typedef _IsLlmReadyC = Uint32 Function();
 typedef _IsLlmReadyDart = int Function();
@@ -53,8 +55,7 @@ class RustFfiAutoTagsService implements AutoTagsService {
     try {
       final lib = DynamicLibrary.open(libPath);
 
-      _isLlmReadyFfi =
-          lib.lookupFunction<_IsLlmReadyC, _IsLlmReadyDart>(
+      _isLlmReadyFfi = lib.lookupFunction<_IsLlmReadyC, _IsLlmReadyDart>(
         'latera_is_llm_ready',
       );
 
@@ -87,17 +88,11 @@ class RustFfiAutoTagsService implements AutoTagsService {
     _ensureInitialized();
 
     if (!_available) {
-      return const AutoTagsResult(
-        tags: [],
-        errorCode: 'not_implemented',
-      );
+      return const AutoTagsResult(tags: [], errorCode: 'not_implemented');
     }
 
     if (textContent.trim().isEmpty) {
-      return const AutoTagsResult(
-        tags: [],
-        errorCode: 'empty_content',
-      );
+      return const AutoTagsResult(tags: [], errorCode: 'empty_content');
     }
 
     // Захватываем путь к DLL — DynamicLibrary нельзя передать в Isolate.
@@ -116,10 +111,7 @@ class RustFfiAutoTagsService implements AutoTagsService {
 
       if (jsonStr == null) {
         _log.w('RustFfiAutoTagsService: FFI returned null');
-        return const AutoTagsResult(
-          tags: [],
-          errorCode: 'generation_failed',
-        );
+        return const AutoTagsResult(tags: [], errorCode: 'generation_failed');
       }
 
       final Map<String, dynamic> data =
@@ -129,16 +121,10 @@ class RustFfiAutoTagsService implements AutoTagsService {
       final tags = tagsRaw.map((t) => t.toString()).toList();
       final errorCode = data['error_code'] as String?;
 
-      return AutoTagsResult(
-        tags: tags,
-        errorCode: errorCode,
-      );
+      return AutoTagsResult(tags: tags, errorCode: errorCode);
     } catch (e) {
       _log.e('RustFfiAutoTagsService: generateTags error: $e');
-      return const AutoTagsResult(
-        tags: [],
-        errorCode: 'generation_failed',
-      );
+      return const AutoTagsResult(tags: [], errorCode: 'generation_failed');
     }
   }
 
@@ -149,10 +135,9 @@ class RustFfiAutoTagsService implements AutoTagsService {
     required String fileName,
   }) {
     final lib = DynamicLibrary.open(libraryPath);
-    final generateTags = lib.lookupFunction<
-      _GenerateTagsC,
-      _GenerateTagsDart
-    >('latera_generate_tags');
+    final generateTags = lib.lookupFunction<_GenerateTagsC, _GenerateTagsDart>(
+      'latera_generate_tags',
+    );
     final freeCString = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
       'latera_free_cstring',
     );

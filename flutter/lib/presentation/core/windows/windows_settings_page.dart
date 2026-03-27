@@ -111,24 +111,30 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
         });
 
         if (mounted) {
-          fluent.displayInfoBar(context, builder: (context, close) {
-            return fluent.InfoBar(
-              title: Text(l10n.settingsFolderChanged(result)),
-              severity: fluent.InfoBarSeverity.success,
-              onClose: close,
-            );
-          });
+          fluent.displayInfoBar(
+            context,
+            builder: (context, close) {
+              return fluent.InfoBar(
+                title: Text(l10n.settingsFolderChanged(result)),
+                severity: fluent.InfoBarSeverity.success,
+                onClose: close,
+              );
+            },
+          );
         }
       }
     } catch (e) {
       if (mounted) {
-        fluent.displayInfoBar(context, builder: (context, close) {
-          return fluent.InfoBar(
-            title: Text(l10n.settingsFolderPickError(e.toString())),
-            severity: fluent.InfoBarSeverity.error,
-            onClose: close,
-          );
-        });
+        fluent.displayInfoBar(
+          context,
+          builder: (context, close) {
+            return fluent.InfoBar(
+              title: Text(l10n.settingsFolderPickError(e.toString())),
+              severity: fluent.InfoBarSeverity.error,
+              onClose: close,
+            );
+          },
+        );
       }
     }
   }
@@ -141,43 +147,50 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     try {
       final exists = await Directory(path).exists();
       if (!exists && mounted) {
-        fluent.displayInfoBar(context, builder: (context, close) {
-          return fluent.InfoBar(
-            title: Text(l10n.settingsFolderNotExists(path)),
-            severity: fluent.InfoBarSeverity.error,
-            onClose: close,
-          );
-        });
+        fluent.displayInfoBar(
+          context,
+          builder: (context, close) {
+            return fluent.InfoBar(
+              title: Text(l10n.settingsFolderNotExists(path)),
+              severity: fluent.InfoBarSeverity.error,
+              onClose: close,
+            );
+          },
+        );
         return;
       }
 
       if (_containsDangerousChars(path)) {
         if (mounted) {
-          fluent.displayInfoBar(context, builder: (context, close) {
-            return fluent.InfoBar(
-              title: Text(l10n.settingsPathDangerousChars),
-              severity: fluent.InfoBarSeverity.error,
-              onClose: close,
-            );
-          });
+          fluent.displayInfoBar(
+            context,
+            builder: (context, close) {
+              return fluent.InfoBar(
+                title: Text(l10n.settingsPathDangerousChars),
+                severity: fluent.InfoBarSeverity.error,
+                onClose: close,
+              );
+            },
+          );
         }
         return;
       }
 
-      await Process.start(
-        'explorer.exe',
-        [path],
-        mode: ProcessStartMode.detached,
-      );
+      await Process.start('explorer.exe', [
+        path,
+      ], mode: ProcessStartMode.detached);
     } catch (e) {
       if (mounted) {
-        fluent.displayInfoBar(context, builder: (context, close) {
-          return fluent.InfoBar(
-            title: Text(l10n.settingsOpenFolderError(e.toString())),
-            severity: fluent.InfoBarSeverity.error,
-            onClose: close,
-          );
-        });
+        fluent.displayInfoBar(
+          context,
+          builder: (context, close) {
+            return fluent.InfoBar(
+              title: Text(l10n.settingsOpenFolderError(e.toString())),
+              severity: fluent.InfoBarSeverity.error,
+              onClose: close,
+            );
+          },
+        );
       }
     }
   }
@@ -199,16 +212,30 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     bool? enableAutoTags,
   }) async {
     if (notificationsEnabled != null) {
-      await _configService.updateValue(notificationsEnabled: notificationsEnabled);
-      setState(() => _config = _config.copyWith(notificationsEnabled: notificationsEnabled));
+      await _configService.updateValue(
+        notificationsEnabled: notificationsEnabled,
+      );
+      setState(
+        () => _config = _config.copyWith(
+          notificationsEnabled: notificationsEnabled,
+        ),
+      );
     }
     if (resourceSaverEnabled != null) {
-      await _configService.updateValue(resourceSaverEnabled: resourceSaverEnabled);
-      setState(() => _config = _config.copyWith(resourceSaverEnabled: resourceSaverEnabled));
+      await _configService.updateValue(
+        resourceSaverEnabled: resourceSaverEnabled,
+      );
+      setState(
+        () => _config = _config.copyWith(
+          resourceSaverEnabled: resourceSaverEnabled,
+        ),
+      );
     }
     if (enableOfficeDocs != null) {
       await _configService.updateValue(enableOfficeDocs: enableOfficeDocs);
-      setState(() => _config = _config.copyWith(enableOfficeDocs: enableOfficeDocs));
+      setState(
+        () => _config = _config.copyWith(enableOfficeDocs: enableOfficeDocs),
+      );
     }
     if (enableOcr != null) {
       await _configService.updateValue(enableOcr: enableOcr);
@@ -216,11 +243,19 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     }
     if (enableEmbeddings != null) {
       await _configService.updateValue(enableEmbeddings: enableEmbeddings);
-      setState(() => _config = _config.copyWith(enableEmbeddings: enableEmbeddings));
+      setState(
+        () => _config = _config.copyWith(enableEmbeddings: enableEmbeddings),
+      );
     }
     if (enableTranscription != null) {
-      await _configService.updateValue(enableTranscription: enableTranscription);
-      setState(() => _config = _config.copyWith(enableTranscription: enableTranscription));
+      await _configService.updateValue(
+        enableTranscription: enableTranscription,
+      );
+      setState(
+        () => _config = _config.copyWith(
+          enableTranscription: enableTranscription,
+        ),
+      );
     }
     if (enableRag != null) {
       await _configService.updateValue(enableRag: enableRag);
@@ -228,11 +263,15 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     }
     if (enableAutoSummary != null) {
       await _configService.updateValue(enableAutoSummary: enableAutoSummary);
-      setState(() => _config = _config.copyWith(enableAutoSummary: enableAutoSummary));
+      setState(
+        () => _config = _config.copyWith(enableAutoSummary: enableAutoSummary),
+      );
     }
     if (enableAutoTags != null) {
       await _configService.updateValue(enableAutoTags: enableAutoTags);
-      setState(() => _config = _config.copyWith(enableAutoTags: enableAutoTags));
+      setState(
+        () => _config = _config.copyWith(enableAutoTags: enableAutoTags),
+      );
     }
   }
 
@@ -251,9 +290,7 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           fluent.FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: fluent.ButtonStyle(
-              backgroundColor: WidgetStatePropertyAll(
-                fluent.Colors.red,
-              ),
+              backgroundColor: WidgetStatePropertyAll(fluent.Colors.red),
             ),
             child: Text(l10n.buttonReset),
           ),
@@ -265,13 +302,16 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
       await _configService.reset();
       await _loadConfig();
       if (mounted) {
-        fluent.displayInfoBar(context, builder: (context, close) {
-          return fluent.InfoBar(
-            title: Text(l10n.settingsResetDone),
-            severity: fluent.InfoBarSeverity.success,
-            onClose: close,
-          );
-        });
+        fluent.displayInfoBar(
+          context,
+          builder: (context, close) {
+            return fluent.InfoBar(
+              title: Text(l10n.settingsResetDone),
+              severity: fluent.InfoBarSeverity.success,
+              onClose: close,
+            );
+          },
+        );
       }
     }
   }
@@ -306,9 +346,7 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     }
 
     return fluent.ScaffoldPage.scrollable(
-      header: fluent.PageHeader(
-        title: Text(l10n.settingsTitle),
-      ),
+      header: fluent.PageHeader(title: Text(l10n.settingsTitle)),
       children: [
         // === Папка для наблюдения ===
         _buildSectionHeader(l10n.settingsSectionWatchFolder, theme),
@@ -351,7 +389,9 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           title: l10n.settingsTextExtraction,
           subtitle: l10n.settingsTextExtractionHint,
           value: _config.enableOfficeDocs,
-          effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs),
+          effectiveValue: _config.isFeatureEffectivelyEnabled(
+            ContentFeature.officeDocs,
+          ),
           onChanged: (v) => _updateConfig(enableOfficeDocs: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
         ),
@@ -360,7 +400,9 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           title: l10n.settingsOcr,
           subtitle: l10n.settingsOcrHint,
           value: _config.enableOcr,
-          effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.ocr),
+          effectiveValue: _config.isFeatureEffectivelyEnabled(
+            ContentFeature.ocr,
+          ),
           onChanged: (v) => _updateConfig(enableOcr: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
         ),
@@ -369,7 +411,9 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           title: l10n.settingsSemanticSearch,
           subtitle: l10n.settingsSemanticSearchHint,
           value: _config.enableEmbeddings,
-          effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.embeddings),
+          effectiveValue: _config.isFeatureEffectivelyEnabled(
+            ContentFeature.embeddings,
+          ),
           onChanged: (v) => _updateConfig(enableEmbeddings: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
         ),
@@ -378,7 +422,9 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           title: l10n.settingsRag,
           subtitle: l10n.settingsRagHint,
           value: _config.enableRag,
-          effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.rag),
+          effectiveValue: _config.isFeatureEffectivelyEnabled(
+            ContentFeature.rag,
+          ),
           onChanged: (v) => _updateConfig(enableRag: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
         ),
@@ -387,7 +433,9 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           title: l10n.settingsAutoDescriptions,
           subtitle: l10n.settingsAutoDescriptionsHint,
           value: _config.enableAutoSummary,
-          effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary),
+          effectiveValue: _config.isFeatureEffectivelyEnabled(
+            ContentFeature.autoSummary,
+          ),
           onChanged: (v) => _updateConfig(enableAutoSummary: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
         ),
@@ -396,7 +444,9 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           title: l10n.settingsAutoTags,
           subtitle: l10n.settingsAutoTagsHint,
           value: _config.enableAutoTags,
-          effectiveValue: _config.isFeatureEffectivelyEnabled(ContentFeature.autoTags),
+          effectiveValue: _config.isFeatureEffectivelyEnabled(
+            ContentFeature.autoTags,
+          ),
           onChanged: (v) => _updateConfig(enableAutoTags: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
         ),
@@ -440,9 +490,7 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         title,
-        style: theme.typography.bodyStrong?.copyWith(
-          color: theme.accentColor,
-        ),
+        style: theme.typography.bodyStrong?.copyWith(color: theme.accentColor),
       ),
     );
   }
@@ -464,8 +512,10 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(l10n.settingsCurrentPath,
-                        style: theme.typography.bodyStrong),
+                    Text(
+                      l10n.settingsCurrentPath,
+                      style: theme.typography.bodyStrong,
+                    ),
                     Text(
                       path ?? l10n.settingsNotConfigured,
                       style: theme.typography.caption,
@@ -509,7 +559,10 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     );
   }
 
-  Widget _buildLicenseCard(AppLocalizations l10n, fluent.FluentThemeData theme) {
+  Widget _buildLicenseCard(
+    AppLocalizations l10n,
+    fluent.FluentThemeData theme,
+  ) {
     final license = _licenseCoordinator.currentLicense;
     final isConstrained = _licenseCoordinator.isHardwareConstrained;
 
@@ -549,7 +602,10 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
                 Text(l10n.licenseCurrentMode),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: badgeColor,
                     borderRadius: BorderRadius.circular(6),
@@ -592,7 +648,8 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
                           const Padding(
                             padding: EdgeInsets.only(right: 8),
                             child: SizedBox(
-                              width: 14, height: 14,
+                              width: 14,
+                              height: 14,
                               child: fluent.ProgressRing(strokeWidth: 2),
                             ),
                           )
@@ -601,7 +658,11 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
                             padding: EdgeInsets.only(right: 8),
                             child: Icon(Icons.shopping_cart_outlined, size: 16),
                           ),
-                        Text(_isPurchasing ? l10n.licensePurchasing : l10n.licenseBuyPro),
+                        Text(
+                          _isPurchasing
+                              ? l10n.licensePurchasing
+                              : l10n.licenseBuyPro,
+                        ),
                       ],
                     ),
                   ),
@@ -615,7 +676,8 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
                           const Padding(
                             padding: EdgeInsets.only(right: 8),
                             child: SizedBox(
-                              width: 14, height: 14,
+                              width: 14,
+                              height: 14,
                               child: fluent.ProgressRing(strokeWidth: 2),
                             ),
                           )
@@ -624,7 +686,11 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
                             padding: EdgeInsets.only(right: 8),
                             child: Icon(Icons.refresh, size: 16),
                           ),
-                        Text(_isRestoring ? l10n.licenseRestoring : l10n.licenseRestorePurchases),
+                        Text(
+                          _isRestoring
+                              ? l10n.licenseRestoring
+                              : l10n.licenseRestorePurchases,
+                        ),
                       ],
                     ),
                   ),
@@ -662,17 +728,20 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           ),
         );
       } else if (result.isError) {
-        fluent.displayInfoBar(context, builder: (context, close) {
-          return fluent.InfoBar(
-            title: Text(
-              result.status == PurchaseStatus.storeUnavailable
-                  ? l10n.licenseStoreUnavailable
-                  : l10n.licensePurchaseError(result.errorMessage ?? ''),
-            ),
-            severity: fluent.InfoBarSeverity.error,
-            onClose: close,
-          );
-        });
+        fluent.displayInfoBar(
+          context,
+          builder: (context, close) {
+            return fluent.InfoBar(
+              title: Text(
+                result.status == PurchaseStatus.storeUnavailable
+                    ? l10n.licenseStoreUnavailable
+                    : l10n.licensePurchaseError(result.errorMessage ?? ''),
+              ),
+              severity: fluent.InfoBarSeverity.error,
+              onClose: close,
+            );
+          },
+        );
       }
     } finally {
       if (mounted) {
@@ -707,23 +776,29 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           ),
         );
       } else {
-        fluent.displayInfoBar(context, builder: (context, close) {
-          return fluent.InfoBar(
-            title: Text(l10n.licenseRestoreNotFound),
-            severity: fluent.InfoBarSeverity.warning,
-            onClose: close,
-          );
-        });
+        fluent.displayInfoBar(
+          context,
+          builder: (context, close) {
+            return fluent.InfoBar(
+              title: Text(l10n.licenseRestoreNotFound),
+              severity: fluent.InfoBarSeverity.warning,
+              onClose: close,
+            );
+          },
+        );
       }
     } on Exception catch (e) {
       if (!mounted) return;
-      fluent.displayInfoBar(context, builder: (context, close) {
-        return fluent.InfoBar(
-          title: Text(l10n.licenseRestoreError(e.toString())),
-          severity: fluent.InfoBarSeverity.error,
-          onClose: close,
-        );
-      });
+      fluent.displayInfoBar(
+        context,
+        builder: (context, close) {
+          return fluent.InfoBar(
+            title: Text(l10n.licenseRestoreError(e.toString())),
+            severity: fluent.InfoBarSeverity.error,
+            onClose: close,
+          );
+        },
+      );
     } finally {
       if (mounted) {
         setState(() => _isRestoring = false);
@@ -740,7 +815,10 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     'pt': 'Português',
   };
 
-  Widget _buildLanguageCard(AppLocalizations l10n, fluent.FluentThemeData theme) {
+  Widget _buildLanguageCard(
+    AppLocalizations l10n,
+    fluent.FluentThemeData theme,
+  ) {
     final current = _config.language;
     return fluent.Card(
       child: fluent.ListTile(
@@ -752,7 +830,9 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           items: _supportedLanguages.entries.map((e) {
             return fluent.ComboBoxItem<String?>(
               value: e.key,
-              child: Text(e.key == null ? l10n.settingsLanguageSystem : e.value),
+              child: Text(
+                e.key == null ? l10n.settingsLanguageSystem : e.value,
+              ),
             );
           }).toList(),
           onChanged: (value) async {
@@ -764,13 +844,16 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
             final updated = await _configService.load();
             if (mounted) {
               setState(() => _config = updated);
-              fluent.displayInfoBar(context, builder: (context, close) {
-                return fluent.InfoBar(
-                  title: Text(l10n.settingsLanguageRestartHint),
-                  severity: fluent.InfoBarSeverity.info,
-                  onClose: close,
-                );
-              });
+              fluent.displayInfoBar(
+                context,
+                builder: (context, close) {
+                  return fluent.InfoBar(
+                    title: Text(l10n.settingsLanguageRestartHint),
+                    severity: fluent.InfoBarSeverity.info,
+                    onClose: close,
+                  );
+                },
+              );
             }
           },
         ),
@@ -790,10 +873,7 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
         leading: Icon(icon),
         title: Text(title),
         subtitle: Text(subtitle),
-        trailing: fluent.ToggleSwitch(
-          checked: value,
-          onChanged: onChanged,
-        ),
+        trailing: fluent.ToggleSwitch(checked: value, onChanged: onChanged),
         selected: false,
       ),
     );

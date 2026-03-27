@@ -9,10 +9,7 @@ import '../../domain/rag.dart';
 /// который вызывает `api::rag_query` через FRB.
 class StubRagService implements RagService {
   @override
-  Future<RagQueryResult> query(
-    String question, {
-    int topK = 5,
-  }) async {
+  Future<RagQueryResult> query(String question, {int topK = 5}) async {
     if (question.trim().isEmpty) {
       return const RagQueryResult(
         answer: '',
@@ -30,10 +27,7 @@ class StubRagService implements RagService {
   }
 
   @override
-  Stream<RagStreamEvent> queryStream(
-    String question, {
-    int topK = 5,
-  }) async* {
+  Stream<RagStreamEvent> queryStream(String question, {int topK = 5}) async* {
     final result = await query(question, topK: topK);
     yield RagDoneEvent(result);
   }

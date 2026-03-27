@@ -81,10 +81,7 @@ class RustFileWatcherFrb implements FileWatcher {
       onError: (Object error, StackTrace st) {
         _log.e('Rust stream error', error: error, stackTrace: st);
         // Не закрываем контроллер, а эмитим ошибку в поток
-        _eventsController.addError(
-          StreamError.fromRust(error, st),
-          st,
-        );
+        _eventsController.addError(StreamError.fromRust(error, st), st);
       },
       onDone: () {
         _log.i('Rust stream completed (onDone)');
@@ -166,24 +163,26 @@ class RustFileWatcherFrb implements FileWatcher {
     }
 
     _log.i('Starting Dart delete watcher for: $watchDir');
-    _fsSub = dir.watch(events: FileSystemEvent.delete).listen(
-      (event) {
-        if (event is FileSystemDeleteEvent) {
-          final path = event.path;
-          final fileName = path.split(Platform.pathSeparator).last;
-          _log.i('File deleted: $fileName ($path)');
-          _removedEventsController.add(
-            FileRemovedEvent(
-              fileName: fileName,
-              fullPath: path,
-              occurredAt: DateTime.now(),
-            ),
-          );
-        }
-      },
-      onError: (Object error, StackTrace st) {
-        _log.e('Dart delete watcher error', error: error, stackTrace: st);
-      },
-    );
+    _fsSub = dir
+        .watch(events: FileSystemEvent.delete)
+        .listen(
+          (event) {
+            if (event is FileSystemDeleteEvent) {
+              final path = event.path;
+              final fileName = path.split(Platform.pathSeparator).last;
+              _log.i('File deleted: $fileName ($path)');
+              _removedEventsController.add(
+                FileRemovedEvent(
+                  fileName: fileName,
+                  fullPath: path,
+                  occurredAt: DateTime.now(),
+                ),
+              );
+            }
+          },
+          onError: (Object error, StackTrace st) {
+            _log.e('Dart delete watcher error', error: error, stackTrace: st);
+          },
+        );
   }
 }

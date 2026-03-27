@@ -35,7 +35,8 @@ class RustFileWatcherStub implements FileWatcher {
 
   @override
   Stream<FileRemovedEvent> get fileRemovedEvents =>
-      (_removedController ??= StreamController<FileRemovedEvent>.broadcast()).stream;
+      (_removedController ??= StreamController<FileRemovedEvent>.broadcast())
+          .stream;
 
   @override
   bool get isWatching => _isWatching;

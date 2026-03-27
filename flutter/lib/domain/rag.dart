@@ -100,20 +100,14 @@ class RagDoneEvent extends RagStreamEvent {
 /// Domain-слой не зависит от реализации.
 abstract interface class RagService {
   /// Выполняет RAG-запрос по индексированным документам (одноразовый результат).
-  Future<RagQueryResult> query(
-    String question, {
-    int topK = 5,
-  });
+  Future<RagQueryResult> query(String question, {int topK = 5});
 
   /// Запускает RAG-запрос со стримингом токенов.
   ///
   /// Возвращает поток [RagStreamEvent]:
   /// - [RagTokenEvent] — фрагменты ответа (приходят по мере генерации)
   /// - [RagDoneEvent] — финальный результат с источниками
-  Stream<RagStreamEvent> queryStream(
-    String question, {
-    int topK = 5,
-  });
+  Stream<RagStreamEvent> queryStream(String question, {int topK = 5});
 
   /// Отменяет текущий RAG-запрос.
   void cancelQuery();

@@ -268,12 +268,10 @@ Future<void> initLlm({required String dataDir}) =>
 /// Выгрузить генеративную LLM из памяти.
 ///
 /// Освобождает ~1.7 ГБ RAM. Вызывается при idle timeout или dispose.
-Future<void> unloadLlm() =>
-    RustCore.instance.api.crateApiUnloadLlm();
+Future<void> unloadLlm() => RustCore.instance.api.crateApiUnloadLlm();
 
 /// Проверить, загружена ли генеративная LLM.
-Future<bool> isLlmReady() =>
-    RustCore.instance.api.crateApiIsLlmReady();
+Future<bool> isLlmReady() => RustCore.instance.api.crateApiIsLlmReady();
 
 /// Выполнить RAG-запрос «Спроси свою папку».
 ///

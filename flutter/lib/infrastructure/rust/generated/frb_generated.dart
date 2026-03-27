@@ -1262,10 +1262,8 @@ class RustCoreApiImpl extends RustCoreApiImplPlatform implements RustCoreApi {
     );
   }
 
-  TaskConstMeta get kCrateApiInitLlmConstMeta => const TaskConstMeta(
-    debugName: "init_llm",
-    argNames: ["dataDir"],
-  );
+  TaskConstMeta get kCrateApiInitLlmConstMeta =>
+      const TaskConstMeta(debugName: "init_llm", argNames: ["dataDir"]);
 
   @override
   Future<void> crateApiUnloadLlm() {

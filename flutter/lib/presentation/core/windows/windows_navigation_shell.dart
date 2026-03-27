@@ -15,10 +15,7 @@ import 'windows_settings_page.dart';
 class WindowsNavigationShell extends fluent.StatefulWidget {
   final bool showOnboarding;
 
-  const WindowsNavigationShell({
-    super.key,
-    this.showOnboarding = false,
-  });
+  const WindowsNavigationShell({super.key, this.showOnboarding = false});
 
   @override
   fluent.State<WindowsNavigationShell> createState() =>

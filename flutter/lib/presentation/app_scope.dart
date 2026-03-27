@@ -12,11 +12,7 @@ import '../infrastructure/di/app_composition_root.dart';
 class AppScope extends InheritedWidget {
   final AppCompositionRoot root;
 
-  const AppScope({
-    super.key,
-    required this.root,
-    required super.child,
-  });
+  const AppScope({super.key, required this.root, required super.child});
 
   /// Получить AppCompositionRoot из контекста.
   ///

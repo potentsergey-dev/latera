@@ -162,8 +162,8 @@ class _InboxScreenState extends State<InboxScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _files.isEmpty
-              ? _buildEmptyState(theme)
-              : _buildMasterDetail(theme),
+          ? _buildEmptyState(theme)
+          : _buildMasterDetail(theme),
     );
   }
 
@@ -178,10 +178,7 @@ class _InboxScreenState extends State<InboxScreen> {
             color: theme.colorScheme.primary.withValues(alpha: 0.4),
           ),
           const SizedBox(height: 16),
-          Text(
-            'Все файлы обработаны',
-            style: theme.textTheme.titleMedium,
-          ),
+          Text('Все файлы обработаны', style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(
             'Новые файлы появятся здесь автоматически',
@@ -198,10 +195,7 @@ class _InboxScreenState extends State<InboxScreen> {
     return Row(
       children: [
         // === Master: список файлов ===
-        SizedBox(
-          width: 300,
-          child: _buildFileList(theme),
-        ),
+        SizedBox(width: 300, child: _buildFileList(theme)),
         const VerticalDivider(width: 1),
         // === Detail: панель свойств ===
         Expanded(
@@ -395,7 +389,12 @@ class _InboxScreenState extends State<InboxScreen> {
       'doc' || 'docx' => Icons.article_outlined,
       'xls' || 'xlsx' => Icons.table_chart_outlined,
       'ppt' || 'pptx' => Icons.slideshow_outlined,
-      'jpg' || 'jpeg' || 'png' || 'gif' || 'bmp' || 'webp' => Icons.image_outlined,
+      'jpg' ||
+      'jpeg' ||
+      'png' ||
+      'gif' ||
+      'bmp' ||
+      'webp' => Icons.image_outlined,
       'mp4' || 'avi' || 'mov' || 'mkv' => Icons.video_file_outlined,
       'mp3' || 'wav' || 'flac' || 'ogg' => Icons.audio_file_outlined,
       'zip' || 'rar' || '7z' || 'tar' || 'gz' => Icons.folder_zip_outlined,
@@ -461,8 +460,9 @@ class _InboxFileListTile extends StatelessWidget {
                       _formatDate(file.indexedAt),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: isSelected
-                            ? theme.colorScheme.onPrimaryContainer
-                                .withValues(alpha: 0.7)
+                            ? theme.colorScheme.onPrimaryContainer.withValues(
+                                alpha: 0.7,
+                              )
                             : theme.colorScheme.onSurfaceVariant,
                         fontSize: 11,
                       ),
@@ -482,7 +482,12 @@ class _InboxFileListTile extends StatelessWidget {
       'pdf' => Icons.picture_as_pdf_outlined,
       'doc' || 'docx' => Icons.article_outlined,
       'xls' || 'xlsx' => Icons.table_chart_outlined,
-      'jpg' || 'jpeg' || 'png' || 'gif' || 'bmp' || 'webp' => Icons.image_outlined,
+      'jpg' ||
+      'jpeg' ||
+      'png' ||
+      'gif' ||
+      'bmp' ||
+      'webp' => Icons.image_outlined,
       'mp4' || 'avi' || 'mov' || 'mkv' => Icons.video_file_outlined,
       'mp3' || 'wav' || 'flac' || 'ogg' => Icons.audio_file_outlined,
       _ => Icons.insert_drive_file_outlined,
@@ -505,16 +510,15 @@ class _FileInfoCard extends StatelessWidget {
   final InboxFile file;
   final ThemeData theme;
 
-  const _FileInfoCard({
-    required this.file,
-    required this.theme,
-  });
+  const _FileInfoCard({required this.file, required this.theme});
 
   @override
   Widget build(BuildContext context) {
     final fileOnDisk = File(file.filePath);
     final exists = fileOnDisk.existsSync();
-    final sizeStr = exists ? _formatSize(fileOnDisk.lengthSync()) : 'Файл не найден';
+    final sizeStr = exists
+        ? _formatSize(fileOnDisk.lengthSync())
+        : 'Файл не найден';
 
     return Card(
       elevation: 0,
@@ -525,10 +529,7 @@ class _FileInfoCard extends StatelessWidget {
           children: [
             _infoChip(Icons.storage_outlined, sizeStr),
             const SizedBox(width: 16),
-            _infoChip(
-              Icons.schedule_outlined,
-              _formatDate(file.indexedAt),
-            ),
+            _infoChip(Icons.schedule_outlined, _formatDate(file.indexedAt)),
             if (!exists) ...[
               const SizedBox(width: 16),
               Icon(

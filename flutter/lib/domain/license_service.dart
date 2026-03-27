@@ -61,15 +61,15 @@ class LicenseActivationResult {
   final String? errorMessage;
 
   const LicenseActivationResult.success(License this.license)
-      : success = true,
-        error = null,
-        errorMessage = null;
+    : success = true,
+      error = null,
+      errorMessage = null;
 
   const LicenseActivationResult.failure({
     required this.error,
     this.errorMessage,
-  })  : success = false,
-        license = null;
+  }) : success = false,
+       license = null;
 
   /// Была ли ошибка сети.
   bool get isNetworkError => error == LicenseActivationError.networkError;

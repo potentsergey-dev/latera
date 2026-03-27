@@ -52,14 +52,19 @@ import '../search/sqlite_index_service.dart';
 enum ModelStatus {
   /// Модель загружена и готова к работе.
   ready,
+
   /// Идёт загрузка модели.
   downloading,
+
   /// Загрузка не удалась (можно повторить).
   failed,
+
   /// Загрузка пропущена из-за нехватки RAM.
   skippedLowRam,
+
   /// Загрузка пропущена из-за нехватки места на диске.
   skippedLowDisk,
+
   /// Модель не загружена (начальное состояние).
   notDownloaded,
 }
@@ -99,10 +104,7 @@ class ModelDownloadTracker {
 }
 
 /// Конфигурация окружения приложения.
-enum AppEnvironment {
-  development,
-  production,
-}
+enum AppEnvironment { development, production }
 
 /// Composition Root (точка сборки зависимостей).
 ///
@@ -241,8 +243,10 @@ class AppCompositionRoot {
         totalRamMb > 0 && totalRamMb < lowRamThresholdMb;
 
     if (isHardwareConstrained) {
-      logger.w('Hardware constrained: RAM $totalRamMb MB < $lowRamThresholdMb MB. '
-          'Forcing Basic mode and ResourceSaver.');
+      logger.w(
+        'Hardware constrained: RAM $totalRamMb MB < $lowRamThresholdMb MB. '
+        'Forcing Basic mode and ResourceSaver.',
+      );
       // Принудительно включаем ResourceSaver если ещё не включён
       if (!configService.currentConfig.resourceSaverEnabled) {
         await configService.updateValue(resourceSaverEnabled: true);
@@ -255,17 +259,26 @@ class AppCompositionRoot {
       hasAvx2 = rustSystemService.getHasAvx2();
       final int ragMaxTokens = hasAvx2 ? 300 : 100;
       rustSystemService.setRagMaxTokens(ragMaxTokens);
-      logger.i('CPU: AVX2=${hasAvx2 ? "yes" : "no"}, RAG max_tokens=$ragMaxTokens');
+      logger.i(
+        'CPU: AVX2=${hasAvx2 ? "yes" : "no"}, RAG max_tokens=$ragMaxTokens',
+      );
 
       // Vulkan diagnostic: проверяем наличие Vulkan runtime для будущего GPU-ускорения
       final hasVulkan = rustSystemService.getHasVulkan();
-      logger.i('GPU: Vulkan=${hasVulkan ? "available" : "not found"}'
-          ' (acceleration not yet enabled)');
+      logger.i(
+        'GPU: Vulkan=${hasVulkan ? "available" : "not found"}'
+        ' (acceleration not yet enabled)',
+      );
     }
 
     // SQLite FTS5 Index Service (implements both Indexer and SearchRepository)
     final appDataDir = await getApplicationSupportDirectory();
-    final dbPath = p.join(appDataDir.path, 'Latera', 'index', 'latera_index.db');
+    final dbPath = p.join(
+      appDataDir.path,
+      'Latera',
+      'index',
+      'latera_index.db',
+    );
     final sqliteIndexService = SqliteIndexService(
       logger: logger,
       dbPath: dbPath,
@@ -298,11 +311,15 @@ class AppCompositionRoot {
     // Content enrichment (PDF/DOCX text extraction + audio transcription + embeddings)
     // PDF/DOCX: Dart-side реализация (syncfusion_flutter_pdf + archive) — обход бага FRB codegen на Windows.
     // Остальное: Stub-реализации до подключения Rust FRB bindings.
-    final RichTextExtractor richTextExtractor = DartRichTextExtractor(logger: logger);
+    final RichTextExtractor richTextExtractor = DartRichTextExtractor(
+      logger: logger,
+    );
     final AudioTranscriber audioTranscriber = StubAudioTranscriber();
     // Embedding: используем Rust FFI если DLL доступна, иначе stub
     final rustEmbedding = RustFfiEmbeddingService();
-    final embeddingService = rustEmbedding.isAvailable ? rustEmbedding : StubEmbeddingService();
+    final embeddingService = rustEmbedding.isAvailable
+        ? rustEmbedding
+        : StubEmbeddingService();
     if (rustEmbedding.isAvailable) {
       logger.i('Embeddings: using Rust ONNX (via FFI)');
     } else {
@@ -396,10 +413,10 @@ class AppCompositionRoot {
     // Реконсиляция индекса с файловой системой.
     // Удаляет из БД файлы, которых больше нет на диске, и обнаруживает новые.
     try {
-      final watchPath = configService.currentConfig.watchPath ??
+      final watchPath =
+          configService.currentConfig.watchPath ??
           await rust_api.getDefaultWatchPathPreview();
-      final syncResult =
-          await sqliteIndexService.syncWithFilesystem(watchPath);
+      final syncResult = await sqliteIndexService.syncWithFilesystem(watchPath);
 
       // Новые файлы: индексируем для review и ставим в очередь обогащения
       for (final f in syncResult.newFiles) {
@@ -420,9 +437,14 @@ class AppCompositionRoot {
     // (после миграции stub → ONNX или первой инициализации)
     final filesToReEmbed = sqliteIndexService.getFilesWithoutEmbeddings();
     if (filesToReEmbed.isNotEmpty) {
-      logger.i('Re-embedding ${filesToReEmbed.length} files (migration stub → ONNX)');
+      logger.i(
+        'Re-embedding ${filesToReEmbed.length} files (migration stub → ONNX)',
+      );
       for (final f in filesToReEmbed) {
-        contentEnrichmentCoordinator.enqueueFile(f['filePath']!, f['fileName']!);
+        contentEnrichmentCoordinator.enqueueFile(
+          f['filePath']!,
+          f['fileName']!,
+        );
       }
     }
 
@@ -461,10 +483,16 @@ class AppCompositionRoot {
     ModelDownloadTracker tracker,
   ) async {
     final modelPath = p.join(
-      modelDataDir, 'models', 'paraphrase-multilingual-MiniLM-L12-v2', 'model.onnx',
+      modelDataDir,
+      'models',
+      'paraphrase-multilingual-MiniLM-L12-v2',
+      'model.onnx',
     );
     final tokenizerPath = p.join(
-      modelDataDir, 'models', 'paraphrase-multilingual-MiniLM-L12-v2', 'tokenizer.json',
+      modelDataDir,
+      'models',
+      'paraphrase-multilingual-MiniLM-L12-v2',
+      'tokenizer.json',
     );
 
     if (File(modelPath).existsSync() && File(tokenizerPath).existsSync()) {
@@ -545,7 +573,9 @@ class AppCompositionRoot {
     ModelDownloadTracker tracker,
   ) async {
     final ggufModelPath = p.join(
-      modelDataDir, 'models', LlmDownloadService.ggufModelFileName,
+      modelDataDir,
+      'models',
+      LlmDownloadService.ggufModelFileName,
     );
 
     // 1. Модель уже скачана — сразу загружаем
@@ -565,8 +595,10 @@ class AppCompositionRoot {
 
     // 2. Проверка RAM
     if (isHardwareConstrained) {
-      logger.i('GGUF download skipped: hardware constrained (RAM $totalRamMb MB). '
-          'Generative LLM requires ≥ 6 GB RAM.');
+      logger.i(
+        'GGUF download skipped: hardware constrained (RAM $totalRamMb MB). '
+        'Generative LLM requires ≥ 6 GB RAM.',
+      );
       tracker._setGgufStatus(ModelStatus.skippedLowRam);
       return;
     }

@@ -8,7 +8,8 @@ import 'package:logger/logger.dart';
 ///
 /// Использует noSuchMethod для обработки всех вызовов,
 /// чтобы не зависеть от точной сигнатуры API плагина.
-class MockFlutterLocalNotificationsPlugin extends Fake implements FlutterLocalNotificationsPlugin {
+class MockFlutterLocalNotificationsPlugin extends Fake
+    implements FlutterLocalNotificationsPlugin {
   bool initializeCalled = false;
   int showCallCount = 0;
   List<String> shownNotifications = [];
@@ -19,7 +20,8 @@ class MockFlutterLocalNotificationsPlugin extends Fake implements FlutterLocalNo
   Future<bool?> initialize({
     required InitializationSettings settings,
     void Function(NotificationResponse)? onDidReceiveNotificationResponse,
-    void Function(NotificationResponse)? onDidReceiveBackgroundNotificationResponse,
+    void Function(NotificationResponse)?
+    onDidReceiveBackgroundNotificationResponse,
   }) async {
     initializeCalled = true;
     return shouldInitializeSucceed;
@@ -52,7 +54,8 @@ class MockFlutterLocalNotificationsPlugin extends Fake implements FlutterLocalNo
   Future<List<ActiveNotification>> getActiveNotifications() async => [];
 
   @override
-  Future<NotificationAppLaunchDetails?> getNotificationAppLaunchDetails() async => null;
+  Future<NotificationAppLaunchDetails?>
+  getNotificationAppLaunchDetails() async => null;
 }
 
 void main() {
@@ -78,34 +81,37 @@ void main() {
         expect(mockPlugin.initializeCalled, true);
       });
 
-      test('should throw NotificationException on initialization failure', () async {
-        mockPlugin.shouldInitializeSucceed = false;
-        final service = LocalNotificationsService.withPlugin(
-          logger: logger,
-          plugin: mockPlugin,
-        );
+      test(
+        'should throw NotificationException on initialization failure',
+        () async {
+          mockPlugin.shouldInitializeSucceed = false;
+          final service = LocalNotificationsService.withPlugin(
+            logger: logger,
+            plugin: mockPlugin,
+          );
 
-        expect(
-          () => service.init(),
-          throwsA(isA<NotificationException>()),
-        );
-        expect(service.isInitialized, false);
-      });
+          expect(() => service.init(), throwsA(isA<NotificationException>()));
+          expect(service.isInitialized, false);
+        },
+      );
 
-      test('should be idempotent - multiple calls result in single initialization', () async {
-        final service = LocalNotificationsService.withPlugin(
-          logger: logger,
-          plugin: mockPlugin,
-        );
+      test(
+        'should be idempotent - multiple calls result in single initialization',
+        () async {
+          final service = LocalNotificationsService.withPlugin(
+            logger: logger,
+            plugin: mockPlugin,
+          );
 
-        await service.init();
-        await service.init();
-        await service.init();
+          await service.init();
+          await service.init();
+          await service.init();
 
-        expect(mockPlugin.initializeCalled, true);
-        // Plugin initialize should only be called once
-        // (we can't easily verify this with our mock, but the pattern is correct)
-      });
+          expect(mockPlugin.initializeCalled, true);
+          // Plugin initialize should only be called once
+          // (we can't easily verify this with our mock, but the pattern is correct)
+        },
+      );
     });
 
     group('showFileAdded', () {
@@ -222,16 +228,28 @@ void main() {
     });
 
     test('should include cause in message', () {
-      final exception = NotificationException('Test error', cause: 'Cause here');
-      expect(exception.toString(), 'NotificationException: Test error (Cause here)');
+      final exception = NotificationException(
+        'Test error',
+        cause: 'Cause here',
+      );
+      expect(
+        exception.toString(),
+        'NotificationException: Test error (Cause here)',
+      );
     });
   });
 
   group('ThrottlePolicy', () {
     test('defaultPolicy should have correct values', () {
-      expect(ThrottlePolicy.defaultPolicy.minInterval, const Duration(seconds: 1));
+      expect(
+        ThrottlePolicy.defaultPolicy.minInterval,
+        const Duration(seconds: 1),
+      );
       expect(ThrottlePolicy.defaultPolicy.maxInWindow, 10);
-      expect(ThrottlePolicy.defaultPolicy.windowSize, const Duration(minutes: 1));
+      expect(
+        ThrottlePolicy.defaultPolicy.windowSize,
+        const Duration(minutes: 1),
+      );
     });
 
     test('strict policy should have correct values', () {
@@ -245,7 +263,10 @@ void main() {
     test('fileAdded channel should have correct values', () {
       expect(NotificationChannelConfig.fileAdded.id, 'file_added');
       expect(NotificationChannelConfig.fileAdded.name, 'Новые файлы');
-      expect(NotificationChannelConfig.fileAdded.importance, Importance.defaultImportance);
+      expect(
+        NotificationChannelConfig.fileAdded.importance,
+        Importance.defaultImportance,
+      );
     });
   });
 }

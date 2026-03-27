@@ -322,18 +322,23 @@ class MockEmbeddingService implements EmbeddingService {
   final List<List<TextChunk>> computedChunks = [];
 
   @override
-  List<TextChunk> chunkText(String text,
-      {int chunkSize = 500, int chunkOverlap = 50}) {
+  List<TextChunk> chunkText(
+    String text, {
+    int chunkSize = 500,
+    int chunkOverlap = 50,
+  }) {
     chunkedTexts.add(text);
     // Простое разбиение на чанки для теста
     final chunks = <TextChunk>[];
     for (var i = 0; i < text.length; i += chunkSize) {
       final end = (i + chunkSize).clamp(0, text.length);
-      chunks.add(TextChunk(
-        text: text.substring(i, end),
-        chunkOffset: i,
-        chunkIndex: chunks.length,
-      ));
+      chunks.add(
+        TextChunk(
+          text: text.substring(i, end),
+          chunkOffset: i,
+          chunkIndex: chunks.length,
+        ),
+      );
     }
     if (chunks.isEmpty && text.isNotEmpty) {
       chunks.add(TextChunk(text: text, chunkOffset: 0, chunkIndex: 0));
@@ -342,15 +347,17 @@ class MockEmbeddingService implements EmbeddingService {
   }
 
   @override
-  Future<List<EmbeddingVector>> computeEmbeddings(List<TextChunk> chunks) async {
+  Future<List<EmbeddingVector>> computeEmbeddings(
+    List<TextChunk> chunks,
+  ) async {
     computedChunks.add(chunks);
     return chunks
         .asMap()
         .entries
-        .map((e) => EmbeddingVector(
-              chunkIndex: e.key,
-              vector: List.filled(64, 0.0),
-            ))
+        .map(
+          (e) =>
+              EmbeddingVector(chunkIndex: e.key, vector: List.filled(64, 0.0)),
+        )
         .toList();
   }
 
@@ -358,15 +365,13 @@ class MockEmbeddingService implements EmbeddingService {
   Future<List<SimilarityResult>> similaritySearch(
     String query, {
     int topK = 5,
-  }) async =>
-      [];
+  }) async => [];
 
   @override
   Future<List<SimilarityResult>> findSimilarFiles(
     String filePath, {
     int topK = 5,
-  }) async =>
-      [];
+  }) async => [];
 
   @override
   Future<bool> hasEmbeddings(String filePath) async => false;
@@ -388,10 +393,7 @@ class MockOcrService implements OcrService {
   Exception? exceptionToThrow;
 
   @override
-  Future<OcrResult> extractText(
-    String filePath,
-    OcrOptions options,
-  ) async {
+  Future<OcrResult> extractText(String filePath, OcrOptions options) async {
     if (delay != null) {
       await Future<void>.delayed(delay!);
     }
@@ -412,8 +414,16 @@ class MockOcrService implements OcrService {
   @override
   bool isSupported(String filePath) {
     final ext = filePath.split('.').last.toLowerCase();
-    return {'png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp', 'pdf'}
-        .contains(ext);
+    return {
+      'png',
+      'jpg',
+      'jpeg',
+      'tiff',
+      'tif',
+      'bmp',
+      'webp',
+      'pdf',
+    }.contains(ext);
   }
 }
 
@@ -429,10 +439,7 @@ class MockAutoSummaryService implements AutoSummaryService {
   }) async {
     generatedForFiles.add(fileName);
     return resultToReturn ??
-        const AutoSummaryResult(
-          summary: '',
-          errorCode: 'not_implemented',
-        );
+        const AutoSummaryResult(summary: '', errorCode: 'not_implemented');
   }
 }
 
@@ -448,10 +455,7 @@ class MockAutoTagsService implements AutoTagsService {
   }) async {
     generatedForFiles.add(fileName);
     return resultToReturn ??
-        const AutoTagsResult(
-          tags: [],
-          errorCode: 'not_implemented',
-        );
+        const AutoTagsResult(tags: [], errorCode: 'not_implemented');
   }
 }
 
@@ -528,8 +532,7 @@ class MockFeatureFlags implements FeatureFlags {
   int? getLimit(String limitId) => null;
 
   @override
-  Stream<Set<String>> get availableFeaturesChanges =>
-      const Stream.empty();
+  Stream<Set<String>> get availableFeaturesChanges => const Stream.empty();
 
   @override
   Set<String> get availableFeatures => const {};
@@ -539,10 +542,8 @@ class MockFeatureFlags implements FeatureFlags {
 // Helper
 // ============================================================================
 
-Logger _testLogger() => Logger(
-      printer: SimplePrinter(printTime: false),
-      level: Level.off,
-    );
+Logger _testLogger() =>
+    Logger(printer: SimplePrinter(printTime: false), level: Level.off);
 
 // ============================================================================
 // Tests
@@ -581,11 +582,13 @@ void main() {
 
       // По умолчанию Pro-лицензия, чтобы существующие тесты не меняли поведение.
       licenseService = MockLicenseService();
-      licenseService.setLicense(const License(
-        type: LicenseType.pro,
-        status: LicenseStatus.active,
-        mode: LicenseMode.pro,
-      ));
+      licenseService.setLicense(
+        const License(
+          type: LicenseType.pro,
+          status: LicenseStatus.active,
+          mode: LicenseMode.pro,
+        ),
+      );
       licenseCoordinator = LicenseCoordinator(
         logger: _testLogger(),
         licenseService: licenseService,
@@ -621,18 +624,22 @@ void main() {
 
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'report.pdf',
-        fullPath: '/docs/report.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.completed);
       expect(job.filePath, '/docs/report.pdf');
       expect(extractor.extractedPaths, ['/docs/report.pdf']);
-      expect(indexer.updatedTextContents['/docs/report.pdf'],
-          'Extracted text content');
+      expect(
+        indexer.updatedTextContents['/docs/report.pdf'],
+        'Extracted text content',
+      );
     });
 
     test('enriches DOCX file when event received', () async {
@@ -645,16 +652,17 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'letter.docx',
-        fullPath: '/docs/letter.docx',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'letter.docx',
+          fullPath: '/docs/letter.docx',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.completed);
-      expect(indexer.updatedTextContents['/docs/letter.docx'],
-          'Document text');
+      expect(indexer.updatedTextContents['/docs/letter.docx'], 'Document text');
     });
 
     // ------------------------------------------------------------------
@@ -664,11 +672,13 @@ void main() {
     test('ignores non-rich, non-media, non-image files (txt, etc.)', () async {
       coordinator.start(fileEventsController.stream);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'readme.txt',
-        fullPath: '/docs/readme.txt',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'readme.txt',
+          fullPath: '/docs/readme.txt',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       // Ждём чтобы события были обработаны
       await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -680,10 +690,9 @@ void main() {
     test('ignores files with null fullPath', () async {
       coordinator.start(fileEventsController.stream);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'report.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(fileName: 'report.pdf', occurredAt: DateTime.now()),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(extractor.extractedPaths, isEmpty);
@@ -694,32 +703,34 @@ void main() {
 
       coordinator.start(fileEventsController.stream);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'report.pdf',
-        fullPath: '/docs/report.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(extractor.extractedPaths, isEmpty);
     });
 
-    test('skips enrichment in resource saver mode for heavy features',
-        () async {
+    test('skips enrichment in resource saver mode for heavy features', () async {
       // officeDocs остаётся включённым в resource saver
-      configService.setConfig(const AppConfig(
-        resourceSaverEnabled: true,
-        enableOfficeDocs: true,
-      ));
+      configService.setConfig(
+        const AppConfig(resourceSaverEnabled: true, enableOfficeDocs: true),
+      );
 
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'report.pdf',
-        fullPath: '/docs/report.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       // officeDocs доступен даже в resource saver, но с ужесточёнными лимитами
@@ -731,19 +742,20 @@ void main() {
     // ------------------------------------------------------------------
 
     test('passes config limits to extractor', () async {
-      configService.setConfig(const AppConfig(
-        maxPagesPerPdf: 42,
-        maxFileSizeMbForEnrichment: 15,
-      ));
+      configService.setConfig(
+        const AppConfig(maxPagesPerPdf: 42, maxFileSizeMbForEnrichment: 15),
+      );
 
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'report.pdf',
-        fullPath: '/docs/report.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await completed;
 
@@ -761,17 +773,21 @@ void main() {
       coordinator.start(fileEventsController.stream);
 
       // Отправляем 2 файла
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'file1.pdf',
-        fullPath: '/docs/file1.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'file1.pdf',
+          fullPath: '/docs/file1.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'file2.pdf',
-        fullPath: '/docs/file2.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'file2.pdf',
+          fullPath: '/docs/file2.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       // Через небольшую задержку проверяем что только 1 задача активна
       await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -793,11 +809,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'corrupt.pdf',
-        fullPath: '/docs/corrupt.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'corrupt.pdf',
+          fullPath: '/docs/corrupt.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.failed);
@@ -811,11 +829,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'crash.pdf',
-        fullPath: '/docs/crash.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'crash.pdf',
+          fullPath: '/docs/crash.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.failed);
@@ -845,11 +865,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       await coordinator.stop();
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'report.pdf',
-        fullPath: '/docs/report.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(extractor.extractedPaths, isEmpty);
@@ -878,19 +900,20 @@ void main() {
     // ------------------------------------------------------------------
 
     test('transcribes MP3 file when transcription enabled', () async {
-      configService.setConfig(const AppConfig(
-        enableOfficeDocs: true,
-        enableTranscription: true,
-      ));
+      configService.setConfig(
+        const AppConfig(enableOfficeDocs: true, enableTranscription: true),
+      );
 
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'podcast.mp3',
-        fullPath: '/media/podcast.mp3',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'podcast.mp3',
+          fullPath: '/media/podcast.mp3',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.completed);
@@ -904,10 +927,9 @@ void main() {
     });
 
     test('transcribes MP4 video file when transcription enabled', () async {
-      configService.setConfig(const AppConfig(
-        enableOfficeDocs: true,
-        enableTranscription: true,
-      ));
+      configService.setConfig(
+        const AppConfig(enableOfficeDocs: true, enableTranscription: true),
+      );
 
       transcriber.resultToReturn = const TranscriptionResult(
         text: 'Video transcript text',
@@ -918,11 +940,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'lecture.mp4',
-        fullPath: '/media/lecture.mp4',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'lecture.mp4',
+          fullPath: '/media/lecture.mp4',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.completed);
@@ -934,56 +958,69 @@ void main() {
     });
 
     test('ignores audio files when transcription disabled', () async {
-      configService.setConfig(const AppConfig(
-        enableOfficeDocs: true,
-        enableTranscription: false, // disabled
-      ));
+      configService.setConfig(
+        const AppConfig(
+          enableOfficeDocs: true,
+          enableTranscription: false, // disabled
+        ),
+      );
 
       coordinator.start(fileEventsController.stream);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'song.wav',
-        fullPath: '/media/song.wav',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'song.wav',
+          fullPath: '/media/song.wav',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(transcriber.transcribedPaths, isEmpty);
     });
 
     test('transcription disabled in resource saver mode', () async {
-      configService.setConfig(const AppConfig(
-        resourceSaverEnabled: true,
-        enableTranscription: true, // флаг включён, но resource saver отключает
-      ));
+      configService.setConfig(
+        const AppConfig(
+          resourceSaverEnabled: true,
+          enableTranscription:
+              true, // флаг включён, но resource saver отключает
+        ),
+      );
 
       coordinator.start(fileEventsController.stream);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'podcast.mp3',
-        fullPath: '/media/podcast.mp3',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'podcast.mp3',
+          fullPath: '/media/podcast.mp3',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(transcriber.transcribedPaths, isEmpty);
     });
 
     test('passes config limits to transcriber', () async {
-      configService.setConfig(const AppConfig(
-        enableTranscription: true,
-        maxMediaMinutes: 30,
-        maxFileSizeMbForEnrichment: 25,
-      ));
+      configService.setConfig(
+        const AppConfig(
+          enableTranscription: true,
+          maxMediaMinutes: 30,
+          maxFileSizeMbForEnrichment: 25,
+        ),
+      );
 
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'recording.wav',
-        fullPath: '/media/recording.wav',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'recording.wav',
+          fullPath: '/media/recording.wav',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await completed;
 
@@ -1005,11 +1042,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'audio.mp3',
-        fullPath: '/media/audio.mp3',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'audio.mp3',
+          fullPath: '/media/audio.mp3',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.failed);
@@ -1024,11 +1063,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'audio.mp3',
-        fullPath: '/media/audio.mp3',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'audio.mp3',
+          fullPath: '/media/audio.mp3',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.failed);
@@ -1040,11 +1081,13 @@ void main() {
 
       coordinator.start(fileEventsController.stream);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'readme.txt',
-        fullPath: '/docs/readme.txt',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'readme.txt',
+          fullPath: '/docs/readme.txt',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(transcriber.transcribedPaths, isEmpty);
@@ -1055,19 +1098,20 @@ void main() {
     // ------------------------------------------------------------------
 
     test('OCR processes PNG image when OCR enabled', () async {
-      configService.setConfig(const AppConfig(
-        enableOfficeDocs: true,
-        enableOcr: true,
-      ));
+      configService.setConfig(
+        const AppConfig(enableOfficeDocs: true, enableOcr: true),
+      );
 
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'scan.png',
-        fullPath: '/images/scan.png',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'scan.png',
+          fullPath: '/images/scan.png',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.completed);
@@ -1081,10 +1125,9 @@ void main() {
     });
 
     test('OCR processes JPEG image when OCR enabled', () async {
-      configService.setConfig(const AppConfig(
-        enableOfficeDocs: true,
-        enableOcr: true,
-      ));
+      configService.setConfig(
+        const AppConfig(enableOfficeDocs: true, enableOcr: true),
+      );
 
       ocrService.resultToReturn = const OcrResult(
         text: 'JPEG text content',
@@ -1096,11 +1139,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'photo.jpg',
-        fullPath: '/images/photo.jpg',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'photo.jpg',
+          fullPath: '/images/photo.jpg',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.completed);
@@ -1112,56 +1157,68 @@ void main() {
     });
 
     test('ignores images when OCR disabled', () async {
-      configService.setConfig(const AppConfig(
-        enableOfficeDocs: true,
-        enableOcr: false, // disabled
-      ));
+      configService.setConfig(
+        const AppConfig(
+          enableOfficeDocs: true,
+          enableOcr: false, // disabled
+        ),
+      );
 
       coordinator.start(fileEventsController.stream);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'scan.png',
-        fullPath: '/images/scan.png',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'scan.png',
+          fullPath: '/images/scan.png',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(ocrService.ocrPaths, isEmpty);
     });
 
     test('OCR disabled in resource saver mode', () async {
-      configService.setConfig(const AppConfig(
-        resourceSaverEnabled: true,
-        enableOcr: true, // флаг включён, но resource saver отключает
-      ));
+      configService.setConfig(
+        const AppConfig(
+          resourceSaverEnabled: true,
+          enableOcr: true, // флаг включён, но resource saver отключает
+        ),
+      );
 
       coordinator.start(fileEventsController.stream);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'scan.png',
-        fullPath: '/images/scan.png',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'scan.png',
+          fullPath: '/images/scan.png',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(ocrService.ocrPaths, isEmpty);
     });
 
     test('passes config limits to OCR service', () async {
-      configService.setConfig(const AppConfig(
-        enableOcr: true,
-        maxPagesPerPdf: 42,
-        maxFileSizeMbForEnrichment: 15,
-      ));
+      configService.setConfig(
+        const AppConfig(
+          enableOcr: true,
+          maxPagesPerPdf: 42,
+          maxFileSizeMbForEnrichment: 15,
+        ),
+      );
 
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'scan.png',
-        fullPath: '/images/scan.png',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'scan.png',
+          fullPath: '/images/scan.png',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await completed;
 
@@ -1183,11 +1240,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'scan.png',
-        fullPath: '/images/scan.png',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'scan.png',
+          fullPath: '/images/scan.png',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.failed);
@@ -1202,11 +1261,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
       final completed = coordinator.completedJobs.first;
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'scan.png',
-        fullPath: '/images/scan.png',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'scan.png',
+          fullPath: '/images/scan.png',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       final job = await completed;
       expect(job.status, EnrichmentJobStatus.failed);
@@ -1219,11 +1280,13 @@ void main() {
       coordinator.start(fileEventsController.stream);
 
       for (final ext in ['png', 'jpg', 'jpeg', 'tiff', 'tif', 'bmp', 'webp']) {
-        fileEventsController.add(FileAddedUiEvent(
-          fileName: 'file.$ext',
-          fullPath: '/images/file.$ext',
-          occurredAt: DateTime.now(),
-        ));
+        fileEventsController.add(
+          FileAddedUiEvent(
+            fileName: 'file.$ext',
+            fullPath: '/images/file.$ext',
+            occurredAt: DateTime.now(),
+          ),
+        );
       }
 
       // Ждём обработку
@@ -1242,11 +1305,13 @@ void main() {
       final progressEvents = <EnrichmentProgress>[];
       final sub = coordinator.progressStream.listen(progressEvents.add);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'report.pdf',
-        fullPath: '/docs/report.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       // Ждём обработку
       await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -1264,11 +1329,13 @@ void main() {
       final progressEvents = <EnrichmentProgress>[];
       final sub = coordinator.progressStream.listen(progressEvents.add);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'report.pdf',
-        fullPath: '/docs/report.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'report.pdf',
+          fullPath: '/docs/report.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       await Future<void>.delayed(const Duration(milliseconds: 100));
       await sub.cancel();
@@ -1317,16 +1384,20 @@ void main() {
       final progressEvents = <EnrichmentProgress>[];
       final sub = coordinator.progressStream.listen(progressEvents.add);
 
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'file1.pdf',
-        fullPath: '/docs/file1.pdf',
-        occurredAt: DateTime.now(),
-      ));
-      fileEventsController.add(FileAddedUiEvent(
-        fileName: 'file2.pdf',
-        fullPath: '/docs/file2.pdf',
-        occurredAt: DateTime.now(),
-      ));
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'file1.pdf',
+          fullPath: '/docs/file1.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
+      fileEventsController.add(
+        FileAddedUiEvent(
+          fileName: 'file2.pdf',
+          fullPath: '/docs/file2.pdf',
+          occurredAt: DateTime.now(),
+        ),
+      );
 
       // Ждём завершения обоих
       await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -1390,56 +1461,62 @@ void main() {
       });
 
       test(
-          'skips enrichment when indexing limit reached in Basic mode',
-          () async {
-        // Эмулируем 100 уже проиндексированных файлов
-        for (var i = 0; i < 100; i++) {
-          basicIndexer.indexedFiles.add('/docs/file$i.txt');
-        }
+        'skips enrichment when indexing limit reached in Basic mode',
+        () async {
+          // Эмулируем 100 уже проиндексированных файлов
+          for (var i = 0; i < 100; i++) {
+            basicIndexer.indexedFiles.add('/docs/file$i.txt');
+          }
 
-        basicCoordinator.start(basicFileEventsController.stream);
+          basicCoordinator.start(basicFileEventsController.stream);
 
-        basicFileEventsController.add(FileAddedUiEvent(
-          fileName: 'report.pdf',
-          fullPath: '/docs/report.pdf',
-          occurredAt: DateTime.now(),
-        ));
+          basicFileEventsController.add(
+            FileAddedUiEvent(
+              fileName: 'report.pdf',
+              fullPath: '/docs/report.pdf',
+              occurredAt: DateTime.now(),
+            ),
+          );
 
-        // Ждём обработки асинхронного вызова
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+          // Ждём обработки асинхронного вызова
+          await Future<void>.delayed(const Duration(milliseconds: 100));
 
-        // Файл НЕ должен быть передан на индексацию/обогащение
-        expect(basicExtractor.extractedPaths, isEmpty);
-        expect(basicCoordinator.queueLength, 0);
-      });
-
-      test(
-          'shows notification when indexing limit reached in Basic mode',
-          () async {
-        // Эмулируем 100 уже проиндексированных файлов
-        for (var i = 0; i < 100; i++) {
-          basicIndexer.indexedFiles.add('/docs/file$i.txt');
-        }
-
-        basicCoordinator.start(basicFileEventsController.stream);
-
-        basicFileEventsController.add(FileAddedUiEvent(
-          fileName: 'report.pdf',
-          fullPath: '/docs/report.pdf',
-          occurredAt: DateTime.now(),
-        ));
-
-        // Ждём обработки
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-
-        // Уведомление должно быть показано
-        expect(
-            basicNotifications.showIndexingLimitReachedCallCount, equals(1));
-      });
+          // Файл НЕ должен быть передан на индексацию/обогащение
+          expect(basicExtractor.extractedPaths, isEmpty);
+          expect(basicCoordinator.queueLength, 0);
+        },
+      );
 
       test(
-          'allows enrichment when count below limit in Basic mode',
-          () async {
+        'shows notification when indexing limit reached in Basic mode',
+        () async {
+          // Эмулируем 100 уже проиндексированных файлов
+          for (var i = 0; i < 100; i++) {
+            basicIndexer.indexedFiles.add('/docs/file$i.txt');
+          }
+
+          basicCoordinator.start(basicFileEventsController.stream);
+
+          basicFileEventsController.add(
+            FileAddedUiEvent(
+              fileName: 'report.pdf',
+              fullPath: '/docs/report.pdf',
+              occurredAt: DateTime.now(),
+            ),
+          );
+
+          // Ждём обработки
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+
+          // Уведомление должно быть показано
+          expect(
+            basicNotifications.showIndexingLimitReachedCallCount,
+            equals(1),
+          );
+        },
+      );
+
+      test('allows enrichment when count below limit in Basic mode', () async {
         // 50 файлов — ниже лимита
         for (var i = 0; i < 50; i++) {
           basicIndexer.indexedFiles.add('/docs/file$i.txt');
@@ -1448,11 +1525,13 @@ void main() {
         basicCoordinator.start(basicFileEventsController.stream);
         final completed = basicCoordinator.completedJobs.first;
 
-        basicFileEventsController.add(FileAddedUiEvent(
-          fileName: 'report.pdf',
-          fullPath: '/docs/report.pdf',
-          occurredAt: DateTime.now(),
-        ));
+        basicFileEventsController.add(
+          FileAddedUiEvent(
+            fileName: 'report.pdf',
+            fullPath: '/docs/report.pdf',
+            occurredAt: DateTime.now(),
+          ),
+        );
 
         final job = await completed;
         expect(job.status, EnrichmentJobStatus.completed);
@@ -1468,11 +1547,13 @@ void main() {
         coordinator.start(fileEventsController.stream);
         final completed = coordinator.completedJobs.first;
 
-        fileEventsController.add(FileAddedUiEvent(
-          fileName: 'report.pdf',
-          fullPath: '/docs/report.pdf',
-          occurredAt: DateTime.now(),
-        ));
+        fileEventsController.add(
+          FileAddedUiEvent(
+            fileName: 'report.pdf',
+            fullPath: '/docs/report.pdf',
+            occurredAt: DateTime.now(),
+          ),
+        );
 
         final job = await completed;
         expect(job.status, EnrichmentJobStatus.completed);

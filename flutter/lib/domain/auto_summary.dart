@@ -19,10 +19,7 @@ class AutoSummaryResult {
   /// - `"not_implemented"` — модель ещё не подключена (stub)
   final String? errorCode;
 
-  const AutoSummaryResult({
-    required this.summary,
-    this.errorCode,
-  });
+  const AutoSummaryResult({required this.summary, this.errorCode});
 
   /// Успешно ли сгенерировано описание (нет ошибки).
   bool get isSuccess => errorCode == null;

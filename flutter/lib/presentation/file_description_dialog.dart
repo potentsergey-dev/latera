@@ -98,10 +98,7 @@ class _FileDescriptionDialogState extends State<FileDescriptionDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          Icon(
-            Icons.description_outlined,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(Icons.description_outlined, color: theme.colorScheme.primary),
           const SizedBox(width: 8),
           const Expanded(child: Text('Новый файл')),
         ],
@@ -158,8 +155,7 @@ class _FileDescriptionDialogState extends State<FileDescriptionDialog> {
               decoration: InputDecoration(
                 hintText: 'Например: квартальный отчёт за Q3 2025',
                 border: const OutlineInputBorder(),
-                helperText:
-                    'По этому описанию вы сможете потом найти файл',
+                helperText: 'По этому описанию вы сможете потом найти файл',
                 helperMaxLines: 2,
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.clear, size: 18),
@@ -172,10 +168,7 @@ class _FileDescriptionDialogState extends State<FileDescriptionDialog> {
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _onSkip,
-          child: const Text('Пропустить'),
-        ),
+        TextButton(onPressed: _onSkip, child: const Text('Пропустить')),
         FilledButton.icon(
           onPressed: _onSave,
           icon: const Icon(Icons.save_outlined, size: 18),
@@ -193,7 +186,12 @@ class _FileDescriptionDialogState extends State<FileDescriptionDialog> {
       'doc' || 'docx' => Icons.article_outlined,
       'xls' || 'xlsx' => Icons.table_chart_outlined,
       'ppt' || 'pptx' => Icons.slideshow_outlined,
-      'jpg' || 'jpeg' || 'png' || 'gif' || 'bmp' || 'webp' => Icons.image_outlined,
+      'jpg' ||
+      'jpeg' ||
+      'png' ||
+      'gif' ||
+      'bmp' ||
+      'webp' => Icons.image_outlined,
       'mp4' || 'avi' || 'mov' || 'mkv' => Icons.video_file_outlined,
       'mp3' || 'wav' || 'flac' || 'ogg' => Icons.audio_file_outlined,
       'zip' || 'rar' || '7z' || 'tar' || 'gz' => Icons.folder_zip_outlined,

@@ -5,10 +5,7 @@ import 'package:latera/infrastructure/rust/stub_rag_service.dart';
 void main() {
   group('RagQueryResult', () {
     test('isSuccess returns true when errorCode is null', () {
-      const result = RagQueryResult(
-        answer: 'Some answer',
-        sources: [],
-      );
+      const result = RagQueryResult(answer: 'Some answer', sources: []);
       expect(result.isSuccess, isTrue);
       expect(result.hasAnswer, isTrue);
     });

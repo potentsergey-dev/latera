@@ -91,7 +91,9 @@ class License {
 
   /// Проверяет, является ли лицензия Pro (включая триал).
   bool get isPro =>
-      (type == LicenseType.pro || mode == LicenseMode.pro || mode == LicenseMode.proTrial) &&
+      (type == LicenseType.pro ||
+          mode == LicenseMode.pro ||
+          mode == LicenseMode.proTrial) &&
       isActive;
 
   /// Проверяет, является ли лицензия Free.

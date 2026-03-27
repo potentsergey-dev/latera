@@ -26,8 +26,9 @@ class PurchaseResult {
 
   static const success = PurchaseResult._(PurchaseStatus.success);
   static const cancelled = PurchaseResult._(PurchaseStatus.cancelled);
-  static const storeUnavailable =
-      PurchaseResult._(PurchaseStatus.storeUnavailable);
+  static const storeUnavailable = PurchaseResult._(
+    PurchaseStatus.storeUnavailable,
+  );
 
   factory PurchaseResult.error([String? message]) =>
       PurchaseResult._(PurchaseStatus.error, message);
@@ -80,8 +81,7 @@ class StorePurchaseService {
   Future<PurchaseResult> buyPro() async {
     try {
       _logger.i('StorePurchaseService: starting purchase flow for $productId');
-      final result =
-          await _channel.invokeMethod<String>('buyPro', productId);
+      final result = await _channel.invokeMethod<String>('buyPro', productId);
       _logger.i('StorePurchaseService: purchase result = $result');
       switch (result) {
         case 'success':

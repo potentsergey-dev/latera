@@ -131,7 +131,8 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
     // Текст текущей операции
     String detailText;
     if (isLlmDownload) {
-      detailText = 'paraphrase-multilingual-MiniLM-L12-v2 · sentence-embeddings';
+      detailText =
+          'paraphrase-multilingual-MiniLM-L12-v2 · sentence-embeddings';
     } else if (isGgufDownload) {
       detailText = 'qwen2.5-3b-instruct-q4_k_m · генеративная модель (~1.7 ГБ)';
     } else if (_progress.currentFileName != null &&
@@ -145,12 +146,13 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
     }
 
     // Заголовок и счётчик
-    final headerText =
-        isModelDownload ? 'Загрузка AI-модели' : 'Обработка файлов';
+    final headerText = isModelDownload
+        ? 'Загрузка AI-модели'
+        : 'Обработка файлов';
     final counterText = isModelDownload
         ? '${_progress.completedCount}%'
         : '${_progress.completedCount} из ${_progress.totalEnqueued}'
-            '${remaining > 0 ? '  ·  $remaining осталось' : ''}';
+              '${remaining > 0 ? '  ·  $remaining осталось' : ''}';
 
     return Container(
       width: double.infinity,
@@ -198,7 +200,9 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
             child: LinearProgressIndicator(
               value: progressValue,
               minHeight: 4,
-              backgroundColor: colors.onSecondaryContainer.withValues(alpha: 0.12),
+              backgroundColor: colors.onSecondaryContainer.withValues(
+                alpha: 0.12,
+              ),
               valueColor: AlwaysStoppedAnimation(colors.primary),
             ),
           ),

@@ -172,24 +172,32 @@ class MockConfigService implements ConfigService {
     // ВАЖНО: copyWith() не умеет устанавливать null.
     // Создаём AppConfig напрямую с явными значениями.
     _currentConfig = AppConfig(
-      watchPath: clearWatchPath ? null : (watchPath ?? _currentConfig.watchPath),
+      watchPath: clearWatchPath
+          ? null
+          : (watchPath ?? _currentConfig.watchPath),
       watchIntervalMs: watchIntervalMs ?? _currentConfig.watchIntervalMs,
-      notificationsEnabled: notificationsEnabled ?? _currentConfig.notificationsEnabled,
+      notificationsEnabled:
+          notificationsEnabled ?? _currentConfig.notificationsEnabled,
       loggingEnabled: loggingEnabled ?? _currentConfig.loggingEnabled,
       logLevel: logLevel ?? _currentConfig.logLevel,
       theme: theme ?? _currentConfig.theme,
       language: clearLanguage ? null : (language ?? _currentConfig.language),
-      resourceSaverEnabled: resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
+      resourceSaverEnabled:
+          resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
       enableOfficeDocs: enableOfficeDocs ?? _currentConfig.enableOfficeDocs,
       enableOcr: enableOcr ?? _currentConfig.enableOcr,
-      enableTranscription: enableTranscription ?? _currentConfig.enableTranscription,
+      enableTranscription:
+          enableTranscription ?? _currentConfig.enableTranscription,
       enableEmbeddings: enableEmbeddings ?? _currentConfig.enableEmbeddings,
-      enableSemanticSimilarity: enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
+      enableSemanticSimilarity:
+          enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
       enableRag: enableRag ?? _currentConfig.enableRag,
       enableAutoSummary: enableAutoSummary ?? _currentConfig.enableAutoSummary,
       enableAutoTags: enableAutoTags ?? _currentConfig.enableAutoTags,
       maxConcurrentJobs: maxConcurrentJobs ?? _currentConfig.maxConcurrentJobs,
-      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? _currentConfig.maxFileSizeMbForEnrichment,
+      maxFileSizeMbForEnrichment:
+          maxFileSizeMbForEnrichment ??
+          _currentConfig.maxFileSizeMbForEnrichment,
       maxMediaMinutes: maxMediaMinutes ?? _currentConfig.maxMediaMinutes,
       maxPagesPerPdf: maxPagesPerPdf ?? _currentConfig.maxPagesPerPdf,
     );
@@ -355,9 +363,9 @@ void main() {
 
       test('should pass watch path from config to watcher', () async {
         // Устанавливаем путь в конфигурации
-        mockConfigService.setConfig(const AppConfig(
-          watchPath: '/custom/watch/path',
-        ));
+        mockConfigService.setConfig(
+          const AppConfig(watchPath: '/custom/watch/path'),
+        );
 
         final coordinator = FileEventsCoordinator(
           logger: logger,
@@ -372,19 +380,22 @@ void main() {
         expect(mockWatcher.lastOverridePath, '/custom/watch/path');
       });
 
-      test('should pass null to watcher when config has no watch path', () async {
-        final coordinator = FileEventsCoordinator(
-          logger: logger,
-          watcher: mockWatcher,
-          notifications: mockNotifications,
-          configService: mockConfigService,
-          indexer: mockIndexer,
-        );
+      test(
+        'should pass null to watcher when config has no watch path',
+        () async {
+          final coordinator = FileEventsCoordinator(
+            logger: logger,
+            watcher: mockWatcher,
+            notifications: mockNotifications,
+            configService: mockConfigService,
+            indexer: mockIndexer,
+          );
 
-        await coordinator.start();
+          await coordinator.start();
 
-        expect(mockWatcher.lastOverridePath, isNull);
-      });
+          expect(mockWatcher.lastOverridePath, isNull);
+        },
+      );
     });
 
     group('stop', () {
@@ -462,10 +473,7 @@ void main() {
 
         expect(coordinator.isDisposed, true);
 
-        expect(
-          () => coordinator.start(),
-          throwsA(isA<StateError>()),
-        );
+        expect(() => coordinator.start(), throwsA(isA<StateError>()));
       });
 
       test('should be idempotent', () async {
@@ -498,8 +506,9 @@ void main() {
         await coordinator.start();
 
         // Важно: broadcast stream не буферизует, поэтому подписываемся до эмиссии.
-        final eventFuture = coordinator.fileAddedEvents.first
-            .timeout(const Duration(seconds: 1));
+        final eventFuture = coordinator.fileAddedEvents.first.timeout(
+          const Duration(seconds: 1),
+        );
 
         // Эмулируем событие от watcher
         final testEvent = FileAddedEvent(
@@ -529,15 +538,18 @@ void main() {
 
         await coordinator.start();
 
-        final uiEventFuture = coordinator.fileAddedEvents.first
-            .timeout(const Duration(seconds: 1));
+        final uiEventFuture = coordinator.fileAddedEvents.first.timeout(
+          const Duration(seconds: 1),
+        );
 
         // Эмулируем событие от watcher
-        mockWatcher.addFileEvent(FileAddedEvent(
-          fileName: 'document.pdf',
-          fullPath: '/path/to/document.pdf',
-          occurredAt: DateTime.now(),
-        ));
+        mockWatcher.addFileEvent(
+          FileAddedEvent(
+            fileName: 'document.pdf',
+            fullPath: '/path/to/document.pdf',
+            occurredAt: DateTime.now(),
+          ),
+        );
 
         await uiEventFuture;
         await pumpEventQueue();
@@ -566,18 +578,9 @@ void main() {
 
         // Эмулируем несколько событий
         mockWatcher.addFileEvents([
-          FileAddedEvent(
-            fileName: 'file1.txt',
-            occurredAt: DateTime.now(),
-          ),
-          FileAddedEvent(
-            fileName: 'file2.txt',
-            occurredAt: DateTime.now(),
-          ),
-          FileAddedEvent(
-            fileName: 'file3.txt',
-            occurredAt: DateTime.now(),
-          ),
+          FileAddedEvent(fileName: 'file1.txt', occurredAt: DateTime.now()),
+          FileAddedEvent(fileName: 'file2.txt', occurredAt: DateTime.now()),
+          FileAddedEvent(fileName: 'file3.txt', occurredAt: DateTime.now()),
         ]);
 
         final events = await eventsFuture;
@@ -605,14 +608,14 @@ void main() {
 
         await coordinator.start();
 
-        final eventFuture = coordinator.fileAddedEvents.first
-            .timeout(const Duration(seconds: 1));
+        final eventFuture = coordinator.fileAddedEvents.first.timeout(
+          const Duration(seconds: 1),
+        );
 
         // Эмулируем событие (без ошибки в уведомлении)
-        mockWatcher.addFileEvent(FileAddedEvent(
-          fileName: 'file1.txt',
-          occurredAt: DateTime.now(),
-        ));
+        mockWatcher.addFileEvent(
+          FileAddedEvent(fileName: 'file1.txt', occurredAt: DateTime.now()),
+        );
 
         await eventFuture;
         await pumpEventQueue();
@@ -644,9 +647,9 @@ void main() {
         expect(mockWatcher.startWatchingCallCount, 1);
 
         // Изменяем путь в конфигурации
-        mockConfigService.setConfig(const AppConfig(
-          watchPath: '/new/watch/path',
-        ));
+        mockConfigService.setConfig(
+          const AppConfig(watchPath: '/new/watch/path'),
+        );
 
         // Детерминированно ждём рестарта.
         await restarted.future.timeout(const Duration(seconds: 1));
@@ -677,9 +680,9 @@ void main() {
         await coordinator.start();
 
         // Изменяем путь в конфигурации
-        mockConfigService.setConfig(const AppConfig(
-          watchPath: '/new/watch/path',
-        ));
+        mockConfigService.setConfig(
+          const AppConfig(watchPath: '/new/watch/path'),
+        );
 
         await restarted.future.timeout(const Duration(seconds: 1));
 
@@ -711,9 +714,9 @@ void main() {
             .timeout(const Duration(seconds: 1));
 
         // Изменяем путь в конфигурации
-        mockConfigService.setConfig(const AppConfig(
-          watchPath: '/new/watch/path',
-        ));
+        mockConfigService.setConfig(
+          const AppConfig(watchPath: '/new/watch/path'),
+        );
 
         final newPath = await pathChangeFuture;
         expect(newPath, '/mock/watch/dir');
@@ -721,69 +724,75 @@ void main() {
         await coordinator.stop();
       });
 
-      test('should clear index and emit event on start after path changed while stopped', () async {
-        final coordinator = FileEventsCoordinator(
-          logger: logger,
-          watcher: mockWatcher,
-          notifications: mockNotifications,
-          configService: mockConfigService,
-          indexer: mockIndexer,
-        );
+      test(
+        'should clear index and emit event on start after path changed while stopped',
+        () async {
+          final coordinator = FileEventsCoordinator(
+            logger: logger,
+            watcher: mockWatcher,
+            notifications: mockNotifications,
+            configService: mockConfigService,
+            indexer: mockIndexer,
+          );
 
-        // Запускаем и останавливаем координатор (имитация ухода на Settings)
-        await coordinator.start();
-        await coordinator.stop();
-        expect(coordinator.isRunning, false);
-        expect(mockIndexer.clearIndexCallCount, 0);
+          // Запускаем и останавливаем координатор (имитация ухода на Settings)
+          await coordinator.start();
+          await coordinator.stop();
+          expect(coordinator.isRunning, false);
+          expect(mockIndexer.clearIndexCallCount, 0);
 
-        // Меняем путь пока координатор остановлен
-        mockConfigService.setConfig(const AppConfig(
-          watchPath: '/new/watch/path',
-        ));
-        // Даём микротаскам отработать (listener _onConfigChanged)
-        await pumpEventQueue();
+          // Меняем путь пока координатор остановлен
+          mockConfigService.setConfig(
+            const AppConfig(watchPath: '/new/watch/path'),
+          );
+          // Даём микротаскам отработать (listener _onConfigChanged)
+          await pumpEventQueue();
 
-        // Подписываемся на событие смены папки ДО старта
-        final pathChangeFuture = coordinator.watchPathChangedEvents.first
-            .timeout(const Duration(seconds: 1));
+          // Подписываемся на событие смены папки ДО старта
+          final pathChangeFuture = coordinator.watchPathChangedEvents.first
+              .timeout(const Duration(seconds: 1));
 
-        // Запускаем координатор снова (имитация возврата на главную)
-        final result = await coordinator.start();
-        expect(result, isA<CoordinatorStartSuccess>());
+          // Запускаем координатор снова (имитация возврата на главную)
+          final result = await coordinator.start();
+          expect(result, isA<CoordinatorStartSuccess>());
 
-        // Индекс должен быть очищен
-        expect(mockIndexer.clearIndexCallCount, 1);
+          // Индекс должен быть очищен
+          expect(mockIndexer.clearIndexCallCount, 1);
 
-        // watchPathChanged должен быть эмитирован
-        final emittedPath = await pathChangeFuture;
-        expect(emittedPath, '/mock/watch/dir');
+          // watchPathChanged должен быть эмитирован
+          final emittedPath = await pathChangeFuture;
+          expect(emittedPath, '/mock/watch/dir');
 
-        // Путь должен быть передан watcher'у
-        expect(mockWatcher.lastOverridePath, '/new/watch/path');
+          // Путь должен быть передан watcher'у
+          expect(mockWatcher.lastOverridePath, '/new/watch/path');
 
-        await coordinator.stop();
-      });
+          await coordinator.stop();
+        },
+      );
 
-      test('should not clear index on start if path did not change while stopped', () async {
-        final coordinator = FileEventsCoordinator(
-          logger: logger,
-          watcher: mockWatcher,
-          notifications: mockNotifications,
-          configService: mockConfigService,
-          indexer: mockIndexer,
-        );
+      test(
+        'should not clear index on start if path did not change while stopped',
+        () async {
+          final coordinator = FileEventsCoordinator(
+            logger: logger,
+            watcher: mockWatcher,
+            notifications: mockNotifications,
+            configService: mockConfigService,
+            indexer: mockIndexer,
+          );
 
-        // Запускаем, останавливаем, запускаем снова — без смены пути
-        await coordinator.start();
-        await coordinator.stop();
-        final result = await coordinator.start();
+          // Запускаем, останавливаем, запускаем снова — без смены пути
+          await coordinator.start();
+          await coordinator.stop();
+          final result = await coordinator.start();
 
-        expect(result, isA<CoordinatorStartSuccess>());
-        // clearIndex НЕ должен вызываться
-        expect(mockIndexer.clearIndexCallCount, 0);
+          expect(result, isA<CoordinatorStartSuccess>());
+          // clearIndex НЕ должен вызываться
+          expect(mockIndexer.clearIndexCallCount, 0);
 
-        await coordinator.stop();
-      });
+          await coordinator.stop();
+        },
+      );
     });
 
     group('FileAddedUiEvent', () {

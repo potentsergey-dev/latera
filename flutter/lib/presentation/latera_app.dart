@@ -46,14 +46,14 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
   Future<void> _initRoot() async {
     try {
       final root = await AppCompositionRoot.create();
-      
+
       // Проверяем, нужен ли онбординг
       final needsOnboarding = !root.configService.isOnboardingCompleted;
 
       // Инициализируем системный трей
       final tray = TrayService();
       await tray.initialize(onQuitRequested: _onQuitRequested);
-      
+
       if (mounted) {
         setState(() {
           _root = root;
@@ -100,14 +100,18 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     if (_trayService != null) {
-      unawaited(_trayService!.destroy().catchError((e, st) {
-        debugPrint('Error during TrayService destroy: $e\n$st');
-      }));
+      unawaited(
+        _trayService!.destroy().catchError((e, st) {
+          debugPrint('Error during TrayService destroy: $e\n$st');
+        }),
+      );
     }
     if (_root != null) {
-      unawaited(_root!.dispose().catchError((e, st) {
-        debugPrint('Error during AppCompositionRoot dispose: $e\n$st');
-      }));
+      unawaited(
+        _root!.dispose().catchError((e, st) {
+          debugPrint('Error during AppCompositionRoot dispose: $e\n$st');
+        }),
+      );
     }
     super.dispose();
   }
@@ -135,9 +139,7 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
     // Нормальное состояние — разветвление по платформе
     return AppScope(
       root: _root!,
-      child: PlatformInfo.isWindows
-          ? _buildWindowsApp()
-          : _buildMaterialApp(),
+      child: PlatformInfo.isWindows ? _buildWindowsApp() : _buildMaterialApp(),
     );
   }
 
@@ -163,15 +165,15 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
             // и передаём onComplete вместо pushReplacementNamed.
             final isDark =
                 MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-            final theme =
-                isDark ? AppTheme.materialDarkTheme : AppTheme.materialTheme;
+            final theme = isDark
+                ? AppTheme.materialDarkTheme
+                : AppTheme.materialTheme;
             return Theme(
               data: theme,
               child: Material(
                 color: theme.colorScheme.surface,
                 child: OnboardingScreen(
-                  onComplete: () =>
-                      setState(() => _needsOnboarding = false),
+                  onComplete: () => setState(() => _needsOnboarding = false),
                 ),
               ),
             );
@@ -198,9 +200,8 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       initialRoute: _needsOnboarding ? '/onboarding' : '/main',
       routes: {
         '/onboarding': (context) => OnboardingScreen(
-              onComplete: () =>
-                  Navigator.of(context).pushReplacementNamed('/main'),
-            ),
+          onComplete: () => Navigator.of(context).pushReplacementNamed('/main'),
+        ),
         '/main': (context) => const MainScreen(),
         '/search': (context) => const SearchScreen(),
         '/inbox': (context) => const InboxScreen(),
@@ -232,9 +233,7 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       title: 'Latera',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.materialTheme,
-      home: const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      home: const Scaffold(body: Center(child: CircularProgressIndicator())),
     );
   }
 

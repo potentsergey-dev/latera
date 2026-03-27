@@ -45,11 +45,7 @@ class _LicenseBadgeState extends State<LicenseBadge> {
     final isConstrained = widget.licenseCoordinator.isHardwareConstrained;
 
     final (label, color, textColor) = switch (_license.mode) {
-      LicenseMode.pro => (
-        'PRO',
-        Colors.blueGrey.shade700,
-        Colors.white,
-      ),
+      LicenseMode.pro => ('PRO', Colors.blueGrey.shade700, Colors.white),
       LicenseMode.proTrial => () {
         final remaining = widget.licenseCoordinator.trialTimeRemaining;
         final days = (remaining?.inDays ?? 0) + 1;

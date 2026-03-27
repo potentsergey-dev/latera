@@ -9,18 +9,20 @@ import 'package:path/path.dart' as p;
 import '../../domain/ocr.dart';
 
 // FFI type definitions
-typedef _OcrExtractTextC = Pointer<Utf8> Function(
-  Pointer<Utf8> pathPtr,
-  Uint32 maxPages,
-  Uint32 maxSizeMb,
-  Pointer<Utf8> langPtr,
-);
-typedef _OcrExtractTextDart = Pointer<Utf8> Function(
-  Pointer<Utf8> pathPtr,
-  int maxPages,
-  int maxSizeMb,
-  Pointer<Utf8> langPtr,
-);
+typedef _OcrExtractTextC =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> pathPtr,
+      Uint32 maxPages,
+      Uint32 maxSizeMb,
+      Pointer<Utf8> langPtr,
+    );
+typedef _OcrExtractTextDart =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> pathPtr,
+      int maxPages,
+      int maxSizeMb,
+      Pointer<Utf8> langPtr,
+    );
 
 typedef _IsOcrSupportedC = Int32 Function(Pointer<Utf8> pathPtr);
 typedef _IsOcrSupportedDart = int Function(Pointer<Utf8> pathPtr);
@@ -54,16 +56,14 @@ class RustOcrService implements OcrService {
 
     _isOcrSupportedFfi = _lib
         .lookupFunction<_IsOcrSupportedC, _IsOcrSupportedDart>(
-            'latera_is_ocr_supported');
+          'latera_is_ocr_supported',
+        );
 
     _isInitialized = true;
   }
 
   @override
-  Future<OcrResult> extractText(
-    String filePath,
-    OcrOptions options,
-  ) async {
+  Future<OcrResult> extractText(String filePath, OcrOptions options) async {
     _ensureInitialized();
 
     // Захватываем все параметры в локальные переменные,
@@ -112,11 +112,12 @@ class RustOcrService implements OcrService {
 
     final ocrExtract = lib
         .lookupFunction<_OcrExtractTextC, _OcrExtractTextDart>(
-            'latera_ocr_extract_text');
+          'latera_ocr_extract_text',
+        );
 
-    final freeCString = lib
-        .lookupFunction<_FreeCStringC, _FreeCStringDart>(
-            'latera_free_cstring');
+    final freeCString = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
+      'latera_free_cstring',
+    );
 
     final pathPtr = filePath.toNativeUtf8();
     final langPtr = language != null

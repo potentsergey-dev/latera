@@ -108,13 +108,28 @@ void main() {
         enableAutoTags: true,
       );
 
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs), true);
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs),
+        true,
+      );
       expect(config.isFeatureEffectivelyEnabled(ContentFeature.ocr), true);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.transcription), true);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.embeddings), true);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity), true);
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.transcription),
+        true,
+      );
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.embeddings),
+        true,
+      );
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity),
+        true,
+      );
       expect(config.isFeatureEffectivelyEnabled(ContentFeature.rag), true);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary), true);
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary),
+        true,
+      );
       expect(config.isFeatureEffectivelyEnabled(ContentFeature.autoTags), true);
     });
 
@@ -124,7 +139,10 @@ void main() {
         enableOfficeDocs: true,
       );
 
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs), true);
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.officeDocs),
+        true,
+      );
     });
 
     test('heavy features are disabled when resourceSaver is on', () {
@@ -140,52 +158,87 @@ void main() {
       );
 
       expect(config.isFeatureEffectivelyEnabled(ContentFeature.ocr), false);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.transcription), false);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.embeddings), false);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity), false);
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.transcription),
+        false,
+      );
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.embeddings),
+        false,
+      );
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity),
+        false,
+      );
       expect(config.isFeatureEffectivelyEnabled(ContentFeature.rag), false);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary), false);
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.autoTags), false);
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.autoSummary),
+        false,
+      );
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.autoTags),
+        false,
+      );
     });
 
     test('returns false when feature is off regardless of resourceSaver', () {
-      const config = AppConfig(
-        resourceSaverEnabled: false,
-        enableOcr: false,
-      );
+      const config = AppConfig(resourceSaverEnabled: false, enableOcr: false);
 
       expect(config.isFeatureEffectivelyEnabled(ContentFeature.ocr), false);
     });
 
-    test('semanticSimilarity requires both enableSemanticSimilarity and enableEmbeddings', () {
-      // Both off
-      const config1 = AppConfig(
-        enableEmbeddings: false,
-        enableSemanticSimilarity: false,
-      );
-      expect(config1.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity), false);
+    test(
+      'semanticSimilarity requires both enableSemanticSimilarity and enableEmbeddings',
+      () {
+        // Both off
+        const config1 = AppConfig(
+          enableEmbeddings: false,
+          enableSemanticSimilarity: false,
+        );
+        expect(
+          config1.isFeatureEffectivelyEnabled(
+            ContentFeature.semanticSimilarity,
+          ),
+          false,
+        );
 
-      // Only embeddings on
-      const config2 = AppConfig(
-        enableEmbeddings: true,
-        enableSemanticSimilarity: false,
-      );
-      expect(config2.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity), false);
+        // Only embeddings on
+        const config2 = AppConfig(
+          enableEmbeddings: true,
+          enableSemanticSimilarity: false,
+        );
+        expect(
+          config2.isFeatureEffectivelyEnabled(
+            ContentFeature.semanticSimilarity,
+          ),
+          false,
+        );
 
-      // Only semanticSimilarity on
-      const config3 = AppConfig(
-        enableEmbeddings: false,
-        enableSemanticSimilarity: true,
-      );
-      expect(config3.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity), false);
+        // Only semanticSimilarity on
+        const config3 = AppConfig(
+          enableEmbeddings: false,
+          enableSemanticSimilarity: true,
+        );
+        expect(
+          config3.isFeatureEffectivelyEnabled(
+            ContentFeature.semanticSimilarity,
+          ),
+          false,
+        );
 
-      // Both on
-      const config4 = AppConfig(
-        enableEmbeddings: true,
-        enableSemanticSimilarity: true,
-      );
-      expect(config4.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity), true);
-    });
+        // Both on
+        const config4 = AppConfig(
+          enableEmbeddings: true,
+          enableSemanticSimilarity: true,
+        );
+        expect(
+          config4.isFeatureEffectivelyEnabled(
+            ContentFeature.semanticSimilarity,
+          ),
+          true,
+        );
+      },
+    );
 
     test('semanticSimilarity disabled in resource saver mode', () {
       const config = AppConfig(
@@ -193,7 +246,10 @@ void main() {
         enableEmbeddings: true,
         enableSemanticSimilarity: true,
       );
-      expect(config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity), false);
+      expect(
+        config.isFeatureEffectivelyEnabled(ContentFeature.semanticSimilarity),
+        false,
+      );
     });
   });
 

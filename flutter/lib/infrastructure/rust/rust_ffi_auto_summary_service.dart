@@ -9,14 +9,16 @@ import '../../domain/auto_summary.dart';
 import 'rust_ocr_service.dart' show RustOcrService;
 
 // FFI type definitions
-typedef _GenerateSummaryC = Pointer<Utf8> Function(
-  Pointer<Utf8> textContentPtr,
-  Pointer<Utf8> fileNamePtr,
-);
-typedef _GenerateSummaryDart = Pointer<Utf8> Function(
-  Pointer<Utf8> textContentPtr,
-  Pointer<Utf8> fileNamePtr,
-);
+typedef _GenerateSummaryC =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> textContentPtr,
+      Pointer<Utf8> fileNamePtr,
+    );
+typedef _GenerateSummaryDart =
+    Pointer<Utf8> Function(
+      Pointer<Utf8> textContentPtr,
+      Pointer<Utf8> fileNamePtr,
+    );
 
 typedef _IsLlmReadyC = Uint32 Function();
 typedef _IsLlmReadyDart = int Function();
@@ -53,8 +55,7 @@ class RustFfiAutoSummaryService implements AutoSummaryService {
     try {
       final lib = DynamicLibrary.open(libPath);
 
-      _isLlmReadyFfi =
-          lib.lookupFunction<_IsLlmReadyC, _IsLlmReadyDart>(
+      _isLlmReadyFfi = lib.lookupFunction<_IsLlmReadyC, _IsLlmReadyDart>(
         'latera_is_llm_ready',
       );
 
@@ -87,17 +88,11 @@ class RustFfiAutoSummaryService implements AutoSummaryService {
     _ensureInitialized();
 
     if (!_available) {
-      return const AutoSummaryResult(
-        summary: '',
-        errorCode: 'not_implemented',
-      );
+      return const AutoSummaryResult(summary: '', errorCode: 'not_implemented');
     }
 
     if (textContent.trim().isEmpty) {
-      return const AutoSummaryResult(
-        summary: '',
-        errorCode: 'empty_content',
-      );
+      return const AutoSummaryResult(summary: '', errorCode: 'empty_content');
     }
 
     // Захватываем путь к DLL — DynamicLibrary нельзя передать в Isolate.
@@ -128,10 +123,7 @@ class RustFfiAutoSummaryService implements AutoSummaryService {
       final summary = data['summary'] as String? ?? '';
       final errorCode = data['error_code'] as String?;
 
-      return AutoSummaryResult(
-        summary: summary,
-        errorCode: errorCode,
-      );
+      return AutoSummaryResult(summary: summary, errorCode: errorCode);
     } catch (e) {
       _log.e('RustFfiAutoSummaryService: generateSummary error: $e');
       return const AutoSummaryResult(
@@ -148,10 +140,10 @@ class RustFfiAutoSummaryService implements AutoSummaryService {
     required String fileName,
   }) {
     final lib = DynamicLibrary.open(libraryPath);
-    final generateSummary = lib.lookupFunction<
-      _GenerateSummaryC,
-      _GenerateSummaryDart
-    >('latera_generate_summary');
+    final generateSummary = lib
+        .lookupFunction<_GenerateSummaryC, _GenerateSummaryDart>(
+          'latera_generate_summary',
+        );
     final freeCString = lib.lookupFunction<_FreeCStringC, _FreeCStringDart>(
       'latera_free_cstring',
     );

@@ -20,10 +20,7 @@ class AutoTagsResult {
   /// - `"not_implemented"` — модель ещё не подключена (stub)
   final String? errorCode;
 
-  const AutoTagsResult({
-    required this.tags,
-    this.errorCode,
-  });
+  const AutoTagsResult({required this.tags, this.errorCode});
 
   /// Успешно ли сгенерированы теги (нет ошибки).
   bool get isSuccess => errorCode == null;

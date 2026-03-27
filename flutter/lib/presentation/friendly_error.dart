@@ -9,7 +9,8 @@ String friendlyErrorMessage(String rawError, AppLocalizations l10n) {
   final lower = rawError.toLowerCase();
 
   // Rust: генеративная модель не загружена
-  if (lower.contains('llmnotloaded') || lower.contains('llm not loaded') ||
+  if (lower.contains('llmnotloaded') ||
+      lower.contains('llm not loaded') ||
       lower.contains('llm_not_loaded')) {
     return l10n.errorModelNotLoaded;
   }

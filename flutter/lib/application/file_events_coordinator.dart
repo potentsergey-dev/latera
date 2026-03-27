@@ -99,7 +99,8 @@ class FileEventsCoordinator {
   bool _isDisposing = false;
   Future<void>? _restartFuture;
   bool _restartRequested = false; // Флаг для отслеживания отложенных restart'ов
-  bool _needsClearOnStart = false; // Путь изменился пока координатор был остановлен
+  bool _needsClearOnStart =
+      false; // Путь изменился пока координатор был остановлен
   String? _lastWatchPath; // Последний известный путь для обнаружения изменений
 
   FileEventsCoordinator({
@@ -108,11 +109,11 @@ class FileEventsCoordinator {
     required NotificationsService notifications,
     required ConfigService configService,
     required Indexer indexer,
-  })  : _log = logger,
-        _watcher = watcher,
-        _notifications = notifications,
-        _configService = configService,
-        _indexer = indexer {
+  }) : _log = logger,
+       _watcher = watcher,
+       _notifications = notifications,
+       _configService = configService,
+       _indexer = indexer {
     // Сохраняем начальный путь для обнаружения изменений
     _lastWatchPath = _configService.currentConfig.watchPath;
     // Подписываемся на изменения конфигурации
@@ -157,7 +158,9 @@ class FileEventsCoordinator {
     // Получаем путь из конфигурации
     final watchPath = _configService.currentConfig.watchPath;
 
-    _log.i('Using watch path from config: ${watchPath ?? "default (Desktop/Latera)"}');
+    _log.i(
+      'Using watch path from config: ${watchPath ?? "default (Desktop/Latera)"}',
+    );
 
     // Обновляем последний известный путь
     _lastWatchPath = watchPath;
@@ -216,16 +219,18 @@ class FileEventsCoordinator {
   /// Перезапускает watcher только если watchPath действительно изменился.
   void _onConfigChanged(AppConfig config) {
     final newWatchPath = config.watchPath;
-    
+
     // Перезапускаем только если watchPath изменился
     if (newWatchPath == _lastWatchPath) {
       _log.d('Config changed but watchPath unchanged, skipping restart');
       return;
     }
-    
-    _log.i('Watch path changed: ${_lastWatchPath ?? "default"} -> ${newWatchPath ?? "default"}');
+
+    _log.i(
+      'Watch path changed: ${_lastWatchPath ?? "default"} -> ${newWatchPath ?? "default"}',
+    );
     _lastWatchPath = newWatchPath;
-    
+
     // Если координатор запущен или в процессе старта, запрашиваем restart.
     // Используем флаги для сериализации операций перезапуска.
     // Во время dispose() рестарт запрещён (иначе возможна гонка: start() после stop()).
@@ -258,7 +263,7 @@ class FileEventsCoordinator {
       _needsClearOnStart = true;
     }
   }
-  
+
   /// Выполняет restart watcher'а с обработкой всех отложенных запросов.
   ///
   /// Гарантирует, что только один restart выполняется одновременно,
@@ -335,11 +340,13 @@ class FileEventsCoordinator {
           final path = entity.path;
           final fileName = path.split(Platform.pathSeparator).last;
           _log.d('Found existing file: $fileName');
-          _controller.add(FileAddedUiEvent(
-            fileName: fileName,
-            fullPath: path,
-            occurredAt: DateTime.now(),
-          ));
+          _controller.add(
+            FileAddedUiEvent(
+              fileName: fileName,
+              fullPath: path,
+              occurredAt: DateTime.now(),
+            ),
+          );
         }
       }
       _log.i('Finished scanning existing files in: $watchDir');

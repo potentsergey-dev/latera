@@ -29,7 +29,8 @@ class _ConfigKeys {
 
   // === Лимиты ресурсов ===
   static const String maxConcurrentJobs = 'max_concurrent_jobs';
-  static const String maxFileSizeMbForEnrichment = 'max_file_size_mb_for_enrichment';
+  static const String maxFileSizeMbForEnrichment =
+      'max_file_size_mb_for_enrichment';
   static const String maxMediaMinutes = 'max_media_minutes';
   static const String maxPagesPerPdf = 'max_pages_per_pdf';
 
@@ -111,51 +112,72 @@ class SharedPreferencesConfigService implements ConfigService {
 
     final watchPath = prefs.getString(_ConfigKeys.watchPath);
     final watchIntervalMs = prefs.getInt(_ConfigKeys.watchIntervalMs);
-    final notificationsEnabled = prefs.getBool(_ConfigKeys.notificationsEnabled);
+    final notificationsEnabled = prefs.getBool(
+      _ConfigKeys.notificationsEnabled,
+    );
     final loggingEnabled = prefs.getBool(_ConfigKeys.loggingEnabled);
     final logLevel = prefs.getString(_ConfigKeys.logLevel);
     final theme = prefs.getString(_ConfigKeys.theme);
     final language = prefs.getString(_ConfigKeys.language);
 
     // Производительность и контент
-    final resourceSaverEnabled = prefs.getBool(_ConfigKeys.resourceSaverEnabled);
+    final resourceSaverEnabled = prefs.getBool(
+      _ConfigKeys.resourceSaverEnabled,
+    );
     final enableOfficeDocs = prefs.getBool(_ConfigKeys.enableOfficeDocs);
     final enableOcr = prefs.getBool(_ConfigKeys.enableOcr);
     final enableTranscription = prefs.getBool(_ConfigKeys.enableTranscription);
     final enableEmbeddings = prefs.getBool(_ConfigKeys.enableEmbeddings);
-    final enableSemanticSimilarity = prefs.getBool(_ConfigKeys.enableSemanticSimilarity);
+    final enableSemanticSimilarity = prefs.getBool(
+      _ConfigKeys.enableSemanticSimilarity,
+    );
     final enableRag = prefs.getBool(_ConfigKeys.enableRag);
     final enableAutoSummary = prefs.getBool(_ConfigKeys.enableAutoSummary);
     final enableAutoTags = prefs.getBool(_ConfigKeys.enableAutoTags);
 
     // Лимиты
     final maxConcurrentJobs = prefs.getInt(_ConfigKeys.maxConcurrentJobs);
-    final maxFileSizeMbForEnrichment = prefs.getInt(_ConfigKeys.maxFileSizeMbForEnrichment);
+    final maxFileSizeMbForEnrichment = prefs.getInt(
+      _ConfigKeys.maxFileSizeMbForEnrichment,
+    );
     final maxMediaMinutes = prefs.getInt(_ConfigKeys.maxMediaMinutes);
     final maxPagesPerPdf = prefs.getInt(_ConfigKeys.maxPagesPerPdf);
 
     _currentConfig = AppConfig(
       watchPath: watchPath,
-      watchIntervalMs: watchIntervalMs ?? AppConfig.defaultConfig.watchIntervalMs,
-      notificationsEnabled: notificationsEnabled ?? AppConfig.defaultConfig.notificationsEnabled,
+      watchIntervalMs:
+          watchIntervalMs ?? AppConfig.defaultConfig.watchIntervalMs,
+      notificationsEnabled:
+          notificationsEnabled ?? AppConfig.defaultConfig.notificationsEnabled,
       loggingEnabled: loggingEnabled ?? AppConfig.defaultConfig.loggingEnabled,
       logLevel: logLevel ?? AppConfig.defaultConfig.logLevel,
       theme: theme ?? AppConfig.defaultConfig.theme,
       language: language,
       // Производительность и контент
-      resourceSaverEnabled: resourceSaverEnabled ?? AppConfig.defaultConfig.resourceSaverEnabled,
-      enableOfficeDocs: enableOfficeDocs ?? AppConfig.defaultConfig.enableOfficeDocs,
+      resourceSaverEnabled:
+          resourceSaverEnabled ?? AppConfig.defaultConfig.resourceSaverEnabled,
+      enableOfficeDocs:
+          enableOfficeDocs ?? AppConfig.defaultConfig.enableOfficeDocs,
       enableOcr: enableOcr ?? AppConfig.defaultConfig.enableOcr,
-      enableTranscription: enableTranscription ?? AppConfig.defaultConfig.enableTranscription,
-      enableEmbeddings: enableEmbeddings ?? AppConfig.defaultConfig.enableEmbeddings,
-      enableSemanticSimilarity: enableSemanticSimilarity ?? AppConfig.defaultConfig.enableSemanticSimilarity,
+      enableTranscription:
+          enableTranscription ?? AppConfig.defaultConfig.enableTranscription,
+      enableEmbeddings:
+          enableEmbeddings ?? AppConfig.defaultConfig.enableEmbeddings,
+      enableSemanticSimilarity:
+          enableSemanticSimilarity ??
+          AppConfig.defaultConfig.enableSemanticSimilarity,
       enableRag: enableRag ?? AppConfig.defaultConfig.enableRag,
-      enableAutoSummary: enableAutoSummary ?? AppConfig.defaultConfig.enableAutoSummary,
+      enableAutoSummary:
+          enableAutoSummary ?? AppConfig.defaultConfig.enableAutoSummary,
       enableAutoTags: enableAutoTags ?? AppConfig.defaultConfig.enableAutoTags,
       // Лимиты
-      maxConcurrentJobs: maxConcurrentJobs ?? AppConfig.defaultConfig.maxConcurrentJobs,
-      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? AppConfig.defaultConfig.maxFileSizeMbForEnrichment,
-      maxMediaMinutes: maxMediaMinutes ?? AppConfig.defaultConfig.maxMediaMinutes,
+      maxConcurrentJobs:
+          maxConcurrentJobs ?? AppConfig.defaultConfig.maxConcurrentJobs,
+      maxFileSizeMbForEnrichment:
+          maxFileSizeMbForEnrichment ??
+          AppConfig.defaultConfig.maxFileSizeMbForEnrichment,
+      maxMediaMinutes:
+          maxMediaMinutes ?? AppConfig.defaultConfig.maxMediaMinutes,
       maxPagesPerPdf: maxPagesPerPdf ?? AppConfig.defaultConfig.maxPagesPerPdf,
     );
 
@@ -178,7 +200,10 @@ class SharedPreferencesConfigService implements ConfigService {
     }
 
     await prefs.setInt(_ConfigKeys.watchIntervalMs, config.watchIntervalMs);
-    await prefs.setBool(_ConfigKeys.notificationsEnabled, config.notificationsEnabled);
+    await prefs.setBool(
+      _ConfigKeys.notificationsEnabled,
+      config.notificationsEnabled,
+    );
     await prefs.setBool(_ConfigKeys.loggingEnabled, config.loggingEnabled);
     await prefs.setString(_ConfigKeys.logLevel, config.logLevel);
     await prefs.setString(_ConfigKeys.theme, config.theme);
@@ -190,19 +215,34 @@ class SharedPreferencesConfigService implements ConfigService {
     }
 
     // Производительность и контент
-    await prefs.setBool(_ConfigKeys.resourceSaverEnabled, config.resourceSaverEnabled);
+    await prefs.setBool(
+      _ConfigKeys.resourceSaverEnabled,
+      config.resourceSaverEnabled,
+    );
     await prefs.setBool(_ConfigKeys.enableOfficeDocs, config.enableOfficeDocs);
     await prefs.setBool(_ConfigKeys.enableOcr, config.enableOcr);
-    await prefs.setBool(_ConfigKeys.enableTranscription, config.enableTranscription);
+    await prefs.setBool(
+      _ConfigKeys.enableTranscription,
+      config.enableTranscription,
+    );
     await prefs.setBool(_ConfigKeys.enableEmbeddings, config.enableEmbeddings);
-    await prefs.setBool(_ConfigKeys.enableSemanticSimilarity, config.enableSemanticSimilarity);
+    await prefs.setBool(
+      _ConfigKeys.enableSemanticSimilarity,
+      config.enableSemanticSimilarity,
+    );
     await prefs.setBool(_ConfigKeys.enableRag, config.enableRag);
-    await prefs.setBool(_ConfigKeys.enableAutoSummary, config.enableAutoSummary);
+    await prefs.setBool(
+      _ConfigKeys.enableAutoSummary,
+      config.enableAutoSummary,
+    );
     await prefs.setBool(_ConfigKeys.enableAutoTags, config.enableAutoTags);
 
     // Лимиты
     await prefs.setInt(_ConfigKeys.maxConcurrentJobs, config.maxConcurrentJobs);
-    await prefs.setInt(_ConfigKeys.maxFileSizeMbForEnrichment, config.maxFileSizeMbForEnrichment);
+    await prefs.setInt(
+      _ConfigKeys.maxFileSizeMbForEnrichment,
+      config.maxFileSizeMbForEnrichment,
+    );
     await prefs.setInt(_ConfigKeys.maxMediaMinutes, config.maxMediaMinutes);
     await prefs.setInt(_ConfigKeys.maxPagesPerPdf, config.maxPagesPerPdf);
 
@@ -291,7 +331,10 @@ class SharedPreferencesConfigService implements ConfigService {
     }
 
     if (notificationsEnabled != null) {
-      await prefs.setBool(_ConfigKeys.notificationsEnabled, notificationsEnabled);
+      await prefs.setBool(
+        _ConfigKeys.notificationsEnabled,
+        notificationsEnabled,
+      );
     }
 
     if (loggingEnabled != null) {
@@ -315,7 +358,10 @@ class SharedPreferencesConfigService implements ConfigService {
 
     // Производительность и контент
     if (resourceSaverEnabled != null) {
-      await prefs.setBool(_ConfigKeys.resourceSaverEnabled, resourceSaverEnabled);
+      await prefs.setBool(
+        _ConfigKeys.resourceSaverEnabled,
+        resourceSaverEnabled,
+      );
     }
     if (enableOfficeDocs != null) {
       await prefs.setBool(_ConfigKeys.enableOfficeDocs, enableOfficeDocs);
@@ -330,7 +376,10 @@ class SharedPreferencesConfigService implements ConfigService {
       await prefs.setBool(_ConfigKeys.enableEmbeddings, enableEmbeddings);
     }
     if (enableSemanticSimilarity != null) {
-      await prefs.setBool(_ConfigKeys.enableSemanticSimilarity, enableSemanticSimilarity);
+      await prefs.setBool(
+        _ConfigKeys.enableSemanticSimilarity,
+        enableSemanticSimilarity,
+      );
     }
     if (enableRag != null) {
       await prefs.setBool(_ConfigKeys.enableRag, enableRag);
@@ -347,7 +396,10 @@ class SharedPreferencesConfigService implements ConfigService {
       await prefs.setInt(_ConfigKeys.maxConcurrentJobs, maxConcurrentJobs);
     }
     if (maxFileSizeMbForEnrichment != null) {
-      await prefs.setInt(_ConfigKeys.maxFileSizeMbForEnrichment, maxFileSizeMbForEnrichment);
+      await prefs.setInt(
+        _ConfigKeys.maxFileSizeMbForEnrichment,
+        maxFileSizeMbForEnrichment,
+      );
     }
     if (maxMediaMinutes != null) {
       await prefs.setInt(_ConfigKeys.maxMediaMinutes, maxMediaMinutes);
@@ -360,26 +412,34 @@ class SharedPreferencesConfigService implements ConfigService {
     // ВАЖНО: copyWith() не умеет устанавливать null (паттерн newValue ?? oldValue).
     // Поэтому создаём AppConfig напрямую с явными значениями для всех полей.
     _currentConfig = AppConfig(
-      watchPath: clearWatchPath ? null : (watchPath ?? _currentConfig.watchPath),
+      watchPath: clearWatchPath
+          ? null
+          : (watchPath ?? _currentConfig.watchPath),
       watchIntervalMs: watchIntervalMs ?? _currentConfig.watchIntervalMs,
-      notificationsEnabled: notificationsEnabled ?? _currentConfig.notificationsEnabled,
+      notificationsEnabled:
+          notificationsEnabled ?? _currentConfig.notificationsEnabled,
       loggingEnabled: loggingEnabled ?? _currentConfig.loggingEnabled,
       logLevel: logLevel ?? _currentConfig.logLevel,
       theme: theme ?? _currentConfig.theme,
       language: clearLanguage ? null : (language ?? _currentConfig.language),
       // Производительность и контент
-      resourceSaverEnabled: resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
+      resourceSaverEnabled:
+          resourceSaverEnabled ?? _currentConfig.resourceSaverEnabled,
       enableOfficeDocs: enableOfficeDocs ?? _currentConfig.enableOfficeDocs,
       enableOcr: enableOcr ?? _currentConfig.enableOcr,
-      enableTranscription: enableTranscription ?? _currentConfig.enableTranscription,
+      enableTranscription:
+          enableTranscription ?? _currentConfig.enableTranscription,
       enableEmbeddings: enableEmbeddings ?? _currentConfig.enableEmbeddings,
-      enableSemanticSimilarity: enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
+      enableSemanticSimilarity:
+          enableSemanticSimilarity ?? _currentConfig.enableSemanticSimilarity,
       enableRag: enableRag ?? _currentConfig.enableRag,
       enableAutoSummary: enableAutoSummary ?? _currentConfig.enableAutoSummary,
       enableAutoTags: enableAutoTags ?? _currentConfig.enableAutoTags,
       // Лимиты
       maxConcurrentJobs: maxConcurrentJobs ?? _currentConfig.maxConcurrentJobs,
-      maxFileSizeMbForEnrichment: maxFileSizeMbForEnrichment ?? _currentConfig.maxFileSizeMbForEnrichment,
+      maxFileSizeMbForEnrichment:
+          maxFileSizeMbForEnrichment ??
+          _currentConfig.maxFileSizeMbForEnrichment,
       maxMediaMinutes: maxMediaMinutes ?? _currentConfig.maxMediaMinutes,
       maxPagesPerPdf: maxPagesPerPdf ?? _currentConfig.maxPagesPerPdf,
     );

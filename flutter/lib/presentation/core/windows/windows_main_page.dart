@@ -50,14 +50,16 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
       if (mounted) setState(() {});
     });
 
-    unawaited(_init().catchError((Object error, StackTrace st) {
-      debugPrint('Unexpected error in _init(): $error\n$st');
-      if (mounted) {
-        setState(() {
-          _status = 'Unexpected error: $error';
-        });
-      }
-    }));
+    unawaited(
+      _init().catchError((Object error, StackTrace st) {
+        debugPrint('Unexpected error in _init(): $error\n$st');
+        if (mounted) {
+          setState(() {
+            _status = 'Unexpected error: $error';
+          });
+        }
+      }),
+    );
   }
 
   Future<void> _init() async {
@@ -106,24 +108,22 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         },
       );
 
-      _removedSub = coordinator.fileRemovedEvents.listen(
-        (event) {
-          root.logger.i('File removed: ${event.fileName}');
-          unawaited(_onFileRemoved(event));
-        },
-      );
+      _removedSub = coordinator.fileRemovedEvents.listen((event) {
+        root.logger.i('File removed: ${event.fileName}');
+        unawaited(_onFileRemoved(event));
+      });
 
-      _watchPathChangedSub = coordinator.watchPathChangedEvents.listen(
-        (newWatchDir) {
-          root.logger.i('Watch path changed to: $newWatchDir');
-          if (!mounted) return;
-          setState(() {
-            _status = 'Папка изменена. Ожидаю файлы…';
-            _lastFileName = null;
-            _indexedCount = 0;
-          });
-        },
-      );
+      _watchPathChangedSub = coordinator.watchPathChangedEvents.listen((
+        newWatchDir,
+      ) {
+        root.logger.i('Watch path changed to: $newWatchDir');
+        if (!mounted) return;
+        setState(() {
+          _status = 'Папка изменена. Ожидаю файлы…';
+          _lastFileName = null;
+          _indexedCount = 0;
+        });
+      });
 
       if (!mounted) return;
       setState(() {
@@ -170,10 +170,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
 
       if (success) {
         root.logger.i('File indexed for review: ${event.fileName}');
-        root.contentEnrichmentCoordinator.enqueueFile(
-          filePath,
-          event.fileName,
-        );
+        root.contentEnrichmentCoordinator.enqueueFile(filePath, event.fileName);
         _scheduleCounterRefresh();
       }
     } catch (e, st) {
@@ -196,13 +193,16 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
       root.logger.i('File removed from index: ${event.fileName}');
       _scheduleCounterRefresh();
       if (!mounted) return;
-      fluent.displayInfoBar(context, builder: (context, close) {
-        return fluent.InfoBar(
-          title: Text('Файл удалён из индекса: ${event.fileName}'),
-          severity: fluent.InfoBarSeverity.info,
-          onClose: close,
-        );
-      });
+      fluent.displayInfoBar(
+        context,
+        builder: (context, close) {
+          return fluent.InfoBar(
+            title: Text('Файл удалён из индекса: ${event.fileName}'),
+            severity: fluent.InfoBarSeverity.info,
+            onClose: close,
+          );
+        },
+      );
     } catch (e, st) {
       root.logger.e(
         'Failed to remove file from index: ${event.fileName}',
@@ -305,27 +305,21 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
     final theme = fluent.FluentTheme.of(context);
 
     return fluent.ScaffoldPage.scrollable(
-      header: fluent.PageHeader(
-        title: const Text('Главная'),
-      ),
+      header: fluent.PageHeader(title: const Text('Главная')),
       children: [
         // Статус
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
             _status,
-            style: theme.typography.body?.copyWith(
-              color: theme.inactiveColor,
-            ),
+            style: theme.typography.body?.copyWith(color: theme.inactiveColor),
           ),
         ),
 
         // Прогресс обработки файлов
         ProcessingStatusBar(
-          progressStream:
-              root.contentEnrichmentCoordinator.progressStream,
-          initialProgress:
-              root.contentEnrichmentCoordinator.currentProgress,
+          progressStream: root.contentEnrichmentCoordinator.progressStream,
+          initialProgress: root.contentEnrichmentCoordinator.currentProgress,
         ),
         const SizedBox(height: 8),
 
@@ -354,10 +348,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      'Файлов в индексе',
-                      style: theme.typography.caption,
-                    ),
+                    Text('Файлов в индексе', style: theme.typography.caption),
                   ],
                 ),
               ),
@@ -383,10 +374,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      'Требуют внимания',
-                      style: theme.typography.caption,
-                    ),
+                    Text('Требуют внимания', style: theme.typography.caption),
                   ],
                 ),
               ),
@@ -412,10 +400,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
-                    Text(
-                      'Последний файл',
-                      style: theme.typography.caption,
-                    ),
+                    Text('Последний файл', style: theme.typography.caption),
                   ],
                 ),
               ),
@@ -429,20 +414,13 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         fluent.Card(
           child: Row(
             children: [
-              Icon(
-                Icons.folder_outlined,
-                size: 20,
-                color: theme.accentColor,
-              ),
+              Icon(Icons.folder_outlined, size: 20, color: theme.accentColor),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Папка наблюдения',
-                      style: theme.typography.caption,
-                    ),
+                    Text('Папка наблюдения', style: theme.typography.caption),
                     Text(
                       config.watchPath ?? 'Не настроена',
                       style: theme.typography.body,
