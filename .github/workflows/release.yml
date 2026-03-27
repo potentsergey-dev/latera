@@ -96,27 +96,40 @@ jobs:
           $buildDir = "flutter\build\windows\x64\runner\Release"
           $rustTargetDir = "rust\target\release"
           
-          # Bundle DirectML.dll and other ort dependencies (resolving symlinks properly)
-          $ortDlls = Get-ChildItem -Path $rustTargetDir -Filter "*.dll" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "latera_rust.dll" }
+          Write-Host "=== Checking Rust target DLLs ==="
+          Get-ChildItem -Path $rustTargetDir -Filter "*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
+            $isSymlink = $_.Attributes -band [System.IO.FileAttributes]::ReparsePoint
+            Write-Host "  $($_.Name) - Size: $($_.Length) bytes, Symlink: $isSymlink"
+          }
+          
+          # Bundle ONNX Runtime DLLs (but NOT DirectML - it causes error 1114 if user has no DirectML GPU)
+          # DirectML is optional - ONNX Runtime falls back to CPU if DirectML.dll is absent
+          $ortDlls = Get-ChildItem -Path $rustTargetDir -Filter "*.dll" -ErrorAction SilentlyContinue | 
+            Where-Object { $_.Name -ne "latera_rust.dll" -and $_.Name -ne "DirectML.dll" }
+          
           foreach ($dll in $ortDlls) {
             # Resolve symlink to actual file
             $target = $dll.FullName
             if ($dll.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
-              $target = (Get-Item $dll.FullName).Target
-              if (-not [System.IO.Path]::IsPathRooted($target)) {
-                $target = Join-Path (Split-Path $dll.FullName) $target
+              try {
+                $target = (Get-Item $dll.FullName).Target
+                if ($target -and -not [System.IO.Path]::IsPathRooted($target)) {
+                  $target = Join-Path (Split-Path $dll.FullName) $target
+                }
+              } catch {
+                Write-Host "WARNING: Could not resolve symlink for $($dll.Name): $_"
+                continue
               }
             }
-            if (Test-Path $target) {
+            if ($target -and (Test-Path $target)) {
               Copy-Item $target $buildDir -Force
               Write-Host "Bundled $($dll.Name) from $target"
             }
           }
           
-          # Bundle Vulkan loader (required by --features vulkan)
+          # Bundle Vulkan loader (required by --features vulkan for llama.cpp GPU acceleration)
           $vulkanDll = "$env:VULKAN_SDK\runtime\x64\vulkan-1.dll"
           if (-not (Test-Path $vulkanDll)) {
-            # Fallback: system vulkan-1.dll
             $vulkanDll = "C:\Windows\System32\vulkan-1.dll"
           }
           if (Test-Path $vulkanDll) {
