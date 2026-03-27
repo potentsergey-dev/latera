@@ -4,10 +4,12 @@
 //! Он не зависит от Flutter. Связь с Flutter осуществляется через FFI,
 //! генерируемый `flutter_rust_bridge`.
 
-// Allow clippy lints that are noisy for FFI/generated code
+// Allow lints that are noisy for FFI/generated code
+#![allow(dead_code)] // Fields/methods used on specific platforms or reserved for future use
 #![allow(
     clippy::needless_pass_by_value, // FFI functions require owned types
     clippy::redundant_closure,
+    clippy::redundant_closure_for_method_calls,
     clippy::manual_c_str_literals,
     clippy::same_item_push,
     clippy::needless_borrows_for_generic_args,
@@ -21,6 +23,7 @@
     clippy::uninlined_format_args,
     clippy::single_match_else,
     clippy::match_same_arms,
+    clippy::match_like_matches_macro,
     clippy::explicit_iter_loop,
     clippy::if_not_else,
     clippy::too_many_lines,
@@ -48,7 +51,10 @@
     clippy::manual_let_else,
     clippy::map_unwrap_or,
     clippy::needless_raw_string_hashes,
-    clippy::range_plus_one
+    clippy::range_plus_one,
+    clippy::bool_to_int_with_if,
+    clippy::needless_range_loop,
+    clippy::filter_map_next
 )]
 
 pub mod error;

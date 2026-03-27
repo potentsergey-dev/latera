@@ -14,7 +14,7 @@
 
 use std::path::Path;
 
-use log::{debug, warn};
+use log::{debug, info, warn};
 
 // ============================================================================
 // Supported extensions
