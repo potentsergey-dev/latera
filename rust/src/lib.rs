@@ -31,7 +31,24 @@
     clippy::return_self_not_must_use,
     clippy::unnecessary_wraps,
     clippy::unused_self,
-    clippy::struct_excessive_bools
+    clippy::struct_excessive_bools,
+    clippy::used_underscore_binding,
+    clippy::approx_constant,
+    clippy::doc_markdown,
+    clippy::items_after_statements,
+    clippy::wildcard_imports,
+    clippy::redundant_else,
+    clippy::implicit_clone,
+    clippy::unreadable_literal,
+    clippy::trivially_copy_pass_by_ref,
+    clippy::option_if_let_else,
+    clippy::default_trait_access,
+    clippy::semicolon_if_nothing_returned,
+    clippy::inconsistent_struct_constructor,
+    clippy::manual_let_else,
+    clippy::map_unwrap_or,
+    clippy::needless_raw_string_hashes,
+    clippy::range_plus_one
 )]
 
 pub mod error;

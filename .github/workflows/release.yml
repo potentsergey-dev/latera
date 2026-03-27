@@ -82,6 +82,7 @@ jobs:
         working-directory: rust
         run: cargo build --release --features vulkan
         env:
+          CMAKE_GENERATOR: Ninja
           # Remap paths for reproducible builds
           RUSTFLAGS: "--remap-path-prefix=${{ github.workspace }}=/build"
 

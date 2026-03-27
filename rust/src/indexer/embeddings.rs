@@ -1191,7 +1191,7 @@ mod tests {
 
     #[test]
     fn test_blob_roundtrip() {
-        let vec = vec![1.0f32, -0.5, 0.25, 3.14];
+        let vec = vec![1.0f32, -0.5, 0.25, 3.15];
         let blob = embedding_to_blob(&vec);
         let restored = blob_to_embedding(&blob);
         assert_eq!(vec, restored);

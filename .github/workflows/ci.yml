@@ -203,6 +203,8 @@ jobs:
       - name: Build Rust library
         working-directory: rust
         run: cargo build --release --features vulkan
+        env:
+          CMAKE_GENERATOR: Ninja
 
       - name: Build Flutter Windows app
         working-directory: flutter

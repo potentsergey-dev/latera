@@ -415,11 +415,11 @@ pub fn rag_query_full_context(
 
     for row_result in rows {
         match row_result {
-            Ok((blob, chunk_text, chunk_offset, file_path, _file_name)) => {
+            Ok((blob, chunk_text, chunk_offset, file_path, file_name)) => {
                 let stored_vec = embeddings::blob_to_embedding_pub(&blob);
                 let score = embeddings::cosine_similarity_pub(query_embedding, &stored_vec);
                 if score >= MIN_SIMILARITY_SCORE {
-                    scored.push((score, chunk_text, chunk_offset, file_path, _file_name));
+                    scored.push((score, chunk_text, chunk_offset, file_path, file_name));
                 }
             }
             Err(e) => {
