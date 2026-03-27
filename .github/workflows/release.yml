@@ -8,6 +8,7 @@ on:
 env:
   FLUTTER_VERSION: '3.41.5'
   RUST_VERSION: '1.93'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   # ===========================================
@@ -89,6 +90,42 @@ jobs:
       - name: Build Flutter Windows app (release)
         working-directory: flutter
         run: flutter build windows --release
+
+      - name: Bundle runtime DLLs into build output
+        run: |
+          $buildDir = "flutter\build\windows\x64\runner\Release"
+          
+          # Bundle Vulkan loader (required by --features vulkan)
+          $vulkanDll = "$env:VULKAN_SDK\runtime\x64\vulkan-1.dll"
+          if (-not (Test-Path $vulkanDll)) {
+            # Fallback: system vulkan-1.dll
+            $vulkanDll = "C:\Windows\System32\vulkan-1.dll"
+          }
+          if (Test-Path $vulkanDll) {
+            Copy-Item $vulkanDll $buildDir -Force
+            Write-Host "Bundled vulkan-1.dll from $vulkanDll"
+          } else {
+            Write-Host "WARNING: vulkan-1.dll not found, Vulkan GPU acceleration will not work"
+          }
+          
+          # Bundle VC++ Runtime (not guaranteed on all machines)
+          $vcRedist = "${env:VCToolsRedistDir}x64\Microsoft.VC143.CRT"
+          if (Test-Path $vcRedist) {
+            $vcDlls = @("msvcp140.dll", "msvcp140_1.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+            foreach ($dll in $vcDlls) {
+              $src = Join-Path $vcRedist $dll
+              if (Test-Path $src) {
+                Copy-Item $src $buildDir -Force
+                Write-Host "Bundled $dll"
+              }
+            }
+          } else {
+            Write-Host "WARNING: VC++ redist not found at $vcRedist"
+          }
+          
+          Write-Host "Build directory contents:"
+          Get-ChildItem $buildDir -Filter "*.dll" | Select-Object Name, Length | Format-Table
+        shell: pwsh
 
       # --- Certificate Setup ---
       # The certificate is stored as a base64-encoded PFX in GitHub Secrets
