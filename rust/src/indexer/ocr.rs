@@ -14,6 +14,7 @@
 
 use std::path::Path;
 
+#[allow(unused_imports)] // info! used in #[cfg(target_os = "windows")] blocks
 use log::{debug, info, warn};
 
 // ============================================================================

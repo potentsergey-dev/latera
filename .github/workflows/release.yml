@@ -181,10 +181,16 @@ jobs:
           }
           
           # Run WACK
-          $reportPath = "wack-report.xml"
-          & $wackPath test -appx $msixPath -reportoutputpath $reportPath
+          $reportPath = Join-Path $PWD "wack-report.xml"
+          $msixFullPath = (Resolve-Path $msixPath).Path
+          Write-Host "Testing: $msixFullPath"
+          Write-Host "Report:  $reportPath"
+          $ErrorActionPreference = 'Continue'
+          & $wackPath test -appxpackagepath $msixFullPath -reportoutputpath $reportPath
+          $wackExitCode = $LASTEXITCODE
+          $ErrorActionPreference = 'Stop'
           
-          if ($LASTEXITCODE -eq 0) {
+          if ($wackExitCode -eq 0) {
             Write-Host "WACK validation PASSED!"
             echo "wack_passed=true" >> $env:GITHUB_OUTPUT
           } else {
