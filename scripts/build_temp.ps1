@@ -1,0 +1,156 @@
+# Full Build Script for Windows
+# Usage: .\scripts\build.ps1 [-Release] [-SkipCodegen] [-SkipRust] [-SkipFlutter] [-Msix]
+
+param(
+    [switch]$Release,
+    [switch]$SkipCodegen,
+    [switch]$SkipRust,
+    [switch]$SkipFlutter,
+    [switch]$Msix
+)
+
+$ErrorActionPreference = "Stop"
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$RustDir = Join-Path $ProjectRoot "rust"
+$FlutterDir = Join-Path $ProjectRoot "flutter"
+
+$BuildType = if ($Release) { "release" } else { "debug" }
+
+Write-Host "=== Latera Full Build ===" -ForegroundColor Cyan
+Write-Host "Build type: $BuildType" -ForegroundColor Gray
+Write-Host "Project root: $ProjectRoot" -ForegroundColor Gray
+if ($Msix) {
+    Write-Host "MSIX packaging: enabled" -ForegroundColor Gray
+}
+
+# Pre-check: Vulkan SDK
+if ($env:VULKAN_SDK -and (Test-Path $env:VULKAN_SDK)) {
+    Write-Host "Vulkan SDK: $env:VULKAN_SDK" -ForegroundColor Green
+} else {
+    Write-Host "WARNING: VULKAN_SDK not found — Rust build requires Vulkan SDK for GPU acceleration." -ForegroundColor Yellow
+    Write-Host "Install from https://vulkan.lunarg.com/sdk/home and set VULKAN_SDK env variable." -ForegroundColor Yellow
+}
+
+# Step 1: Codegen
+if (-not $SkipCodegen) {
+    Write-Host "`n[1/3] Running FRB codegen..." -ForegroundColor Yellow
+    & "$PSScriptRoot\codegen.ps1"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Codegen failed!" -ForegroundColor Red
+        exit 1
+    }
+} else {
+    Write-Host "`n[1/3] Skipping codegen..." -ForegroundColor Gray
+}
+
+# Step 2: Build Rust
+if (-not $SkipRust) {
+    Write-Host "`n[2/3] Building Rust library..." -ForegroundColor Yellow
+    Push-Location $RustDir
+    
+    $cargoArgs = @("build")
+    if ($Release) {
+        $cargoArgs += "--release"
+    }
+    # Включаем Vulkan GPU-ускорение если SDK доступен
+    if ($env:VULKAN_SDK -and (Test-Path $env:VULKAN_SDK)) {
+        $cargoArgs += "--features"
+        $cargoArgs += "vulkan"
+        Write-Host "  Vulkan feature: enabled" -ForegroundColor Green
+    } else {
+        Write-Host "  Vulkan feature: disabled (SDK not found)" -ForegroundColor Yellow
+    }
+    
+    & cargo $cargoArgs
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Rust build failed!" -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
+    Pop-Location
+} else {
+    Write-Host "`n[2/3] Skipping Rust build..." -ForegroundColor Gray
+}
+
+# Step 3: Build Flutter
+if (-not $SkipFlutter) {
+    Write-Host "`n[3/3] Building Flutter app..." -ForegroundColor Yellow
+    Push-Location $FlutterDir
+    
+    $flutterArgs = @("build", "windows")
+    if ($Release) {
+        $flutterArgs += "--release"
+    } else {
+        $flutterArgs += "--debug"
+    }
+    
+    & flutter $flutterArgs
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Flutter build failed!" -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
+    Pop-Location
+} else {
+    Write-Host "`n[3/3] Skipping Flutter build..." -ForegroundColor Gray
+}
+
+# Step 4: MSIX Packaging
+if ($Msix) {
+    if (-not $Release) {
+        Write-Host "`n[4/4] Skipping MSIX (requires -Release flag)..." -ForegroundColor Yellow
+        Write-Host "MSIX packaging is only supported for release builds." -ForegroundColor Gray
+    } else {
+        Write-Host "`n[4/4] Creating MSIX package..." -ForegroundColor Yellow
+        Push-Location $FlutterDir
+        
+        # Ensure Rust DLL is copied (CMake should do this, but let's verify)
+        $RustDllSource = Join-Path $ProjectRoot "rust\target\release\latera_rust.dll"
+        $OutputDir = Join-Path $FlutterDir "build\windows\x64\runner\Release"
+        $RustDllTarget = Join-Path $OutputDir "latera_rust.dll"
+        
+        if (Test-Path $RustDllSource) {
+            Copy-Item $RustDllSource -Destination $RustDllTarget -Force
+            Write-Host "Copied Rust DLL to output directory" -ForegroundColor Gray
+        } else {
+            Write-Host "WARNING: Rust DLL not found at $RustDllSource" -ForegroundColor Yellow
+            Write-Host "Make sure to build Rust first: cargo build --release" -ForegroundColor Gray
+        }
+        
+        # Run flutter pub get to ensure msix is available
+        & flutter pub get
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "WARNING: flutter pub get failed" -ForegroundColor Yellow
+        }
+        
+        # Create MSIX package (skip certificate installation for CI/automation)
+        & flutter pub run msix:create --install-certificate false
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "ERROR: MSIX creation failed!" -ForegroundColor Red
+            Pop-Location
+            exit 1
+        }
+        
+        Pop-Location
+        
+        $MsixPath = Join-Path $OutputDir "latera.msix"
+        if (Test-Path $MsixPath) {
+            Write-Host "MSIX package created: $MsixPath" -ForegroundColor Green
+        }
+    }
+}
+
+Write-Host "`n=== Build completed successfully! ===" -ForegroundColor Green
+
+if (-not $SkipFlutter) {
+    $OutputPath = Join-Path $FlutterDir "build\windows\x64\runner\$BuildType"
+    Write-Host "Output: $OutputPath" -ForegroundColor Cyan
+    
+    if ($Msix -and $Release) {
+        $MsixPath = Join-Path $OutputPath "latera.msix"
+        if (Test-Path $MsixPath) {
+            Write-Host "MSIX: $MsixPath" -ForegroundColor Cyan
+        }
+    }
+}
+

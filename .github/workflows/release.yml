@@ -94,6 +94,24 @@ jobs:
       - name: Bundle runtime DLLs into build output
         run: |
           $buildDir = "flutter\build\windows\x64\runner\Release"
+          $rustTargetDir = "rust\target\release"
+          
+          # Bundle DirectML.dll and other ort dependencies (resolving symlinks properly)
+          $ortDlls = Get-ChildItem -Path $rustTargetDir -Filter "*.dll" -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne "latera_rust.dll" }
+          foreach ($dll in $ortDlls) {
+            # Resolve symlink to actual file
+            $target = $dll.FullName
+            if ($dll.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+              $target = (Get-Item $dll.FullName).Target
+              if (-not [System.IO.Path]::IsPathRooted($target)) {
+                $target = Join-Path (Split-Path $dll.FullName) $target
+              }
+            }
+            if (Test-Path $target) {
+              Copy-Item $target $buildDir -Force
+              Write-Host "Bundled $($dll.Name) from $target"
+            }
+          }
           
           # Bundle Vulkan loader (required by --features vulkan)
           $vulkanDll = "$env:VULKAN_SDK\runtime\x64\vulkan-1.dll"
