@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use tempfile::TempDir;
 
-use latera_rust::file_watcher::{start_watcher, InternalFileEvent, InternalFileRemovedEvent};
+use latera_rust::file_watcher::{start_watcher, InternalFileEvent};
 
 /// Собирает события в потокобезопасную очередь для проверки.
 #[derive(Clone, Default)]
