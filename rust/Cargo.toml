@@ -27,7 +27,8 @@ ureq = "2.12"
 
 # Generative LLM engine (llama.cpp, Vulkan GPU-ускорение)
 # Vulkan GPU backend включается через cargo feature: --features vulkan
-llama-cpp-2 = "0.1.140"
+# default-features = false отключает OpenMP, чей runtime (vcomp140.dll) не входит в MSIX → error 1114
+llama-cpp-2 = { version = "0.1.140", default-features = false }
 
 # System information (RAM, etc.)
 sysinfo = "0.33"

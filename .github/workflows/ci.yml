@@ -5,6 +5,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 env:
   FLUTTER_VERSION: '3.41.5'
@@ -215,6 +216,24 @@ jobs:
         run: cargo build --release --features vulkan
         env:
           CMAKE_GENERATOR: Ninja
+
+      - name: Verify no OpenMP dependency (vcomp140.dll)
+        run: |
+          $dll = "rust\target\release\latera_rust.dll"
+          # Find dumpbin via vswhere
+          $vsPath = & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+          $dumpbin = Get-ChildItem "$vsPath\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" | Select-Object -Last 1
+          if (-not $dumpbin) { Write-Host "WARNING: dumpbin not found, skipping check"; exit 0 }
+          Write-Host "=== DLL dependencies for latera_rust.dll ==="
+          & $dumpbin.FullName /dependents $dll
+          $deps = & $dumpbin.FullName /dependents $dll | Select-String -Pattern "vcomp"
+          if ($deps) {
+            Write-Host "::error::FATAL: latera_rust.dll depends on vcomp140.dll (OpenMP runtime)!"
+            Write-Host "::error::This will cause error 1114 in MSIX. Check llama-cpp-2 default-features."
+            exit 1
+          }
+          Write-Host "OK: No vcomp140.dll dependency detected"
+        shell: pwsh
 
       - name: Build Flutter Windows app
         working-directory: flutter
