@@ -117,6 +117,15 @@ if ($Msix) {
             Write-Host "Make sure to build Rust first: cargo build --release" -ForegroundColor Gray
         }
         
+        # Copy DirectML.dll (hard dependency of statically linked ONNX Runtime in latera_rust.dll)
+        $DirectMlSource = Join-Path $ProjectRoot "rust\target\release\DirectML.dll"
+        if (Test-Path $DirectMlSource) {
+            Copy-Item $DirectMlSource -Destination (Join-Path $OutputDir "DirectML.dll") -Force
+            Write-Host "Copied DirectML.dll to output directory" -ForegroundColor Gray
+        } else {
+            Write-Host "WARNING: DirectML.dll not found at $DirectMlSource" -ForegroundColor Yellow
+        }
+
         # Run flutter pub get to ensure msix is available
         & flutter pub get
         if ($LASTEXITCODE -ne 0) {

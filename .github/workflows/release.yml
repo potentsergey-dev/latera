@@ -103,10 +103,11 @@ jobs:
             Write-Host "  $($_.Name) - Size: $($_.Length) bytes, Symlink: $isSymlink"
           }
           
-          # Bundle ONNX Runtime DLLs (but NOT DirectML - it causes error 1114 if user has no DirectML GPU)
-          # DirectML is optional - ONNX Runtime falls back to CPU if DirectML.dll is absent
+          # Bundle all runtime DLLs from Rust target (including DirectML.dll).
+          # DirectML.dll is a HARD dependency in latera_rust.dll's import table (statically linked ORT).
+          # Without it, Windows loads the old system directml.dll (v1.0/2020) → error 1114.
           $ortDlls = Get-ChildItem -Path $rustTargetDir -Filter "*.dll" -ErrorAction SilentlyContinue | 
-            Where-Object { $_.Name -ne "latera_rust.dll" -and $_.Name -ne "DirectML.dll" }
+            Where-Object { $_.Name -ne "latera_rust.dll" }
           
           foreach ($dll in $ortDlls) {
             # Resolve symlink to actual file

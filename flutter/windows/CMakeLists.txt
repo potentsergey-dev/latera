@@ -154,6 +154,26 @@ else()
   message(STATUS "Rust DLL install rules configured for ${RUST_BUILD_TYPE} build")
 endif()
 
+# === ONNX Runtime dependencies (DirectML.dll) ===
+# The ort crate statically links ONNX Runtime into latera_rust.dll,
+# which creates a hard import dependency on DirectML.dll.
+# The correct version is downloaded by ort into the Rust target directory.
+set(DIRECTML_DLL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_BUILD_TYPE}/DirectML.dll")
+set(DIRECTML_DLL_ALT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_ALT_BUILD_TYPE}/DirectML.dll")
+install(CODE "
+  set(DML_PATH \"${DIRECTML_DLL_PATH}\")
+  set(DML_ALT_PATH \"${DIRECTML_DLL_ALT_PATH}\")
+  if(EXISTS \"\${DML_PATH}\")
+    message(STATUS \"Installing DirectML.dll: \${DML_PATH}\")
+    file(INSTALL \"\${DML_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
+  elseif(EXISTS \"\${DML_ALT_PATH}\")
+    message(STATUS \"Installing DirectML.dll (alt): \${DML_ALT_PATH}\")
+    file(INSTALL \"\${DML_ALT_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
+  else()
+    message(WARNING \"DirectML.dll not found - ONNX Runtime may fail at runtime\")
+  endif()
+" COMPONENT Runtime)
+
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"
