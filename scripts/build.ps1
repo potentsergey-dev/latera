@@ -126,6 +126,15 @@ if ($Msix) {
             Write-Host "WARNING: DirectML.dll not found at $DirectMlSource" -ForegroundColor Yellow
         }
 
+        # Copy onnxruntime.dll (load-dynamic mode: loaded at runtime via LoadLibrary)
+        $OrtSource = Join-Path $ProjectRoot "rust\target\release\onnxruntime.dll"
+        if (Test-Path $OrtSource) {
+            Copy-Item $OrtSource -Destination (Join-Path $OutputDir "onnxruntime.dll") -Force
+            Write-Host "Copied onnxruntime.dll to output directory" -ForegroundColor Gray
+        } else {
+            Write-Host "WARNING: onnxruntime.dll not found at $OrtSource" -ForegroundColor Yellow
+        }
+
         # Run flutter pub get to ensure msix is available
         & flutter pub get
         if ($LASTEXITCODE -ne 0) {

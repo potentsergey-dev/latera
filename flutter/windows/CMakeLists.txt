@@ -154,23 +154,22 @@ else()
   message(STATUS "Rust DLL install rules configured for ${RUST_BUILD_TYPE} build")
 endif()
 
-# === ONNX Runtime dependencies (DirectML.dll) ===
-# The ort crate statically links ONNX Runtime into latera_rust.dll,
-# which creates a hard import dependency on DirectML.dll.
-# The correct version is downloaded by ort into the Rust target directory.
-set(DIRECTML_DLL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_BUILD_TYPE}/DirectML.dll")
-set(DIRECTML_DLL_ALT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_ALT_BUILD_TYPE}/DirectML.dll")
+# === ONNX Runtime dynamic library (load-dynamic mode) ===
+# With ort's load-dynamic feature, onnxruntime.dll is loaded at runtime via LoadLibrary.
+# The copy-dylibs feature places it in the Rust target directory during build.
+set(ORT_DLL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_BUILD_TYPE}/onnxruntime.dll")
+set(ORT_DLL_ALT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_ALT_BUILD_TYPE}/onnxruntime.dll")
 install(CODE "
-  set(DML_PATH \"${DIRECTML_DLL_PATH}\")
-  set(DML_ALT_PATH \"${DIRECTML_DLL_ALT_PATH}\")
-  if(EXISTS \"\${DML_PATH}\")
-    message(STATUS \"Installing DirectML.dll: \${DML_PATH}\")
-    file(INSTALL \"\${DML_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
-  elseif(EXISTS \"\${DML_ALT_PATH}\")
-    message(STATUS \"Installing DirectML.dll (alt): \${DML_ALT_PATH}\")
-    file(INSTALL \"\${DML_ALT_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
+  set(ORT_PATH \"${ORT_DLL_PATH}\")
+  set(ORT_ALT_PATH \"${ORT_DLL_ALT_PATH}\")
+  if(EXISTS \"\${ORT_PATH}\")
+    message(STATUS \"Installing onnxruntime.dll: \${ORT_PATH}\")
+    file(INSTALL \"\${ORT_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
+  elseif(EXISTS \"\${ORT_ALT_PATH}\")
+    message(STATUS \"Installing onnxruntime.dll (alt): \${ORT_ALT_PATH}\")
+    file(INSTALL \"\${ORT_ALT_PATH}\" DESTINATION \"${INSTALL_BUNDLE_LIB_DIR}\")
   else()
-    message(WARNING \"DirectML.dll not found - ONNX Runtime may fail at runtime\")
+    message(WARNING \"onnxruntime.dll not found - ONNX embeddings will not work\")
   endif()
 " COMPONENT Runtime)
 

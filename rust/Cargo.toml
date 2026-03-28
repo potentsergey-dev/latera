@@ -21,7 +21,13 @@ thiserror = "1.0.69"
 rusqlite = { version = "0.31", features = ["bundled"] }
 
 # Semantic embeddings: ONNX Runtime + Hugging Face tokenizer
-ort = { version = "2.0.0-rc.11", features = ["download-binaries"] }
+# load-dynamic: loads onnxruntime.dll at runtime via LoadLibrary, avoiding hard
+# D3D12/DirectML/DXGI imports in latera_rust.dll.  This prevents error 1114 on
+# systems without a D3D12-capable GPU (e.g. Intel 4 Series).
+# download-binaries + copy-dylibs: download pre-built ORT and place onnxruntime.dll in target dir.
+ort = { version = "=2.0.0-rc.11", default-features = false, features = [
+    "std", "ndarray", "load-dynamic", "download-binaries", "copy-dylibs", "tls-native"
+] }
 tokenizers = { version = "0.21", default-features = false, features = ["progressbar", "fancy-regex"] }
 ureq = "2.12"
 

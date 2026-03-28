@@ -32,9 +32,49 @@ use rusqlite::{params, Connection};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Mutex, Once};
 
 use crate::error::LateraError;
+
+// One-time ORT dylib initialization (load-dynamic mode).
+static ORT_INIT: Once = Once::new();
+
+/// Ensure ONNX Runtime dynamic library is loaded.
+/// With `load-dynamic`, ort needs an explicit dylib path before any API call.
+/// We look next to the current executable (works for both dev and MSIX installs).
+fn ensure_ort_loaded() -> Result<(), LateraError> {
+    let mut init_err: Option<String> = None;
+    ORT_INIT.call_once(|| {
+        // Find onnxruntime.dll next to the executable
+        let dll_path = std::env::current_exe()
+            .ok()
+            .and_then(|exe| exe.parent().map(|p| p.join("onnxruntime.dll")));
+
+        if let Some(ref path) = dll_path {
+            if path.exists() {
+                info!("Loading ONNX Runtime from {}", path.display());
+                match ort::init_from(path) {
+                    Ok(builder) => {
+                        builder.commit();
+                    }
+                    Err(e) => {
+                        let msg = format!("ort::init_from failed: {e}");
+                        warn!("{msg}");
+                        init_err = Some(msg);
+                    }
+                }
+                return;
+            }
+        }
+        // Fallback: let ort search system PATH / standard locations
+        info!("onnxruntime.dll not found next to exe, trying system search");
+        ort::init().commit();
+    });
+    if let Some(err) = init_err {
+        return Err(LateraError::ModelLoadFailed(err));
+    }
+    Ok(())
+}
 
 // ============================================================================
 // Constants
@@ -178,6 +218,9 @@ pub fn init_semantic_model(data_dir: &str) -> Result<(), LateraError> {
         download_file(TOKENIZER_URL, &tokenizer_path)?;
         info!("Tokenizer downloaded to {}", tokenizer_path.display());
     }
+
+    // Ensure ONNX Runtime dylib is loaded (load-dynamic mode)
+    ensure_ort_loaded()?;
 
     // Загрузка ONNX Runtime session
     info!("Loading ONNX model from {}...", model_path.display());
