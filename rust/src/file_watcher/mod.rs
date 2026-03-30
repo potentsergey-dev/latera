@@ -17,7 +17,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use log::{debug, error, info, warn};
 use notify::{
-    event::CreateKind, event::RemoveKind, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
+    event::{CreateKind, ModifyKind, RemoveKind, RenameMode},
+    EventKind, RecommendedWatcher, RecursiveMode, Watcher,
 };
 
 pub use events::InternalFileEvent;
@@ -202,6 +203,12 @@ fn ensure_override_dir(override_path: &str) -> Result<PathBuf, LateraError> {
         )));
     }
     std::fs::create_dir_all(&p)?;
+
+    // Установить иконку папки (тихо игнорируем ошибку)
+    if let Err(e) = set_folder_icon(&p) {
+        warn!("Failed to set folder icon: {e}");
+    }
+
     Ok(p)
 }
 
@@ -400,13 +407,12 @@ fn is_create_file_event(kind: &EventKind) -> bool {
         EventKind::Create(CreateKind::File) => true,
         // Некоторые FS/драйверы могут отдавать CreateKind::Any.
         EventKind::Create(CreateKind::Any) => true,
-        // Иногда новое имя появляется как Rename.
-        EventKind::Modify(_) => false,
-        EventKind::Remove(_) => false,
-        EventKind::Access(_) => false,
-        EventKind::Other => false,
-        EventKind::Any => false,
         EventKind::Create(_) => true,
+        // Файл, перемещённый в наблюдаемую папку с того же диска,
+        // генерирует Modify(Name(To)) вместо Create на Windows.
+        EventKind::Modify(ModifyKind::Name(RenameMode::To)) => true,
+        EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => true,
+        _ => false,
     }
 }
 
