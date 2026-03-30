@@ -162,7 +162,6 @@ msix:
   install_certificate: false
   build_windows: false  # Build is controlled by build.ps1
   logo_path: assets/app_icon.png
-  images_folder: windows/runner/resources/msix_images
   # NOTE: broadFileSystemAccess is required for the file watcher/indexer functionality.
   # This capability allows the app to access the file system without per-file picker prompts.
   # Windows Store may require justification for this capability during submission.

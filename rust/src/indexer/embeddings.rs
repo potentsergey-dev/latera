@@ -686,7 +686,7 @@ pub fn similarity_search(
     //    Это убирает «хвост» из похожих по cosine, но нерелевантных файлов.
     // ---------------------------------------------------------------
 
-    let mut filtered: Vec<SimilarityResult> = if query_token_count <= 1 {
+    let filtered: Vec<SimilarityResult> = if query_token_count <= 1 {
         // Однословный запрос: только лексические совпадения
         scored
             .iter()
@@ -706,8 +706,18 @@ pub fn similarity_search(
             .collect()
     };
 
-    filtered.truncate(top_k);
-    Ok(filtered)
+    // Дедупликация по file_path: оставляем только лучший чанк для каждого файла.
+    // `filtered` уже отсортирован по убыванию score, поэтому первое вхождение файла —
+    // лучший результат.
+    let mut seen_files = std::collections::HashSet::new();
+    let mut deduped: Vec<SimilarityResult> = Vec::new();
+    for result in filtered {
+        if seen_files.insert(result.file_path.clone()) {
+            deduped.push(result);
+        }
+    }
+    deduped.truncate(top_k);
+    Ok(deduped)
 }
 
 /// Ищет файлы, похожие на данный файл.

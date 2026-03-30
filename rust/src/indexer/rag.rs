@@ -526,12 +526,10 @@ fn detect_question_language(question: &str) -> String {
 ///
 /// Форматирует найденные фрагменты в читаемый пронумерованный список.
 /// Источники (имя файла, позиция) отображаются отдельно в UI как карточки.
-///
-/// При подключении LLM будет заменён на prompt + inference.
 fn generate_stub_answer(_question: &str, context: &str, source_count: usize) -> String {
     let fragments: Vec<&str> = context.split("\n\n---\n\n").collect();
     let mut result = format!(
-        "Найдены релевантные фрагменты ({} {}):\n",
+        "⚠️ Генеративная модель (LLM) не загружена — ответ сформирован автоматически из найденных фрагментов.\n\nНайдены релевантные фрагменты ({} {}):\n",
         source_count,
         pluralize_fragment(source_count),
     );

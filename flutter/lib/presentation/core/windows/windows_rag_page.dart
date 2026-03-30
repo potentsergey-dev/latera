@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../domain/app_config.dart';
 import '../../../domain/rag.dart';
+import '../../../infrastructure/di/app_composition_root.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app_scope.dart';
 import '../../friendly_error.dart';
@@ -142,6 +143,8 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // Предупреждение о недоступности LLM
+            _buildLlmStatusBanner(theme),
             // Поле ввода вопроса
             Row(
               children: [
@@ -192,6 +195,43 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
             Expanded(child: _buildResultArea(theme)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLlmStatusBanner(fluent.FluentThemeData theme) {
+    final root = AppScope.of(context);
+    final status = root.modelDownloadTracker.ggufStatus;
+    if (status == ModelStatus.ready) return const SizedBox.shrink();
+
+    final String message;
+    switch (status) {
+      case ModelStatus.skippedLowRam:
+        message =
+            'Генеративная модель не загружена: недостаточно оперативной памяти (нужно ≥ 6 ГБ). '
+            'Ответы формируются из найденных фрагментов без AI-генерации.';
+      case ModelStatus.skippedLowDisk:
+        message =
+            'Генеративная модель не загружена: недостаточно места на диске (нужно ≥ 2 ГБ).';
+      case ModelStatus.downloading:
+        message = 'Генеративная модель загружается…';
+      case ModelStatus.failed:
+        message =
+            'Не удалось загрузить генеративную модель. Проверьте подключение к интернету.';
+      default:
+        message =
+            'Генеративная модель не загружена. Ответы формируются из найденных фрагментов без AI-генерации.';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: fluent.InfoBar(
+        title: const Text('Ограниченный режим'),
+        content: Text(message),
+        severity: status == ModelStatus.downloading
+            ? fluent.InfoBarSeverity.info
+            : fluent.InfoBarSeverity.warning,
+        isLong: true,
       ),
     );
   }
