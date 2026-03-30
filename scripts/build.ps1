@@ -117,22 +117,31 @@ if ($Msix) {
             Write-Host "Make sure to build Rust first: cargo build --release" -ForegroundColor Gray
         }
         
-        # Copy DirectML.dll (hard dependency of statically linked ONNX Runtime in latera_rust.dll)
-        $DirectMlSource = Join-Path $ProjectRoot "rust\target\release\DirectML.dll"
-        if (Test-Path $DirectMlSource) {
-            Copy-Item $DirectMlSource -Destination (Join-Path $OutputDir "DirectML.dll") -Force
-            Write-Host "Copied DirectML.dll to output directory" -ForegroundColor Gray
-        } else {
-            Write-Host "WARNING: DirectML.dll not found at $DirectMlSource" -ForegroundColor Yellow
-        }
-
-        # Copy onnxruntime.dll (load-dynamic mode: loaded at runtime via LoadLibrary)
+        # Download and copy onnxruntime.dll (load-dynamic mode: loaded at runtime via LoadLibrary)
+        $ortVersion = "1.24.2"
         $OrtSource = Join-Path $ProjectRoot "rust\target\release\onnxruntime.dll"
+        if (-not (Test-Path $OrtSource)) {
+            Write-Host "Downloading ONNX Runtime $ortVersion (CPU-only)..." -ForegroundColor Yellow
+            $ortZip = Join-Path $env:TEMP "onnxruntime-win-x64-$ortVersion.zip"
+            $ortUrl = "https://github.com/microsoft/onnxruntime/releases/download/v$ortVersion/onnxruntime-win-x64-$ortVersion.zip"
+            Invoke-WebRequest -Uri $ortUrl -OutFile $ortZip
+            $ortExtract = Join-Path $env:TEMP "ort_extract"
+            Expand-Archive -Path $ortZip -DestinationPath $ortExtract -Force
+            $ortDll = Join-Path $ortExtract "onnxruntime-win-x64-$ortVersion\lib\onnxruntime.dll"
+            if (Test-Path $ortDll) {
+                Copy-Item $ortDll $OrtSource -Force
+                Write-Host "Downloaded onnxruntime.dll v$ortVersion" -ForegroundColor Green
+            } else {
+                Write-Host "ERROR: onnxruntime.dll not found in extracted archive" -ForegroundColor Red
+            }
+            Remove-Item $ortZip -ErrorAction SilentlyContinue
+            Remove-Item $ortExtract -Recurse -ErrorAction SilentlyContinue
+        }
         if (Test-Path $OrtSource) {
             Copy-Item $OrtSource -Destination (Join-Path $OutputDir "onnxruntime.dll") -Force
             Write-Host "Copied onnxruntime.dll to output directory" -ForegroundColor Gray
         } else {
-            Write-Host "WARNING: onnxruntime.dll not found at $OrtSource" -ForegroundColor Yellow
+            Write-Host "WARNING: onnxruntime.dll not found" -ForegroundColor Yellow
         }
 
         # Run flutter pub get to ensure msix is available

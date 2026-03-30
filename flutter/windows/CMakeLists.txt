@@ -156,7 +156,9 @@ endif()
 
 # === ONNX Runtime dynamic library (load-dynamic mode) ===
 # With ort's load-dynamic feature, onnxruntime.dll is loaded at runtime via LoadLibrary.
-# The copy-dylibs feature places it in the Rust target directory during build.
+# The DLL must be downloaded separately (CPU-only build from Microsoft's releases).
+# For local builds, run scripts/build.ps1 which auto-downloads it.
+# For CI, release.yml downloads it directly into the build output.
 set(ORT_DLL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_BUILD_TYPE}/onnxruntime.dll")
 set(ORT_DLL_ALT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../rust/target/${RUST_ALT_BUILD_TYPE}/onnxruntime.dll")
 install(CODE "

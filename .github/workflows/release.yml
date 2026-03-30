@@ -103,30 +103,20 @@ jobs:
             Write-Host "  $($_.Name) - Size: $($_.Length) bytes, Symlink: $isSymlink"
           }
           
-          # Bundle all runtime DLLs from Rust target dir (onnxruntime.dll, etc).
-          # With ort load-dynamic, onnxruntime.dll is loaded at runtime via LoadLibrary.
-          # This avoids hard D3D12/DirectML/DXGI imports that cause error 1114 on old GPUs.
-          $ortDlls = Get-ChildItem -Path $rustTargetDir -Filter "*.dll" -ErrorAction SilentlyContinue | 
-            Where-Object { $_.Name -ne "latera_rust.dll" }
-          
-          foreach ($dll in $ortDlls) {
-            # Resolve symlink to actual file
-            $target = $dll.FullName
-            if ($dll.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
-              try {
-                $target = (Get-Item $dll.FullName).Target
-                if ($target -and -not [System.IO.Path]::IsPathRooted($target)) {
-                  $target = Join-Path (Split-Path $dll.FullName) $target
-                }
-              } catch {
-                Write-Host "WARNING: Could not resolve symlink for $($dll.Name): $_"
-                continue
-              }
-            }
-            if ($target -and (Test-Path $target)) {
-              Copy-Item $target $buildDir -Force
-              Write-Host "Bundled $($dll.Name) from $target"
-            }
+          # Download ONNX Runtime CPU-only shared library (ort load-dynamic needs onnxruntime.dll at runtime)
+          $ortVersion = "1.24.2"
+          $ortZip = "onnxruntime-win-x64-$ortVersion.zip"
+          $ortUrl = "https://github.com/microsoft/onnxruntime/releases/download/v$ortVersion/$ortZip"
+          Write-Host "Downloading ONNX Runtime $ortVersion (CPU-only)..."
+          Invoke-WebRequest -Uri $ortUrl -OutFile $ortZip
+          Expand-Archive -Path $ortZip -DestinationPath "ort_extract" -Force
+          $ortDll = "ort_extract\onnxruntime-win-x64-$ortVersion\lib\onnxruntime.dll"
+          if (Test-Path $ortDll) {
+            Copy-Item $ortDll $buildDir -Force
+            Write-Host "Bundled onnxruntime.dll v$ortVersion (CPU-only)"
+          } else {
+            Write-Host "ERROR: onnxruntime.dll not found in extracted archive!" -ForegroundColor Red
+            exit 1
           }
           
           # Bundle Vulkan loader (required by --features vulkan for llama.cpp GPU acceleration)
