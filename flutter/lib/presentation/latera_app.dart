@@ -48,7 +48,27 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       final root = await AppCompositionRoot.create();
 
       // Проверяем, нужен ли онбординг
-      final needsOnboarding = !root.configService.isOnboardingCompleted;
+      var needsOnboarding = !root.configService.isOnboardingCompleted;
+
+      // Detect stale data from a previous installation.
+      // Data in %LOCALAPPDATA% and SharedPreferences survives MSIX uninstall
+      // because Rust uses real filesystem paths (not package-sandboxed).
+      // If onboarding was completed but the watch folder no longer exists,
+      // reset for a fresh start.
+      if (!needsOnboarding) {
+        final watchPath = root.configService.currentConfig.watchPath;
+        if (watchPath != null && watchPath.isNotEmpty) {
+          if (!Directory(watchPath).existsSync()) {
+            debugPrint(
+              'Stale install detected: watch folder "$watchPath" not found. '
+              'Resetting onboarding and clearing index.',
+            );
+            await root.configService.resetOnboarding();
+            await root.indexer.clearIndex();
+            needsOnboarding = true;
+          }
+        }
+      }
 
       // Инициализируем системный трей
       final tray = TrayService();
