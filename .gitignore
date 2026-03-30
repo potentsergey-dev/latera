@@ -28,7 +28,7 @@ rust/test_data/models/**/*.onnx
 /flutter_build_out.txt
 /cargo_build_release.txt
 /flutter_analyze_output.txt
-tmp_*.txt
+tmp_*.*
 
 # Скомпилированные библиотеки
 *.dll
