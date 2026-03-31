@@ -363,9 +363,7 @@ class FileEventsCoordinator {
           fileCount++;
         }
       }
-      _log.i(
-        'Initial scan complete: $fileCount files found in $watchDir',
-      );
+      _log.i('Initial scan complete: $fileCount files found in $watchDir');
     } catch (e, st) {
       _log.e('Error scanning existing files', error: e, stackTrace: st);
     }

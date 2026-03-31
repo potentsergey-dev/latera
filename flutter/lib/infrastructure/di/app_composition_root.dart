@@ -503,7 +503,9 @@ class AppCompositionRoot {
       final watchPath =
           configService.currentConfig.watchPath ??
           await rust_api.getDefaultWatchPathPreview();
-      logger.i('[Sync] Starting filesystem reconciliation (watchPath=$watchPath)');
+      logger.i(
+        '[Sync] Starting filesystem reconciliation (watchPath=$watchPath)',
+      );
       final syncResult = await sqliteIndexService.syncWithFilesystem(watchPath);
 
       for (final f in syncResult.newFiles) {
@@ -521,7 +523,11 @@ class AppCompositionRoot {
         '${syncResult.removedCount} removed',
       );
     } catch (e, st) {
-      logger.w('[Sync] Filesystem reconciliation failed (non-fatal)', error: e, stackTrace: st);
+      logger.w(
+        '[Sync] Filesystem reconciliation failed (non-fatal)',
+        error: e,
+        stackTrace: st,
+      );
     }
 
     final filesToReEmbed = sqliteIndexService.getFilesWithoutEmbeddings();
@@ -576,7 +582,9 @@ class AppCompositionRoot {
         final sw = Stopwatch()..start();
         await rust_api.initSemanticModel(dataDir: modelDataDir);
         sw.stop();
-        logger.i('[ONNX] Semantic model loaded in ${sw.elapsedMilliseconds} ms');
+        logger.i(
+          '[ONNX] Semantic model loaded in ${sw.elapsedMilliseconds} ms',
+        );
         tracker._setEmbeddingStatus(ModelStatus.ready);
       } catch (e) {
         logger.w('[ONNX] Semantic model init failed: $e');
@@ -622,7 +630,9 @@ class AppCompositionRoot {
       await rust_api.initSemanticModel(dataDir: modelDataDir);
       sw.stop();
 
-      logger.i('[ONNX] Model downloaded and initialized in ${sw.elapsedMilliseconds} ms');
+      logger.i(
+        '[ONNX] Model downloaded and initialized in ${sw.elapsedMilliseconds} ms',
+      );
       tracker._setEmbeddingStatus(ModelStatus.ready);
     } catch (e, st) {
       coordinator.completeCustomJob(job);
@@ -676,7 +686,9 @@ class AppCompositionRoot {
         await rust_api.initLlm(dataDir: modelDataDir);
         sw.stop();
         llmLifecycleCoordinator.touch();
-        logger.i('[GGUF] Generative LLM loaded in ${sw.elapsedMilliseconds} ms');
+        logger.i(
+          '[GGUF] Generative LLM loaded in ${sw.elapsedMilliseconds} ms',
+        );
         tracker._setGgufStatus(ModelStatus.ready);
       } catch (e) {
         logger.w('[GGUF] Generative LLM init failed: $e');
@@ -700,7 +712,9 @@ class AppCompositionRoot {
     final hasSpace = await LlmDownloadService.hasEnoughDiskSpace(modelsDir);
     logger.i('[GGUF] Disk space check: sufficient=$hasSpace (dir=$modelsDir)');
     if (!hasSpace) {
-      logger.w('[GGUF] Download skipped: insufficient disk space (need ≥ 2 GB)');
+      logger.w(
+        '[GGUF] Download skipped: insufficient disk space (need ≥ 2 GB)',
+      );
       tracker._setGgufStatus(ModelStatus.skippedLowDisk);
       return;
     }
@@ -733,7 +747,9 @@ class AppCompositionRoot {
       await rust_api.initLlm(dataDir: modelDataDir);
       sw.stop();
       llmLifecycleCoordinator.touch();
-      logger.i('[GGUF] Model downloaded and LLM initialized in ${sw.elapsedMilliseconds} ms');
+      logger.i(
+        '[GGUF] Model downloaded and LLM initialized in ${sw.elapsedMilliseconds} ms',
+      );
       tracker._setGgufStatus(ModelStatus.ready);
     } catch (e, st) {
       coordinator.completeCustomJob(job);
