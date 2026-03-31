@@ -83,6 +83,10 @@ class _MainScreenState extends State<MainScreen> {
       await _refreshInboxCount();
       if (!mounted) return;
 
+      // Подписываемся на потоки событий ДО вызова start(),
+      // чтобы не пропустить события из initial scan.
+      _setupStreamSubscriptions(root, coordinator);
+
       final startResult = await coordinator.start();
       if (!mounted) return;
 
@@ -94,45 +98,9 @@ class _MainScreenState extends State<MainScreen> {
         return;
       }
 
-      _sub = coordinator.fileAddedEvents.listen(
-        (event) {
-          root.logger.i('File added: ${event.fileName}');
-          if (!mounted) return;
-          setState(() {
-            _lastFileName = event.fileName;
-            _status = 'Новый файл обнаружен';
-          });
-
-          // Тихо индексируем файл в Inbox (без всплывающих окон)
-          unawaited(_silentlyIndexForReview(event));
-        },
-        onError: (Object error, StackTrace st) {
-          root.logger.e('Stream error in UI', error: error, stackTrace: st);
-          if (!mounted) return;
-          setState(() {
-            _status = 'Ошибка наблюдения: ${_extractErrorMessage(error)}';
-          });
-        },
-      );
-
-      // Подписываемся на события удаления
-      _removedSub = coordinator.fileRemovedEvents.listen((event) {
-        root.logger.i('File removed: ${event.fileName}');
-        unawaited(_onFileRemoved(event));
-      });
-
-      // Подписываемся на смену папки наблюдения
-      _watchPathChangedSub = coordinator.watchPathChangedEvents.listen((
-        newWatchDir,
-      ) {
-        root.logger.i('Watch path changed to: $newWatchDir');
-        if (!mounted) return;
-        setState(() {
-          _status = 'Папка изменена. Ожидаю файлы…';
-          _lastFileName = null;
-          _indexedCount = 0;
-        });
-      });
+      // Обновляем счётчики после initial scan (который происходит внутри start()).
+      await _refreshIndexedCount();
+      await _refreshInboxCount();
 
       if (!mounted) return;
       setState(() {
@@ -148,6 +116,51 @@ class _MainScreenState extends State<MainScreen> {
         _status = 'Ошибка инициализации: $e';
       });
     }
+  }
+
+  /// Подписывается на потоки событий координатора.
+  ///
+  /// Вызывается ДО coordinator.start(), чтобы не пропустить
+  /// события из initial scan существующих файлов.
+  void _setupStreamSubscriptions(
+    AppCompositionRoot root,
+    FileEventsCoordinator coordinator,
+  ) {
+    _sub = coordinator.fileAddedEvents.listen(
+      (event) {
+        root.logger.i('File added: ${event.fileName}');
+        if (!mounted) return;
+        setState(() {
+          _lastFileName = event.fileName;
+          _status = 'Новый файл обнаружен';
+        });
+        unawaited(_silentlyIndexForReview(event));
+      },
+      onError: (Object error, StackTrace st) {
+        root.logger.e('Stream error in UI', error: error, stackTrace: st);
+        if (!mounted) return;
+        setState(() {
+          _status = 'Ошибка наблюдения: ${_extractErrorMessage(error)}';
+        });
+      },
+    );
+
+    _removedSub = coordinator.fileRemovedEvents.listen((event) {
+      root.logger.i('File removed: ${event.fileName}');
+      unawaited(_onFileRemoved(event));
+    });
+
+    _watchPathChangedSub = coordinator.watchPathChangedEvents.listen((
+      newWatchDir,
+    ) {
+      root.logger.i('Watch path changed to: $newWatchDir');
+      if (!mounted) return;
+      setState(() {
+        _status = 'Папка изменена. Ожидаю файлы…';
+        _lastFileName = null;
+        _indexedCount = 0;
+      });
+    });
   }
 
   /// Тихо индексирует файл для последующего ревью в Inbox.

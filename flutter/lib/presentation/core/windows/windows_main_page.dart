@@ -78,17 +78,8 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
       await _refreshInboxCount();
       if (!mounted) return;
 
-      final startResult = await coordinator.start();
-      if (!mounted) return;
-
-      if (startResult is CoordinatorStartFailure) {
-        root.logger.e('Coordinator start failed', error: startResult.error);
-        setState(() {
-          _status = 'Ошибка запуска: ${startResult.error.message}';
-        });
-        return;
-      }
-
+      // Подписываемся на потоки событий ДО вызова start(),
+      // чтобы не пропустить события из initial scan.
       _sub = coordinator.fileAddedEvents.listen(
         (event) {
           root.logger.i('File added: ${event.fileName}');
@@ -124,6 +115,21 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
           _indexedCount = 0;
         });
       });
+
+      final startResult = await coordinator.start();
+      if (!mounted) return;
+
+      if (startResult is CoordinatorStartFailure) {
+        root.logger.e('Coordinator start failed', error: startResult.error);
+        setState(() {
+          _status = 'Ошибка запуска: ${startResult.error.message}';
+        });
+        return;
+      }
+
+      // Обновляем счётчики после initial scan (который происходит внутри start()).
+      await _refreshIndexedCount();
+      await _refreshInboxCount();
 
       if (!mounted) return;
       setState(() {

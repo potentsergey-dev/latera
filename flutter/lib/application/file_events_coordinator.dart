@@ -187,6 +187,13 @@ class FileEventsCoordinator {
         _watchPathChangedController.add(mapped.watchDir);
         await _scanExistingFiles(mapped.watchDir);
       }
+    } else if (mapped is CoordinatorStartSuccess &&
+        !_isDisposed &&
+        !_isDisposing) {
+      // Первичное сканирование: обнаруживаем файлы, которые уже лежат
+      // в папке наблюдения до старта watcher (первый запуск или рестарт).
+      _log.i('Performing initial scan of existing files');
+      await _scanExistingFiles(mapped.watchDir);
     }
 
     // Если watchPath изменился во время await startWatching(),
@@ -333,12 +340,18 @@ class FileEventsCoordinator {
         return;
       }
 
+      var fileCount = 0;
       final entities = await dir.list().toList();
       for (final entity in entities) {
         if (_isDisposed || _isDisposing || _restartRequested) break;
         if (entity is File) {
           final path = entity.path;
           final fileName = path.split(Platform.pathSeparator).last;
+          // Пропускаем скрытые файлы и desktop.ini
+          if (fileName.startsWith('.') ||
+              fileName.toLowerCase() == 'desktop.ini') {
+            continue;
+          }
           _log.d('Found existing file: $fileName');
           _controller.add(
             FileAddedUiEvent(
@@ -347,9 +360,12 @@ class FileEventsCoordinator {
               occurredAt: DateTime.now(),
             ),
           );
+          fileCount++;
         }
       }
-      _log.i('Finished scanning existing files in: $watchDir');
+      _log.i(
+        'Initial scan complete: $fileCount files found in $watchDir',
+      );
     } catch (e, st) {
       _log.e('Error scanning existing files', error: e, stackTrace: st);
     }

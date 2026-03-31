@@ -160,9 +160,47 @@ if ($Msix) {
         
         Pop-Location
         
+        # === Artifact verification ===
+        Write-Host "`n--- Release artifact check ---" -ForegroundColor Cyan
+        $requiredFiles = @(
+            @{ Path = "latera.exe"; Desc = "Main executable" },
+            @{ Path = "latera_rust.dll"; Desc = "Rust native library" },
+            @{ Path = "onnxruntime.dll"; Desc = "ONNX Runtime (for embeddings)" },
+            @{ Path = "app_icon.ico"; Desc = "Application icon" },
+            @{ Path = "latera.msix"; Desc = "MSIX installer package" }
+        )
+        $allPresent = $true
+        foreach ($f in $requiredFiles) {
+            $fName = $f.Path
+            $fDesc = $f.Desc
+            $fPath = Join-Path $OutputDir $fName
+            if (Test-Path $fPath) {
+                $sizeKb = [math]::Round((Get-Item $fPath).Length / 1024)
+                Write-Host "  OK  ${fDesc}: ${fName} (${sizeKb} KB)" -ForegroundColor Green
+            } else {
+                Write-Host "  MISSING  ${fDesc}: ${fName}" -ForegroundColor Red
+                $allPresent = $false
+            }
+        }
+        
+        # Verify MSIX contains tile images
         $MsixPath = Join-Path $OutputDir "latera.msix"
         if (Test-Path $MsixPath) {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($MsixPath)
+            $tileCount = @($zip.Entries | Where-Object { $_.FullName -like "Images/*.png" -and $_.FullName -notlike "Images/_backup*" }).Count
+            $zip.Dispose()
+            if ($tileCount -gt 0) {
+                Write-Host "  OK  MSIX tile images: $tileCount PNGs" -ForegroundColor Green
+            } else {
+                Write-Host "  MISSING  MSIX tile images (Images/*.png)" -ForegroundColor Red
+                $allPresent = $false
+            }
             Write-Host "MSIX package created: $MsixPath" -ForegroundColor Green
+        }
+        
+        if (-not $allPresent) {
+            Write-Host "WARNING: Some required artifacts are missing!" -ForegroundColor Yellow
         }
     }
 }

@@ -158,6 +158,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
       await configService.completeOnboarding();
 
+      // Активируем отложенные сервисы: загрузка AI-моделей и синхронизация индекса.
+      // При первом запуске эти операции были пропущены до завершения онбординга.
+      root.activatePostOnboarding();
+
       if (mounted) {
         if (widget.onComplete != null) {
           widget.onComplete!();

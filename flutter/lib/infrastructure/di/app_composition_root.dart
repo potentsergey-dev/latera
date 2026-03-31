@@ -384,68 +384,48 @@ class AppCompositionRoot {
     // Не блокирует запуск приложения — выполняется асинхронно.
     final modelDownloadTracker = ModelDownloadTracker();
 
-    unawaited(
-      _checkAndDownloadLlmModel(
-        modelDataDir,
-        logger,
-        contentEnrichmentCoordinator,
-        modelDownloadTracker,
-      ),
-    );
-
     // LLM Lifecycle Coordinator — управляет TTL генеративной LLM (3-min idle → unload).
     final llmLifecycleCoordinator = LlmLifecycleCoordinator(logger: logger);
 
-    // Инициализируем генеративную LLM (llama.cpp GGUF):
-    // скачиваем если нет, проверяем RAM/диск, показываем прогресс.
-    unawaited(
-      _checkAndDownloadGgufModel(
-        modelDataDir,
-        totalRamMb,
-        isHardwareConstrained,
-        logger,
-        contentEnrichmentCoordinator,
-        llmLifecycleCoordinator,
-        modelDownloadTracker,
-      ),
-    );
+    // Тяжёлые фоновые операции (загрузка моделей, реконсиляция индекса) запускаем
+    // только если онбординг уже пройден. При первом запуске они будут вызваны
+    // через activatePostOnboarding() после завершения онбординга.
+    final onboardingCompleted = configService.isOnboardingCompleted;
 
-    // Реконсиляция индекса с файловой системой.
-    // Удаляет из БД файлы, которых больше нет на диске, и обнаруживает новые.
-    try {
-      final watchPath =
-          configService.currentConfig.watchPath ??
-          await rust_api.getDefaultWatchPathPreview();
-      final syncResult = await sqliteIndexService.syncWithFilesystem(watchPath);
-
-      // Новые файлы: индексируем для review и ставим в очередь обогащения
-      for (final f in syncResult.newFiles) {
-        await sqliteIndexService.indexFileForReview(
-          f['filePath']!,
-          fileName: f['fileName']!,
-        );
-        contentEnrichmentCoordinator.enqueueFile(
-          f['filePath']!,
-          f['fileName']!,
-        );
-      }
-    } catch (e, st) {
-      logger.w('Filesystem sync failed (non-fatal)', error: e, stackTrace: st);
-    }
-
-    // Пересчитываем эмбеддинги для файлов, у которых их нет
-    // (после миграции stub → ONNX или первой инициализации)
-    final filesToReEmbed = sqliteIndexService.getFilesWithoutEmbeddings();
-    if (filesToReEmbed.isNotEmpty) {
-      logger.i(
-        'Re-embedding ${filesToReEmbed.length} files (migration stub → ONNX)',
+    if (onboardingCompleted) {
+      unawaited(
+        _checkAndDownloadLlmModel(
+          modelDataDir,
+          logger,
+          contentEnrichmentCoordinator,
+          modelDownloadTracker,
+        ),
       );
-      for (final f in filesToReEmbed) {
-        contentEnrichmentCoordinator.enqueueFile(
-          f['filePath']!,
-          f['fileName']!,
-        );
-      }
+
+      unawaited(
+        _checkAndDownloadGgufModel(
+          modelDataDir,
+          totalRamMb,
+          isHardwareConstrained,
+          logger,
+          contentEnrichmentCoordinator,
+          llmLifecycleCoordinator,
+          modelDownloadTracker,
+        ),
+      );
+
+      // Реконсиляция индекса с файловой системой.
+      // Удаляет из БД файлы, которых больше нет на диске, и обнаруживает новые.
+      await _syncFilesystemAndReEmbed(
+        configService,
+        sqliteIndexService,
+        contentEnrichmentCoordinator,
+        logger,
+      );
+    } else {
+      logger.i(
+        'Onboarding not completed — deferring model downloads and filesystem sync',
+      );
     }
 
     return AppCompositionRoot._(
@@ -471,6 +451,93 @@ class AppCompositionRoot {
     );
   }
 
+  /// Активирует отложенные операции после завершения онбординга.
+  ///
+  /// Запускает фоновые загрузки AI-моделей и реконсиляцию индекса,
+  /// которые были отложены при первом запуске приложения.
+  /// Вызывается из OnboardingScreen после completeOnboarding().
+  void activatePostOnboarding() {
+    if (_isDisposed) return;
+
+    logger.i('Activating post-onboarding services');
+
+    unawaited(
+      _checkAndDownloadLlmModel(
+        _modelDataDir,
+        logger,
+        contentEnrichmentCoordinator,
+        modelDownloadTracker,
+      ),
+    );
+
+    unawaited(
+      _checkAndDownloadGgufModel(
+        _modelDataDir,
+        totalRamMb,
+        isHardwareConstrained,
+        logger,
+        contentEnrichmentCoordinator,
+        llmLifecycleCoordinator,
+        modelDownloadTracker,
+      ),
+    );
+
+    unawaited(
+      _syncFilesystemAndReEmbed(
+        configService,
+        _sqliteIndexService!,
+        contentEnrichmentCoordinator,
+        logger,
+      ),
+    );
+  }
+
+  /// Реконсиляция индекса с файловой системой + пересчёт эмбеддингов.
+  static Future<void> _syncFilesystemAndReEmbed(
+    ConfigService configService,
+    SqliteIndexService sqliteIndexService,
+    ContentEnrichmentCoordinator contentEnrichmentCoordinator,
+    Logger logger,
+  ) async {
+    try {
+      final watchPath =
+          configService.currentConfig.watchPath ??
+          await rust_api.getDefaultWatchPathPreview();
+      logger.i('[Sync] Starting filesystem reconciliation (watchPath=$watchPath)');
+      final syncResult = await sqliteIndexService.syncWithFilesystem(watchPath);
+
+      for (final f in syncResult.newFiles) {
+        await sqliteIndexService.indexFileForReview(
+          f['filePath']!,
+          fileName: f['fileName']!,
+        );
+        contentEnrichmentCoordinator.enqueueFile(
+          f['filePath']!,
+          f['fileName']!,
+        );
+      }
+      logger.i(
+        '[Sync] Filesystem reconciliation done: ${syncResult.newFiles.length} new, '
+        '${syncResult.removedCount} removed',
+      );
+    } catch (e, st) {
+      logger.w('[Sync] Filesystem reconciliation failed (non-fatal)', error: e, stackTrace: st);
+    }
+
+    final filesToReEmbed = sqliteIndexService.getFilesWithoutEmbeddings();
+    if (filesToReEmbed.isNotEmpty) {
+      logger.i(
+        '[Sync] Re-embedding ${filesToReEmbed.length} files (migration stub → ONNX)',
+      );
+      for (final f in filesToReEmbed) {
+        contentEnrichmentCoordinator.enqueueFile(
+          f['filePath']!,
+          f['fileName']!,
+        );
+      }
+    }
+  }
+
   /// Проверяет готовность LLM-модели и запускает загрузку при необходимости.
   ///
   /// Если модель уже загружена — инициализирует её в Rust.
@@ -482,6 +549,8 @@ class AppCompositionRoot {
     ContentEnrichmentCoordinator coordinator,
     ModelDownloadTracker tracker,
   ) async {
+    logger.i('[ONNX] Embedding model check started (dataDir=$modelDataDir)');
+
     final modelPath = p.join(
       modelDataDir,
       'models',
@@ -495,20 +564,29 @@ class AppCompositionRoot {
       'tokenizer.json',
     );
 
-    if (File(modelPath).existsSync() && File(tokenizerPath).existsSync()) {
-      logger.i('LLM model file exists, initializing semantic model');
+    final modelExists = File(modelPath).existsSync();
+    final tokenizerExists = File(tokenizerPath).existsSync();
+    logger.i(
+      '[ONNX] model.onnx exists=$modelExists, tokenizer.json exists=$tokenizerExists',
+    );
+
+    if (modelExists && tokenizerExists) {
+      logger.i('[ONNX] Both files present, initializing semantic model');
       try {
+        final sw = Stopwatch()..start();
         await rust_api.initSemanticModel(dataDir: modelDataDir);
-        logger.i('Semantic model loaded from $modelDataDir');
+        sw.stop();
+        logger.i('[ONNX] Semantic model loaded in ${sw.elapsedMilliseconds} ms');
         tracker._setEmbeddingStatus(ModelStatus.ready);
       } catch (e) {
-        logger.w('Semantic model init failed: $e');
+        logger.w('[ONNX] Semantic model init failed: $e');
         tracker._setEmbeddingStatus(ModelStatus.failed, e.toString());
       }
       return;
     }
 
     // Модель не существует на диске — запускаем загрузку с отображением прогресса
+    logger.i('[ONNX] Model files missing, starting download');
     tracker._setEmbeddingStatus(ModelStatus.downloading);
 
     final job = EnrichmentJob(
@@ -539,13 +617,16 @@ class AppCompositionRoot {
       coordinator.completeCustomJob(job);
 
       // Инициализируем семантическую модель после успешной загрузки
+      logger.i('[ONNX] Download complete, initializing semantic model');
+      final sw = Stopwatch()..start();
       await rust_api.initSemanticModel(dataDir: modelDataDir);
+      sw.stop();
 
-      logger.i('LLM model downloaded and initialized');
+      logger.i('[ONNX] Model downloaded and initialized in ${sw.elapsedMilliseconds} ms');
       tracker._setEmbeddingStatus(ModelStatus.ready);
     } catch (e, st) {
       coordinator.completeCustomJob(job);
-      logger.e('LLM model download failed', error: e, stackTrace: st);
+      logger.e('[ONNX] Model download failed', error: e, stackTrace: st);
       tracker._setEmbeddingStatus(ModelStatus.failed, e.toString());
 
       // Всё равно пытаемся инициализировать — возможно, файл уже был скачан ранее
@@ -572,6 +653,12 @@ class AppCompositionRoot {
     LlmLifecycleCoordinator llmLifecycleCoordinator,
     ModelDownloadTracker tracker,
   ) async {
+    logger.i(
+      '[GGUF] Generative model check started '
+      '(RAM=${totalRamMb}MB, constrained=$isHardwareConstrained, '
+      'dataDir=$modelDataDir)',
+    );
+
     final ggufModelPath = p.join(
       modelDataDir,
       'models',
@@ -579,15 +666,20 @@ class AppCompositionRoot {
     );
 
     // 1. Модель уже скачана — сразу загружаем
-    if (File(ggufModelPath).existsSync()) {
-      logger.i('GGUF model exists, initializing generative LLM');
+    final modelExists = File(ggufModelPath).existsSync();
+    logger.i('[GGUF] Model file exists=$modelExists (path=$ggufModelPath)');
+
+    if (modelExists) {
+      logger.i('[GGUF] Initializing generative LLM from existing file');
       try {
+        final sw = Stopwatch()..start();
         await rust_api.initLlm(dataDir: modelDataDir);
+        sw.stop();
         llmLifecycleCoordinator.touch();
-        logger.i('Generative LLM loaded from $modelDataDir');
+        logger.i('[GGUF] Generative LLM loaded in ${sw.elapsedMilliseconds} ms');
         tracker._setGgufStatus(ModelStatus.ready);
       } catch (e) {
-        logger.w('Generative LLM init failed: $e');
+        logger.w('[GGUF] Generative LLM init failed: $e');
         tracker._setGgufStatus(ModelStatus.failed, e.toString());
       }
       return;
@@ -596,7 +688,7 @@ class AppCompositionRoot {
     // 2. Проверка RAM
     if (isHardwareConstrained) {
       logger.i(
-        'GGUF download skipped: hardware constrained (RAM $totalRamMb MB). '
+        '[GGUF] Download skipped: hardware constrained (RAM ${totalRamMb}MB < 6144MB). '
         'Generative LLM requires ≥ 6 GB RAM.',
       );
       tracker._setGgufStatus(ModelStatus.skippedLowRam);
@@ -606,14 +698,15 @@ class AppCompositionRoot {
     // 3. Проверка свободного места на диске
     final modelsDir = p.join(modelDataDir, 'models');
     final hasSpace = await LlmDownloadService.hasEnoughDiskSpace(modelsDir);
+    logger.i('[GGUF] Disk space check: sufficient=$hasSpace (dir=$modelsDir)');
     if (!hasSpace) {
-      logger.w('GGUF download skipped: insufficient disk space (need ≥ 2 GB)');
+      logger.w('[GGUF] Download skipped: insufficient disk space (need ≥ 2 GB)');
       tracker._setGgufStatus(ModelStatus.skippedLowDisk);
       return;
     }
 
     // 4. Скачиваем с прогрессом
-    logger.i('Starting GGUF model download (~1.7 GB)');
+    logger.i('[GGUF] Starting download (~1.7 GB)');
     tracker._setGgufStatus(ModelStatus.downloading);
 
     final job = EnrichmentJob(
@@ -635,13 +728,16 @@ class AppCompositionRoot {
       coordinator.completeCustomJob(job);
 
       // 5. Инициализируем генеративную LLM после скачивания
+      logger.i('[GGUF] Download complete, initializing generative LLM');
+      final sw = Stopwatch()..start();
       await rust_api.initLlm(dataDir: modelDataDir);
+      sw.stop();
       llmLifecycleCoordinator.touch();
-      logger.i('GGUF model downloaded and generative LLM initialized');
+      logger.i('[GGUF] Model downloaded and LLM initialized in ${sw.elapsedMilliseconds} ms');
       tracker._setGgufStatus(ModelStatus.ready);
     } catch (e, st) {
       coordinator.completeCustomJob(job);
-      logger.e('GGUF model download/init failed', error: e, stackTrace: st);
+      logger.e('[GGUF] Download/init failed', error: e, stackTrace: st);
       tracker._setGgufStatus(ModelStatus.failed, e.toString());
     }
   }
