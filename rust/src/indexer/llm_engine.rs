@@ -99,7 +99,10 @@ pub fn init_llm(data_dir: &str) -> Result<(), LateraError> {
     for d in &devices {
         info!(
             "Backend device: {} — {} (type: {:?}, backend: {}, VRAM: {} MB)",
-            d.name, d.description, d.device_type, d.backend,
+            d.name,
+            d.description,
+            d.device_type,
+            d.backend,
             d.memory_total / (1024 * 1024)
         );
     }
@@ -125,14 +128,11 @@ pub fn init_llm(data_dir: &str) -> Result<(), LateraError> {
         match LlamaModel::load_from_file(&backend, &model_path, &model_params) {
             Ok(m) => m,
             Err(e) if gpu_layers > 0 => {
-                warn!(
-                    "GPU model load failed ({e}), retrying on CPU only..."
-                );
+                warn!("GPU model load failed ({e}), retrying on CPU only...");
                 let cpu_params = LlamaModelParams::default().with_n_gpu_layers(0);
-                LlamaModel::load_from_file(&backend, &model_path, &cpu_params)
-                    .map_err(|e2| LateraError::LlmLoadFailed(
-                        format!("Model load failed (GPU: {e}, CPU: {e2})")
-                    ))?
+                LlamaModel::load_from_file(&backend, &model_path, &cpu_params).map_err(|e2| {
+                    LateraError::LlmLoadFailed(format!("Model load failed (GPU: {e}, CPU: {e2})"))
+                })?
             }
             Err(e) => {
                 return Err(LateraError::LlmLoadFailed(format!("Model load: {e}")));
