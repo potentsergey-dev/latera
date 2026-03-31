@@ -19,6 +19,7 @@ use llama_cpp_2::llama_batch::LlamaBatch;
 use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::sampling::LlamaSampler;
+use llama_cpp_2::{list_llama_ggml_backend_devices, LlamaBackendDeviceType};
 
 use crate::error::LateraError;
 
@@ -93,18 +94,51 @@ pub fn init_llm(data_dir: &str) -> Result<(), LateraError> {
     let backend = LlamaBackend::init()
         .map_err(|e| LateraError::LlmLoadFailed(format!("Backend init: {e}")))?;
 
-    // Параметры модели: Vulkan GPU-ускорение с fallback на CPU
-    let gpu_layers = if crate::system_info::get_has_vulkan() {
-        info!("Vulkan GPU detected — offloading all layers to GPU");
+    // Определяем наличие GPU через llama.cpp backend device enumeration
+    let devices = list_llama_ggml_backend_devices();
+    for d in &devices {
+        info!(
+            "Backend device: {} — {} (type: {:?}, backend: {}, VRAM: {} MB)",
+            d.name, d.description, d.device_type, d.backend,
+            d.memory_total / (1024 * 1024)
+        );
+    }
+
+    let has_gpu = devices.iter().any(|d| {
+        matches!(
+            d.device_type,
+            LlamaBackendDeviceType::Gpu | LlamaBackendDeviceType::IntegratedGpu
+        )
+    });
+
+    let gpu_layers = if has_gpu {
+        info!("GPU device found — offloading all layers to GPU");
         u32::MAX
     } else {
-        warn!("Vulkan GPU not available — running on CPU only");
+        info!("No GPU device found — running on CPU only");
         0
     };
-    let model_params = LlamaModelParams::default().with_n_gpu_layers(gpu_layers);
 
-    let model = LlamaModel::load_from_file(&backend, &model_path, &model_params)
-        .map_err(|e| LateraError::LlmLoadFailed(format!("Model load: {e}")))?;
+    // Попытка загрузки модели; при неудаче с GPU — fallback на CPU
+    let model = {
+        let model_params = LlamaModelParams::default().with_n_gpu_layers(gpu_layers);
+        match LlamaModel::load_from_file(&backend, &model_path, &model_params) {
+            Ok(m) => m,
+            Err(e) if gpu_layers > 0 => {
+                warn!(
+                    "GPU model load failed ({e}), retrying on CPU only..."
+                );
+                let cpu_params = LlamaModelParams::default().with_n_gpu_layers(0);
+                LlamaModel::load_from_file(&backend, &model_path, &cpu_params)
+                    .map_err(|e2| LateraError::LlmLoadFailed(
+                        format!("Model load failed (GPU: {e}, CPU: {e2})")
+                    ))?
+            }
+            Err(e) => {
+                return Err(LateraError::LlmLoadFailed(format!("Model load: {e}")));
+            }
+        }
+    };
 
     info!(
         "Generative LLM loaded: {} (vocab: {} tokens)",
