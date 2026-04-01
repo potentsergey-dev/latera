@@ -138,8 +138,7 @@ fn rag_query_streaming_thread(question: &str, top_k: usize, tx: &mpsc::Sender<Ra
     }
 
     // Фаза 1: работа с БД (мьютекс INDEX_DB захватывается и ОТПУСКАЕТСЯ здесь)
-    let fetch_result =
-        crate::api::with_index_db(|conn| rag_fetch_context(conn, question, top_k));
+    let fetch_result = crate::api::with_index_db(|conn| rag_fetch_context(conn, question, top_k));
 
     let (context, sources) = match fetch_result {
         Ok(Some(data)) => data,
