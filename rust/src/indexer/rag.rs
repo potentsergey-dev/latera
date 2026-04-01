@@ -352,8 +352,9 @@ pub fn rag_query(
 
 /// Выполняет RAG-запрос с расширенным контекстом из полных чанков.
 ///
-/// В отличие от [`rag_query`], загружает ПОЛНЫЙ текст чанков из БД,
-/// а не обрезанные сниппеты. Это даёт LLM больше контекста для ответа.
+/// Использует [`embeddings::similarity_search`] для отбора кандидатов
+/// (гибридный scoring: semantic + lexical boost для коротких запросов),
+/// затем загружает ПОЛНЫЙ текст чанков из БД для формирования ответа.
 pub fn rag_query_full_context(
     conn: &Connection,
     question: &str,
@@ -373,68 +374,13 @@ pub fn rag_query_full_context(
         top_k
     );
 
-    // 1. Вычисляем эмбеддинг вопроса
-    let query_vec = embeddings::compute_embeddings(&[embeddings::TextChunk {
-        text: question.to_string(),
-        chunk_index: 0,
-        chunk_offset: 0,
-    }]);
+    // 1. Используем similarity_search для отбора кандидатов.
+    //    Это даёт гибридный scoring (semantic + lexical) с фильтрацией шума
+    //    для коротких запросов (только лексические совпадения).
+    let candidates = embeddings::similarity_search(conn, question, top_k)?;
 
-    if query_vec.is_empty() {
-        return Ok(RagResult {
-            answer: String::new(),
-            sources: Vec::new(),
-            error_code: Some("query_failed".to_string()),
-        });
-    }
-
-    // 2. Загружаем чанки с полным текстом и метаданными
-    let mut stmt = conn.prepare(
-        "SELECT
-            e.embedding,
-            c.chunk_text,
-            c.chunk_offset,
-            f.file_path,
-            f.file_name
-         FROM embeddings e
-         JOIN chunks c ON c.id = e.chunk_id
-         JOIN files f  ON f.id = c.file_id
-         ORDER BY f.id, c.chunk_index",
-    )?;
-
-    let query_embedding = &query_vec[0].vector;
-
-    let rows = stmt.query_map([], |row| {
-        let blob: Vec<u8> = row.get(0)?;
-        let chunk_text: String = row.get(1)?;
-        let chunk_offset: u32 = row.get(2)?;
-        let file_path: String = row.get(3)?;
-        let file_name: String = row.get(4)?;
-        Ok((blob, chunk_text, chunk_offset, file_path, file_name))
-    })?;
-
-    let mut scored: Vec<(f64, String, u32, String, String)> = Vec::new();
-
-    for row_result in rows {
-        match row_result {
-            Ok((blob, chunk_text, chunk_offset, file_path, file_name)) => {
-                let stored_vec = embeddings::blob_to_embedding_pub(&blob);
-                let score = embeddings::cosine_similarity_pub(query_embedding, &stored_vec);
-                if score >= MIN_SIMILARITY_SCORE {
-                    scored.push((score, chunk_text, chunk_offset, file_path, file_name));
-                }
-            }
-            Err(e) => {
-                warn!("Error reading embedding row in RAG: {e}");
-            }
-        }
-    }
-
-    // Сортируем по убыванию score
-    scored.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
-    scored.truncate(top_k);
-
-    if scored.is_empty() {
+    if candidates.is_empty() {
+        debug!("RAG full-context: no relevant candidates from similarity_search");
         return Ok(RagResult {
             answer: String::new(),
             sources: Vec::new(),
@@ -442,27 +388,43 @@ pub fn rag_query_full_context(
         });
     }
 
-    // 3. Формируем контекст и ответ (full context version)
-    let context_parts: Vec<String> = scored
-        .iter()
-        .map(|(_, text, _, _, _)| text.clone())
-        .collect();
+    info!(
+        "RAG full-context: {} candidates from similarity_search",
+        candidates.len()
+    );
 
+    // 2. Загружаем ПОЛНЫЙ текст чанков для отобранных кандидатов.
+    let mut context_parts: Vec<String> = Vec::new();
+    let mut sources: Vec<RagSource> = Vec::new();
+
+    for candidate in &candidates {
+        let full_text: Option<String> = conn
+            .prepare_cached(
+                "SELECT c.chunk_text FROM chunks c
+                 JOIN files f ON f.id = c.file_id
+                 WHERE f.file_path = ?1 AND c.chunk_offset = ?2
+                 LIMIT 1",
+            )?
+            .query_map(
+                rusqlite::params![candidate.file_path, candidate.chunk_offset],
+                |row| row.get(0),
+            )?
+            .filter_map(Result::ok)
+            .next();
+
+        let text = full_text.unwrap_or_else(|| candidate.chunk_snippet.clone());
+        context_parts.push(text);
+
+        sources.push(RagSource {
+            file_path: candidate.file_path.clone(),
+            chunk_snippet: candidate.chunk_snippet.clone(),
+            chunk_offset: candidate.chunk_offset,
+        });
+    }
+
+    // 3. Формируем контекст и ответ
     let context = context_parts.join("\n\n---\n\n");
-    let answer = generate_answer(question, &context, scored.len());
-
-    // Дедупликация источников по file_path: один файл — один источник,
-    // берём лучший (первый по score) чанк.
-    let mut seen_paths = std::collections::HashSet::new();
-    let sources: Vec<RagSource> = scored
-        .iter()
-        .filter(|(_, _, _, path, _)| seen_paths.insert(path.clone()))
-        .map(|(_, text, offset, path, _)| RagSource {
-            file_path: path.clone(),
-            chunk_snippet: embeddings::truncate_snippet_pub(text, 200),
-            chunk_offset: *offset,
-        })
-        .collect();
+    let answer = generate_answer(question, &context, sources.len());
 
     Ok(RagResult {
         answer,

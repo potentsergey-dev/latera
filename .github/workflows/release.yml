@@ -79,6 +79,15 @@ jobs:
         working-directory: flutter
         run: dart run flutter_launcher_icons
 
+      # Clean cached build artifacts to force re-embedding the fresh .ico
+      - name: Clean Flutter build cache
+        working-directory: flutter
+        run: flutter clean
+
+      - name: Get Flutter dependencies (post-clean)
+        working-directory: flutter
+        run: flutter pub get
+
       # --- Codegen ---
       # NOTE: FRB codegen has a known bug on Windows (\\?\ path prefix).
       # Generated files are committed to the repo, so we skip codegen here.

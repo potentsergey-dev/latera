@@ -77,6 +77,10 @@ if (-not $SkipFlutter) {
     Write-Host "`n[3/3] Building Flutter app..." -ForegroundColor Yellow
     Push-Location $FlutterDir
     
+    # Regenerate launcher icons from assets/app_icon.png
+    Write-Host "  Regenerating launcher icons..." -ForegroundColor Gray
+    & dart run flutter_launcher_icons
+    
     $flutterArgs = @("build", "windows")
     if ($Release) {
         $flutterArgs += "--release"

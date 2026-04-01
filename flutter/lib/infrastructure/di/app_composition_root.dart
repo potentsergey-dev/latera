@@ -393,17 +393,16 @@ class AppCompositionRoot {
     final onboardingCompleted = configService.isOnboardingCompleted;
 
     if (onboardingCompleted) {
-      unawaited(
-        _checkAndDownloadLlmModel(
+      // Загружаем модели ПОСЛЕДОВАТЕЛЬНО: сначала ONNX (~400 МБ),
+      // затем GGUF (~2.5 ГБ). Параллельная загрузка вызывала OOM на 8 ГБ.
+      unawaited(() async {
+        await _checkAndDownloadLlmModel(
           modelDataDir,
           logger,
           contentEnrichmentCoordinator,
           modelDownloadTracker,
-        ),
-      );
-
-      unawaited(
-        _checkAndDownloadGgufModel(
+        );
+        await _checkAndDownloadGgufModel(
           modelDataDir,
           totalRamMb,
           isHardwareConstrained,
@@ -411,8 +410,8 @@ class AppCompositionRoot {
           contentEnrichmentCoordinator,
           llmLifecycleCoordinator,
           modelDownloadTracker,
-        ),
-      );
+        );
+      }());
 
       // Реконсиляция индекса с файловой системой.
       // Удаляет из БД файлы, которых больше нет на диске, и обнаруживает новые.
@@ -461,17 +460,15 @@ class AppCompositionRoot {
 
     logger.i('Activating post-onboarding services');
 
-    unawaited(
-      _checkAndDownloadLlmModel(
+    // Загружаем модели ПОСЛЕДОВАТЕЛЬНО: сначала ONNX, затем GGUF.
+    unawaited(() async {
+      await _checkAndDownloadLlmModel(
         _modelDataDir,
         logger,
         contentEnrichmentCoordinator,
         modelDownloadTracker,
-      ),
-    );
-
-    unawaited(
-      _checkAndDownloadGgufModel(
+      );
+      await _checkAndDownloadGgufModel(
         _modelDataDir,
         totalRamMb,
         isHardwareConstrained,
@@ -479,8 +476,8 @@ class AppCompositionRoot {
         contentEnrichmentCoordinator,
         llmLifecycleCoordinator,
         modelDownloadTracker,
-      ),
-    );
+      );
+    }());
 
     unawaited(
       _syncFilesystemAndReEmbed(
@@ -697,12 +694,12 @@ class AppCompositionRoot {
       return;
     }
 
-    // 2. Проверка RAM — для GGUF достаточно 4 ГБ (модель 3B Q4_K_M ~ 2.5 ГБ при инференсе)
-    const int ggufMinRamMb = 4096;
+    // 2. Проверка RAM — для GGUF необходимо 6 ГБ (модель 3B Q4_K_M ~ 2.5 ГБ + ОС + приложение)
+    const int ggufMinRamMb = 6144;
     if (totalRamMb > 0 && totalRamMb < ggufMinRamMb) {
       logger.i(
         '[GGUF] Download skipped: insufficient RAM (${totalRamMb}MB < ${ggufMinRamMb}MB). '
-        'Generative LLM requires ≥ 4 GB RAM.',
+        'Generative LLM requires ≥ 6 GB RAM.',
       );
       tracker._setGgufStatus(ModelStatus.skippedLowRam);
       return;
