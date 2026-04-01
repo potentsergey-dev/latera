@@ -791,6 +791,34 @@ class AppCompositionRoot {
     );
   }
 
+  /// Гарантирует, что генеративная LLM загружена в память.
+  ///
+  /// Если модель была выгружена по TTL (3 мин idle) — перезагружает.
+  /// Вызывать перед каждым RAG-запросом.
+  Future<void> ensureLlmReady() async {
+    if (_isDisposed) return;
+
+    // Уже загружена — просто сбрасываем TTL-таймер
+    final ready = await rust_api.isLlmReady();
+    if (ready) {
+      llmLifecycleCoordinator.touch();
+      return;
+    }
+
+    // Модель на диске? Перезагружаем.
+    final ggufPath = p.join(_modelDataDir, 'models', LlmDownloadService.ggufModelFileName);
+    if (!File(ggufPath).existsSync()) return;
+
+    logger.i('[LLM] Re-initializing generative model (was unloaded by TTL)');
+    try {
+      await rust_api.initLlm(dataDir: _modelDataDir);
+      llmLifecycleCoordinator.touch();
+      logger.i('[LLM] Generative model re-loaded successfully');
+    } catch (e) {
+      logger.w('[LLM] Re-init failed: $e');
+    }
+  }
+
   /// Освободить ресурсы.
   ///
   /// Безопасен для многократного вызова — последующие вызовы игнорируются.

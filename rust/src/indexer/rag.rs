@@ -60,6 +60,8 @@ fn get_rag_max_tokens() -> u32 {
 pub fn cancel_rag_query() {
     info!("RAG: cancel requested");
     CANCEL_RAG.store(true, Ordering::Relaxed);
+    // Также отменяем LLM-генерацию, если она активна
+    super::llm_engine::cancel_generation();
 }
 
 /// Проверяет, запрошена ли отмена.
@@ -118,25 +120,55 @@ pub fn rag_query_streaming_start(question: String, top_k: usize) {
 }
 
 /// Рабочий поток стримингового RAG-запроса.
+///
+/// Фаза 1: Получение контекста из БД (внутри INDEX_DB мьютекса).
+/// Фаза 2: Генерация ответа через LLM (ВНЕ мьютекса — не блокирует БД).
 fn rag_query_streaming_thread(question: &str, top_k: usize, tx: &mpsc::Sender<RagStreamEvent>) {
-    // Используем глобальную БД через api::with_index_db
-    let result =
-        match crate::api::with_index_db(|conn| rag_query_full_context(conn, question, top_k)) {
-            Ok(r) => r,
-            Err(e) => {
-                let r = RagResult {
-                    answer: String::new(),
-                    sources: Vec::new(),
-                    error_code: Some("query_failed".to_string()),
-                };
-                let _ = tx.send(RagStreamEvent::Done {
-                    result_json: rag_result_to_json(&r),
-                });
-                warn!("RAG stream: query failed: {e}");
-                return;
-            }
+    // Фаза 0: пустой вопрос
+    if question.trim().is_empty() {
+        let r = RagResult {
+            answer: String::new(),
+            sources: Vec::new(),
+            error_code: Some("empty_question".to_string()),
         };
+        let _ = tx.send(RagStreamEvent::Done {
+            result_json: rag_result_to_json(&r),
+        });
+        return;
+    }
 
+    // Фаза 1: работа с БД (мьютекс INDEX_DB захватывается и ОТПУСКАЕТСЯ здесь)
+    let fetch_result =
+        crate::api::with_index_db(|conn| rag_fetch_context(conn, question, top_k));
+
+    let (context, sources) = match fetch_result {
+        Ok(Some(data)) => data,
+        Ok(None) => {
+            let r = RagResult {
+                answer: String::new(),
+                sources: Vec::new(),
+                error_code: Some("no_relevant_chunks".to_string()),
+            };
+            let _ = tx.send(RagStreamEvent::Done {
+                result_json: rag_result_to_json(&r),
+            });
+            return;
+        }
+        Err(e) => {
+            let r = RagResult {
+                answer: String::new(),
+                sources: Vec::new(),
+                error_code: Some("query_failed".to_string()),
+            };
+            let _ = tx.send(RagStreamEvent::Done {
+                result_json: rag_result_to_json(&r),
+            });
+            warn!("RAG stream: query failed: {e}");
+            return;
+        }
+    };
+
+    // Проверка отмены между фазами
     if is_cancelled() {
         let cancelled = RagResult {
             answer: String::new(),
@@ -149,7 +181,16 @@ fn rag_query_streaming_thread(question: &str, top_k: usize, tx: &mpsc::Sender<Ra
         return;
     }
 
-    // Стримим ответ по частям (сейчас stub — целиком; с LLM будет по токенам)
+    // Фаза 2: генерация ответа (ВНЕ мьютекса БД — LLM может работать долго)
+    let answer = generate_answer(question, &context, sources.len());
+
+    let result = RagResult {
+        answer,
+        sources,
+        error_code: None,
+    };
+
+    // Стримим ответ
     if result.has_answer() {
         let _ = tx.send(RagStreamEvent::Token(result.answer.clone()));
     }
@@ -368,32 +409,50 @@ pub fn rag_query_full_context(
         });
     }
 
+    match rag_fetch_context(conn, question, top_k)? {
+        None => Ok(RagResult {
+            answer: String::new(),
+            sources: Vec::new(),
+            error_code: Some("no_relevant_chunks".to_string()),
+        }),
+        Some((context, sources)) => {
+            let answer = generate_answer(question, &context, sources.len());
+            Ok(RagResult {
+                answer,
+                sources,
+                error_code: None,
+            })
+        }
+    }
+}
+
+/// Фаза 1 RAG: только работа с БД (similarity_search + загрузка текстов чанков).
+///
+/// Возвращает `None` если нет релевантных чанков.
+/// Не вызывает LLM — чтобы не держать мьютекс БД во время генерации.
+fn rag_fetch_context(
+    conn: &Connection,
+    question: &str,
+    top_k: usize,
+) -> Result<Option<(String, Vec<RagSource>)>, LateraError> {
     info!(
-        "RAG query (full context): \"{}\" (top_k={})",
+        "RAG query (fetch context): \"{}\" (top_k={})",
         truncate(question, 80),
         top_k
     );
 
-    // 1. Используем similarity_search для отбора кандидатов.
-    //    Это даёт гибридный scoring (semantic + lexical) с фильтрацией шума
-    //    для коротких запросов (только лексические совпадения).
     let candidates = embeddings::similarity_search(conn, question, top_k)?;
 
     if candidates.is_empty() {
-        debug!("RAG full-context: no relevant candidates from similarity_search");
-        return Ok(RagResult {
-            answer: String::new(),
-            sources: Vec::new(),
-            error_code: Some("no_relevant_chunks".to_string()),
-        });
+        debug!("RAG fetch-context: no relevant candidates from similarity_search");
+        return Ok(None);
     }
 
     info!(
-        "RAG full-context: {} candidates from similarity_search",
+        "RAG fetch-context: {} candidates from similarity_search",
         candidates.len()
     );
 
-    // 2. Загружаем ПОЛНЫЙ текст чанков для отобранных кандидатов.
     let mut context_parts: Vec<String> = Vec::new();
     let mut sources: Vec<RagSource> = Vec::new();
 
@@ -422,15 +481,8 @@ pub fn rag_query_full_context(
         });
     }
 
-    // 3. Формируем контекст и ответ
     let context = context_parts.join("\n\n---\n\n");
-    let answer = generate_answer(question, &context, sources.len());
-
-    Ok(RagResult {
-        answer,
-        sources,
-        error_code: None,
-    })
+    Ok(Some((context, sources)))
 }
 
 // ============================================================================

@@ -195,6 +195,30 @@ jobs:
         id: import_cert
 
       # --- MSIX Creation & Signing ---
+      - name: Set MSIX version from git tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: flutter
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          # Convert semver like 1.0.0-beta.29 to MSIX-compatible 1.0.0.29
+          if ($tag -match '^(\d+\.\d+\.\d+)-\w+\.(\d+)$') {
+            $msixVersion = "$($Matches[1]).$($Matches[2])"
+          } elseif ($tag -match '^\d+\.\d+\.\d+\.\d+$') {
+            $msixVersion = $tag
+          } elseif ($tag -match '^\d+\.\d+\.\d+$') {
+            $msixVersion = "$tag.0"
+          } else {
+            $msixVersion = "1.0.0.0"
+          }
+          Write-Host "MSIX version: $msixVersion (from tag: ${{ github.ref_name }})"
+          # Patch pubspec.yaml: replace version line in msix section
+          $content = Get-Content pubspec.yaml -Raw
+          $content = $content -replace '(msix:[\s\S]*?)version:\s*\d+\.\d+\.\d+\.\d+', "`${1}version: $msixVersion"
+          Set-Content pubspec.yaml -Value $content -NoNewline
+          # Verify
+          Select-String -Path pubspec.yaml -Pattern "version:" | ForEach-Object { Write-Host $_.Line.Trim() }
+        shell: pwsh
+
       - name: Create MSIX package
         working-directory: flutter
         run: |

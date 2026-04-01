@@ -85,6 +85,9 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
         return;
       }
 
+      // Гарантируем, что LLM загружена (перезагружаем если TTL выгрузил)
+      await root.ensureLlmReady();
+
       final stream = root.ragService.queryStream(question, topK: 10);
       _streamSub = stream.listen(
         (event) {
