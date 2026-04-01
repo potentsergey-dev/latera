@@ -697,11 +697,12 @@ class AppCompositionRoot {
       return;
     }
 
-    // 2. Проверка RAM
-    if (isHardwareConstrained) {
+    // 2. Проверка RAM — для GGUF достаточно 4 ГБ (модель 3B Q4_K_M ~ 2.5 ГБ при инференсе)
+    const int ggufMinRamMb = 4096;
+    if (totalRamMb > 0 && totalRamMb < ggufMinRamMb) {
       logger.i(
-        '[GGUF] Download skipped: hardware constrained (RAM ${totalRamMb}MB < 6144MB). '
-        'Generative LLM requires ≥ 6 GB RAM.',
+        '[GGUF] Download skipped: insufficient RAM (${totalRamMb}MB < ${ggufMinRamMb}MB). '
+        'Generative LLM requires ≥ 4 GB RAM.',
       );
       tracker._setGgufStatus(ModelStatus.skippedLowRam);
       return;

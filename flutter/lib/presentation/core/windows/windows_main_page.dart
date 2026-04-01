@@ -78,8 +78,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
       await _refreshInboxCount();
       if (!mounted) return;
 
-      // Подписываемся на потоки событий ДО вызова start(),
-      // чтобы не пропустить события из initial scan.
+      // Подписываемся на broadcast-потоки событий координатора.
       _sub = coordinator.fileAddedEvents.listen(
         (event) {
           root.logger.i('File added: ${event.fileName}');
@@ -116,25 +115,36 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         });
       });
 
-      final startResult = await coordinator.start();
-      if (!mounted) return;
-
-      if (startResult is CoordinatorStartFailure) {
-        root.logger.e('Coordinator start failed', error: startResult.error);
+      // Если координатор уже запущен (напр. после возврата на вкладку),
+      // не перезапускаем — просто обновляем счётчики.
+      if (coordinator.isRunning) {
+        await _refreshIndexedCount();
+        await _refreshInboxCount();
+        if (!mounted) return;
         setState(() {
-          _status = 'Ошибка запуска: ${startResult.error.message}';
+          _status = 'Готово. Ожидаю файлы…';
         });
-        return;
+      } else {
+        final startResult = await coordinator.start();
+        if (!mounted) return;
+
+        if (startResult is CoordinatorStartFailure) {
+          root.logger.e('Coordinator start failed', error: startResult.error);
+          setState(() {
+            _status = 'Ошибка запуска: ${startResult.error.message}';
+          });
+          return;
+        }
+
+        // Обновляем счётчики после initial scan (который происходит внутри start()).
+        await _refreshIndexedCount();
+        await _refreshInboxCount();
+
+        if (!mounted) return;
+        setState(() {
+          _status = 'Готово. Ожидаю файлы…';
+        });
       }
-
-      // Обновляем счётчики после initial scan (который происходит внутри start()).
-      await _refreshIndexedCount();
-      await _refreshInboxCount();
-
-      if (!mounted) return;
-      setState(() {
-        _status = 'Готово. Ожидаю файлы…';
-      });
 
       // Одноразовое уведомление о слабом ПК
       unawaited(_showLowRamNotificationIfNeeded());
@@ -255,17 +265,9 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
     _removedSub?.cancel();
     _watchPathChangedSub?.cancel();
     _configSub?.cancel();
-
-    final coordinator = _coordinator;
-    if (coordinator != null) {
-      unawaited(
-        coordinator.stop().then((error) {
-          if (error != null) {
-            debugPrint('Error during coordinator stop: $error');
-          }
-        }),
-      );
-    }
+    // НЕ останавливаем coordinator — его жизненный цикл привязан к AppScope,
+    // а не к этой странице. При навигации между вкладками координатор
+    // продолжает работать, чтобы не пересканировать файлы при возврате.
     super.dispose();
   }
 

@@ -325,9 +325,11 @@ pub fn rag_query(
     // 4. Генерируем ответ (LLM если доступен, иначе stub)
     let answer = generate_answer(question, &context, relevant.len());
 
-    // 5. Собираем источники
+    // 5. Собираем источники (дедупликация по file_path)
+    let mut seen_paths = std::collections::HashSet::new();
     let sources: Vec<RagSource> = relevant
         .iter()
+        .filter(|r| seen_paths.insert(r.file_path.clone()))
         .map(|r| RagSource {
             file_path: r.file_path.clone(),
             chunk_snippet: r.chunk_snippet.clone(),
@@ -449,8 +451,12 @@ pub fn rag_query_full_context(
     let context = context_parts.join("\n\n---\n\n");
     let answer = generate_answer(question, &context, scored.len());
 
+    // Дедупликация источников по file_path: один файл — один источник,
+    // берём лучший (первый по score) чанк.
+    let mut seen_paths = std::collections::HashSet::new();
     let sources: Vec<RagSource> = scored
         .iter()
+        .filter(|(_, _, _, path, _)| seen_paths.insert(path.clone()))
         .map(|(_, text, offset, path, _)| RagSource {
             file_path: path.clone(),
             chunk_snippet: embeddings::truncate_snippet_pub(text, 200),
@@ -522,27 +528,36 @@ fn detect_question_language(question: &str) -> String {
     }
 }
 
+/// Максимальное количество фрагментов в stub-ответе (без LLM).
+const MAX_STUB_FRAGMENTS: usize = 3;
+
+/// Максимальная длина одного фрагмента в stub-ответе (символов).
+const MAX_STUB_FRAGMENT_LEN: usize = 300;
+
 /// Генерирует stub-ответ на основе контекста.
 ///
-/// Форматирует найденные фрагменты в читаемый пронумерованный список.
+/// Показывает краткую выдержку из топ-3 фрагментов (до 300 символов каждый).
 /// Источники (имя файла, позиция) отображаются отдельно в UI как карточки.
 fn generate_stub_answer(_question: &str, context: &str, source_count: usize) -> String {
     let fragments: Vec<&str> = context.split("\n\n---\n\n").collect();
+    let shown = fragments.len().min(MAX_STUB_FRAGMENTS);
     let mut result = format!(
-        "⚠️ Генеративная модель (LLM) не загружена — ответ сформирован автоматически из найденных фрагментов.\n\nНайдены релевантные фрагменты ({} {}):\n",
+        "⚠️ Генеративная модель (LLM) не загружена — показаны наиболее релевантные фрагменты ({} из {}).\n",
+        shown,
         source_count,
-        pluralize_fragment(source_count),
     );
-    for (i, fragment) in fragments.iter().enumerate() {
+    for (i, fragment) in fragments.iter().take(MAX_STUB_FRAGMENTS).enumerate() {
         let trimmed = fragment.trim();
         if !trimmed.is_empty() {
-            result.push_str(&format!("\n{}. {}\n", i + 1, trimmed));
+            let snippet = truncate(trimmed, MAX_STUB_FRAGMENT_LEN);
+            result.push_str(&format!("\n{}. {}\n", i + 1, snippet));
         }
     }
     result
 }
 
 /// Склоняем слово «фрагмент» по числу.
+#[allow(dead_code)]
 fn pluralize_fragment(n: usize) -> &'static str {
     let rem100 = n % 100;
     let rem10 = n % 10;

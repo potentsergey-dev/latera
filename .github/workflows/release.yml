@@ -74,6 +74,11 @@ jobs:
         working-directory: flutter
         run: flutter pub get
 
+      # Regenerate Windows app icon from assets/app_icon.png
+      - name: Generate launcher icons
+        working-directory: flutter
+        run: dart run flutter_launcher_icons
+
       # --- Codegen ---
       # NOTE: FRB codegen has a known bug on Windows (\\?\ path prefix).
       # Generated files are committed to the repo, so we skip codegen here.

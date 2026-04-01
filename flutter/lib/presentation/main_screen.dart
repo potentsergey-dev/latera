@@ -87,25 +87,35 @@ class _MainScreenState extends State<MainScreen> {
       // чтобы не пропустить события из initial scan.
       _setupStreamSubscriptions(root, coordinator);
 
-      final startResult = await coordinator.start();
-      if (!mounted) return;
-
-      if (startResult is CoordinatorStartFailure) {
-        root.logger.e('Coordinator start failed', error: startResult.error);
+      // Если координатор уже запущен, не перезапускаем — обновляем счётчики.
+      if (coordinator.isRunning) {
+        await _refreshIndexedCount();
+        await _refreshInboxCount();
+        if (!mounted) return;
         setState(() {
-          _status = 'Ошибка запуска: ${startResult.error.message}';
+          _status = 'Готово. Ожидаю файлы…';
         });
-        return;
+      } else {
+        final startResult = await coordinator.start();
+        if (!mounted) return;
+
+        if (startResult is CoordinatorStartFailure) {
+          root.logger.e('Coordinator start failed', error: startResult.error);
+          setState(() {
+            _status = 'Ошибка запуска: ${startResult.error.message}';
+          });
+          return;
+        }
+
+        // Обновляем счётчики после initial scan.
+        await _refreshIndexedCount();
+        await _refreshInboxCount();
+
+        if (!mounted) return;
+        setState(() {
+          _status = 'Готово. Ожидаю файлы…';
+        });
       }
-
-      // Обновляем счётчики после initial scan (который происходит внутри start()).
-      await _refreshIndexedCount();
-      await _refreshInboxCount();
-
-      if (!mounted) return;
-      setState(() {
-        _status = 'Готово. Ожидаю файлы…';
-      });
 
       // Одноразовое уведомление о слабом ПК
       unawaited(_showLowRamNotificationIfNeeded());
@@ -299,18 +309,7 @@ class _MainScreenState extends State<MainScreen> {
     _watchPathChangedSub = null;
     _configSub?.cancel();
     _configSub = null;
-
-    final coordinator = _coordinator;
-    if (coordinator != null) {
-      unawaited(
-        coordinator.stop().then((error) {
-          if (error != null) {
-            debugPrint('Error during coordinator stop: $error');
-          }
-        }),
-      );
-    }
-
+    // НЕ останавливаем coordinator — его жизненный цикл привязан к AppScope.
     super.dispose();
   }
 
