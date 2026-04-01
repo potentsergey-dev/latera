@@ -806,7 +806,11 @@ class AppCompositionRoot {
     }
 
     // Модель на диске? Перезагружаем.
-    final ggufPath = p.join(_modelDataDir, 'models', LlmDownloadService.ggufModelFileName);
+    final ggufPath = p.join(
+      _modelDataDir,
+      'models',
+      LlmDownloadService.ggufModelFileName,
+    );
     if (!File(ggufPath).existsSync()) return;
 
     logger.i('[LLM] Re-initializing generative model (was unloaded by TTL)');
