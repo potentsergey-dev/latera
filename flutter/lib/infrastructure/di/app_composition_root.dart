@@ -65,6 +65,9 @@ enum ModelStatus {
   /// Загрузка пропущена из-за нехватки места на диске.
   skippedLowDisk,
 
+  /// LLM загружена, но CPU не поддерживает AVX2 — генерация будет медленной.
+  loadedSlowCpu,
+
   /// Модель не загружена (начальное состояние).
   notDownloaded,
 }
@@ -145,6 +148,9 @@ class AppCompositionRoot {
   /// Когда true — лицензия ограничена до Basic, ResourceSaver включён принудительно.
   final bool isHardwareConstrained;
 
+  /// Поддерживает ли CPU инструкции AVX2 (влияет на скорость LLM-генерации).
+  final bool hasAvx2;
+
   /// Ссылка на SqliteIndexService для dispose.
   final SqliteIndexService? _sqliteIndexService;
 
@@ -169,6 +175,7 @@ class AppCompositionRoot {
     required String modelDataDir,
     required this.totalRamMb,
     required this.isHardwareConstrained,
+    required this.hasAvx2,
     SqliteIndexService? sqliteIndexService,
   }) : _sqliteIndexService = sqliteIndexService,
        _modelDataDir = modelDataDir;
@@ -257,7 +264,7 @@ class AppCompositionRoot {
     bool hasAvx2 = false;
     if (rustSystemService.isAvailable) {
       hasAvx2 = rustSystemService.getHasAvx2();
-      final int ragMaxTokens = hasAvx2 ? 300 : 100;
+      final int ragMaxTokens = hasAvx2 ? 300 : 50;
       rustSystemService.setRagMaxTokens(ragMaxTokens);
       logger.i(
         'CPU: AVX2=${hasAvx2 ? "yes" : "no"}, RAG max_tokens=$ragMaxTokens',
@@ -406,6 +413,7 @@ class AppCompositionRoot {
           modelDataDir,
           totalRamMb,
           isHardwareConstrained,
+          hasAvx2,
           logger,
           contentEnrichmentCoordinator,
           llmLifecycleCoordinator,
@@ -446,6 +454,7 @@ class AppCompositionRoot {
       modelDataDir: modelDataDir,
       totalRamMb: totalRamMb,
       isHardwareConstrained: isHardwareConstrained,
+      hasAvx2: hasAvx2,
       sqliteIndexService: sqliteIndexService,
     );
   }
@@ -472,6 +481,7 @@ class AppCompositionRoot {
         _modelDataDir,
         totalRamMb,
         isHardwareConstrained,
+        hasAvx2,
         logger,
         contentEnrichmentCoordinator,
         llmLifecycleCoordinator,
@@ -655,6 +665,7 @@ class AppCompositionRoot {
     String modelDataDir,
     int totalRamMb,
     bool isHardwareConstrained,
+    bool hasAvx2,
     Logger logger,
     ContentEnrichmentCoordinator coordinator,
     LlmLifecycleCoordinator llmLifecycleCoordinator,
@@ -686,7 +697,12 @@ class AppCompositionRoot {
         logger.i(
           '[GGUF] Generative LLM loaded in ${sw.elapsedMilliseconds} ms',
         );
-        tracker._setGgufStatus(ModelStatus.ready);
+        if (hasAvx2) {
+          tracker._setGgufStatus(ModelStatus.ready);
+        } else {
+          logger.w('[GGUF] CPU does not support AVX2 — LLM will run slowly');
+          tracker._setGgufStatus(ModelStatus.loadedSlowCpu);
+        }
       } catch (e) {
         logger.w('[GGUF] Generative LLM init failed: $e');
         tracker._setGgufStatus(ModelStatus.failed, e.toString());
@@ -748,7 +764,12 @@ class AppCompositionRoot {
       logger.i(
         '[GGUF] Model downloaded and LLM initialized in ${sw.elapsedMilliseconds} ms',
       );
-      tracker._setGgufStatus(ModelStatus.ready);
+      if (hasAvx2) {
+        tracker._setGgufStatus(ModelStatus.ready);
+      } else {
+        logger.w('[GGUF] CPU does not support AVX2 — LLM will run slowly');
+        tracker._setGgufStatus(ModelStatus.loadedSlowCpu);
+      }
     } catch (e, st) {
       coordinator.completeCustomJob(job);
       logger.e('[GGUF] Download/init failed', error: e, stackTrace: st);
@@ -783,6 +804,7 @@ class AppCompositionRoot {
         _modelDataDir,
         totalRamMb,
         isHardwareConstrained,
+        hasAvx2,
         logger,
         contentEnrichmentCoordinator,
         llmLifecycleCoordinator,

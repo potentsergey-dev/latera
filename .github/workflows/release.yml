@@ -77,7 +77,10 @@ jobs:
       # Regenerate Windows app icon from assets/app_icon.png
       - name: Generate launcher icons
         working-directory: flutter
-        run: dart run flutter_launcher_icons
+        run: |
+          dart run flutter_launcher_icons
+          pip install Pillow --quiet
+          python -c "from PIL import Image; img=Image.open('assets/app_icon.png'); img.save('windows/runner/resources/app_icon.ico', format='ICO', sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)])"
 
       # Clean cached build artifacts to force re-embedding the fresh .ico
       - name: Clean Flutter build cache
@@ -211,10 +214,19 @@ jobs:
             $msixVersion = "1.0.0.0"
           }
           Write-Host "MSIX version: $msixVersion (from tag: ${{ github.ref_name }})"
-          # Patch pubspec.yaml: replace version line in msix section
-          $content = Get-Content pubspec.yaml -Raw
-          $content = $content -replace '(msix:[\s\S]*?)version:\s*\d+\.\d+\.\d+\.\d+', "`${1}version: $msixVersion"
-          Set-Content pubspec.yaml -Value $content -NoNewline
+          # Patch pubspec.yaml: replace version line inside msix: section
+          $lines = Get-Content pubspec.yaml
+          $inMsix = $false
+          $result = @()
+          foreach ($line in $lines) {
+            if ($line -match '^msix:') { $inMsix = $true }
+            elseif ($inMsix -and $line -match '^\S') { $inMsix = $false }
+            if ($inMsix -and $line -match '^(\s+version:\s*)\d+\.\d+\.\d+\.\d+') {
+              $line = "$($Matches[1])$msixVersion"
+            }
+            $result += $line
+          }
+          $result | Set-Content pubspec.yaml
           # Verify
           Select-String -Path pubspec.yaml -Pattern "version:" | ForEach-Object { Write-Host $_.Line.Trim() }
         shell: pwsh

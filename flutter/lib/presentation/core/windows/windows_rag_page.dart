@@ -208,32 +208,46 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
     if (status == ModelStatus.ready) return const SizedBox.shrink();
 
     final String message;
+    final fluent.InfoBarSeverity severity;
     switch (status) {
+      case ModelStatus.loadedSlowCpu:
+        message =
+            'Ваш процессор не поддерживает быстрые инструкции (AVX2). '
+            'LLM-генерация работает, но ответы могут занимать 1–3 минуты. '
+            'Используйте кнопку «Стоп» для отмены.';
+        severity = fluent.InfoBarSeverity.warning;
       case ModelStatus.skippedLowRam:
         message =
             'Генеративная модель не загружена: недостаточно оперативной памяти (нужно ≥ 6 ГБ). '
             'Ответы формируются из найденных фрагментов без AI-генерации.';
+        severity = fluent.InfoBarSeverity.warning;
       case ModelStatus.skippedLowDisk:
         message =
             'Генеративная модель не загружена: недостаточно места на диске (нужно ≥ 2 ГБ).';
+        severity = fluent.InfoBarSeverity.warning;
       case ModelStatus.downloading:
         message = 'Генеративная модель загружается…';
+        severity = fluent.InfoBarSeverity.info;
       case ModelStatus.failed:
         message =
             'Не удалось загрузить генеративную модель. Проверьте подключение к интернету.';
+        severity = fluent.InfoBarSeverity.warning;
       default:
         message =
             'Генеративная модель не загружена. Ответы формируются из найденных фрагментов без AI-генерации.';
+        severity = fluent.InfoBarSeverity.warning;
     }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: fluent.InfoBar(
-        title: const Text('Ограниченный режим'),
+        title: Text(
+          status == ModelStatus.loadedSlowCpu
+              ? 'Медленный режим'
+              : 'Ограниченный режим',
+        ),
         content: Text(message),
-        severity: status == ModelStatus.downloading
-            ? fluent.InfoBarSeverity.info
-            : fluent.InfoBarSeverity.warning,
+        severity: severity,
         isLong: true,
       ),
     );
@@ -323,13 +337,20 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
           ),
         );
       }
-      return const Center(
+      final root = AppScope.of(context);
+      final isSlowCpu =
+          root.modelDownloadTracker.ggufStatus == ModelStatus.loadedSlowCpu;
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            fluent.ProgressRing(),
-            SizedBox(height: 16),
-            Text('Ищу ответ в ваших документах…'),
+            const fluent.ProgressRing(),
+            const SizedBox(height: 16),
+            Text(
+              isSlowCpu
+                  ? 'Генерирую ответ (CPU без AVX2, это может занять 1–3 мин)…'
+                  : 'Ищу ответ в ваших документах…',
+            ),
           ],
         ),
       );
