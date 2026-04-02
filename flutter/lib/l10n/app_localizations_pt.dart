@@ -514,4 +514,61 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get downloadFailedRetryHint =>
       'Toque para tentar o download novamente';
+
+  @override
+  String get homeTitle => 'Home';
+
+  @override
+  String get homeStatusInitializing => 'Initializing…';
+
+  @override
+  String get homeStatusNewFileDetected => 'New file detected';
+
+  @override
+  String homeStatusWatchError(String error) {
+    return 'Watch error: $error';
+  }
+
+  @override
+  String get homeStatusFolderChanged => 'Folder changed. Waiting for files…';
+
+  @override
+  String get homeStatusReady => 'Ready. Waiting for files…';
+
+  @override
+  String homeStatusStartError(String error) {
+    return 'Start error: $error';
+  }
+
+  @override
+  String homeStatusInitError(String error) {
+    return 'Initialization error: $error';
+  }
+
+  @override
+  String get homeFilesInIndex => 'Files in index';
+
+  @override
+  String get homeNeedsAttention => 'Need attention';
+
+  @override
+  String get homeLastFile => 'Last file';
+
+  @override
+  String get homeWatchFolder => 'Watch folder';
+
+  @override
+  String get homeNotConfigured => 'Not configured';
+
+  @override
+  String homeFileRemovedFromIndex(String fileName) {
+    return 'File removed from index: $fileName';
+  }
+
+  @override
+  String get homeLowRamTitle => 'Insufficient RAM';
+
+  @override
+  String get homeLowRamBody =>
+      'Less than 6 GB of RAM detected. The app runs in Basic mode with resource-intensive features disabled. For PRO mode and local AI, more RAM is recommended.';
 }

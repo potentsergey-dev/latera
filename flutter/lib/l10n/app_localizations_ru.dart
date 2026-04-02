@@ -504,4 +504,61 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get downloadFailedRetryHint => 'Нажмите для повторной загрузки';
+
+  @override
+  String get homeTitle => 'Главная';
+
+  @override
+  String get homeStatusInitializing => 'Инициализация…';
+
+  @override
+  String get homeStatusNewFileDetected => 'Новый файл обнаружен';
+
+  @override
+  String homeStatusWatchError(String error) {
+    return 'Ошибка наблюдения: $error';
+  }
+
+  @override
+  String get homeStatusFolderChanged => 'Папка изменена. Ожидаю файлы…';
+
+  @override
+  String get homeStatusReady => 'Готово. Ожидаю файлы…';
+
+  @override
+  String homeStatusStartError(String error) {
+    return 'Ошибка запуска: $error';
+  }
+
+  @override
+  String homeStatusInitError(String error) {
+    return 'Ошибка инициализации: $error';
+  }
+
+  @override
+  String get homeFilesInIndex => 'Файлов в индексе';
+
+  @override
+  String get homeNeedsAttention => 'Требуют внимания';
+
+  @override
+  String get homeLastFile => 'Последний файл';
+
+  @override
+  String get homeWatchFolder => 'Папка наблюдения';
+
+  @override
+  String get homeNotConfigured => 'Не настроена';
+
+  @override
+  String homeFileRemovedFromIndex(String fileName) {
+    return 'Файл удалён из индекса: $fileName';
+  }
+
+  @override
+  String get homeLowRamTitle => 'Недостаточно ОЗУ';
+
+  @override
+  String get homeLowRamBody =>
+      'На вашем ПК обнаружено менее 6 ГБ ОЗУ. Приложение работает в режиме Basic с отключёнными ресурсоёмкими функциями. Для режима PRO и локального AI рекомендуется увеличить объём ОЗУ.';
 }

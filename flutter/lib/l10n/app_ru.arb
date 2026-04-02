@@ -161,5 +161,22 @@
   "settingsGgufModelMissing": "Генеративная модель: не загружена",
   "settingsGgufModelSkippedRam": "Генеративная модель: пропущена (мало ОЗУ)",
   "settingsGgufModelSkippedDisk": "Генеративная модель: пропущена (мало места на диске)",
-  "downloadFailedRetryHint": "Нажмите для повторной загрузки"
+  "downloadFailedRetryHint": "Нажмите для повторной загрузки",
+
+  "homeTitle": "Главная",
+  "homeStatusInitializing": "Инициализация…",
+  "homeStatusNewFileDetected": "Новый файл обнаружен",
+  "homeStatusWatchError": "Ошибка наблюдения: {error}",
+  "homeStatusFolderChanged": "Папка изменена. Ожидаю файлы…",
+  "homeStatusReady": "Готово. Ожидаю файлы…",
+  "homeStatusStartError": "Ошибка запуска: {error}",
+  "homeStatusInitError": "Ошибка инициализации: {error}",
+  "homeFilesInIndex": "Файлов в индексе",
+  "homeNeedsAttention": "Требуют внимания",
+  "homeLastFile": "Последний файл",
+  "homeWatchFolder": "Папка наблюдения",
+  "homeNotConfigured": "Не настроена",
+  "homeFileRemovedFromIndex": "Файл удалён из индекса: {fileName}",
+  "homeLowRamTitle": "Недостаточно ОЗУ",
+  "homeLowRamBody": "На вашем ПК обнаружено менее 6 ГБ ОЗУ. Приложение работает в режиме Basic с отключёнными ресурсоёмкими функциями. Для режима PRO и локального AI рекомендуется увеличить объём ОЗУ."
 }

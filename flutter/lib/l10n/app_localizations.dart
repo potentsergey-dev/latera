@@ -967,6 +967,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap to retry download'**
   String get downloadFailedRetryHint;
+
+  /// Home page title
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeTitle;
+
+  /// Status while app initializes
+  ///
+  /// In en, this message translates to:
+  /// **'Initializing…'**
+  String get homeStatusInitializing;
+
+  /// Status when a new file is found
+  ///
+  /// In en, this message translates to:
+  /// **'New file detected'**
+  String get homeStatusNewFileDetected;
+
+  /// Status on watcher error
+  ///
+  /// In en, this message translates to:
+  /// **'Watch error: {error}'**
+  String homeStatusWatchError(String error);
+
+  /// Status after watch folder change
+  ///
+  /// In en, this message translates to:
+  /// **'Folder changed. Waiting for files…'**
+  String get homeStatusFolderChanged;
+
+  /// Status when coordinator is running
+  ///
+  /// In en, this message translates to:
+  /// **'Ready. Waiting for files…'**
+  String get homeStatusReady;
+
+  /// Status on coordinator start failure
+  ///
+  /// In en, this message translates to:
+  /// **'Start error: {error}'**
+  String homeStatusStartError(String error);
+
+  /// Status on init failure
+  ///
+  /// In en, this message translates to:
+  /// **'Initialization error: {error}'**
+  String homeStatusInitError(String error);
+
+  /// Card label for indexed file count
+  ///
+  /// In en, this message translates to:
+  /// **'Files in index'**
+  String get homeFilesInIndex;
+
+  /// Card label for inbox count
+  ///
+  /// In en, this message translates to:
+  /// **'Need attention'**
+  String get homeNeedsAttention;
+
+  /// Card label for last file name
+  ///
+  /// In en, this message translates to:
+  /// **'Last file'**
+  String get homeLastFile;
+
+  /// Label for watch folder path
+  ///
+  /// In en, this message translates to:
+  /// **'Watch folder'**
+  String get homeWatchFolder;
+
+  /// Shown when watch folder not set
+  ///
+  /// In en, this message translates to:
+  /// **'Not configured'**
+  String get homeNotConfigured;
+
+  /// Info bar on file removal
+  ///
+  /// In en, this message translates to:
+  /// **'File removed from index: {fileName}'**
+  String homeFileRemovedFromIndex(String fileName);
+
+  /// Low RAM notification title
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient RAM'**
+  String get homeLowRamTitle;
+
+  /// Low RAM notification body
+  ///
+  /// In en, this message translates to:
+  /// **'Less than 6 GB of RAM detected. The app runs in Basic mode with resource-intensive features disabled. For PRO mode and local AI, more RAM is recommended.'**
+  String get homeLowRamBody;
 }
 
 class _AppLocalizationsDelegate

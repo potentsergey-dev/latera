@@ -513,31 +513,23 @@ class SqliteIndexService implements Indexer, SearchRepository {
     required String fileName,
   }) async {
     try {
+      // Skip if already indexed — avoid resetting needs_review on app restart.
+      final existing = _database.select(
+        'SELECT COUNT(*) FROM files WHERE file_path = ?',
+        [filePath],
+      );
+      if ((existing.first.columnAt(0) as int) > 0) {
+        return false;
+      }
+
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final textContent = await _extractText(filePath);
 
-      if (textContent != null) {
-        _database.execute(
-          '''INSERT INTO files (file_path, file_name, description, text_content, needs_review, indexed_at)
-             VALUES (?, ?, '', ?, 1, ?)
-             ON CONFLICT(file_path) DO UPDATE SET
-                file_name = excluded.file_name,
-                text_content = excluded.text_content,
-                needs_review = 1,
-                indexed_at = excluded.indexed_at''',
-          [filePath, fileName, textContent, now],
-        );
-      } else {
-        _database.execute(
-          '''INSERT INTO files (file_path, file_name, description, text_content, needs_review, indexed_at)
-             VALUES (?, ?, '', '', 1, ?)
-             ON CONFLICT(file_path) DO UPDATE SET
-                file_name = excluded.file_name,
-                needs_review = 1,
-                indexed_at = excluded.indexed_at''',
-          [filePath, fileName, now],
-        );
-      }
+      _database.execute(
+        '''INSERT OR IGNORE INTO files (file_path, file_name, description, text_content, needs_review, indexed_at)
+           VALUES (?, ?, '', ?, 1, ?)''',
+        [filePath, fileName, textContent ?? '', now],
+      );
 
       _log.d('Indexed file for review: $fileName (path=$filePath)');
       return true;

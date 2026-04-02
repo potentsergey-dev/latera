@@ -431,5 +431,53 @@
   "@settingsGgufModelSkippedDisk": { "description": "Status when GGUF is skipped due to low disk" },
 
   "downloadFailedRetryHint": "Tap to retry download",
-  "@downloadFailedRetryHint": { "description": "Hint on a retry tile" }
+  "@downloadFailedRetryHint": { "description": "Hint on a retry tile" },
+
+  "homeTitle": "Home",
+  "@homeTitle": { "description": "Home page title" },
+
+  "homeStatusInitializing": "Initializing…",
+  "@homeStatusInitializing": { "description": "Status while app initializes" },
+
+  "homeStatusNewFileDetected": "New file detected",
+  "@homeStatusNewFileDetected": { "description": "Status when a new file is found" },
+
+  "homeStatusWatchError": "Watch error: {error}",
+  "@homeStatusWatchError": { "description": "Status on watcher error", "placeholders": { "error": { "type": "String" } } },
+
+  "homeStatusFolderChanged": "Folder changed. Waiting for files…",
+  "@homeStatusFolderChanged": { "description": "Status after watch folder change" },
+
+  "homeStatusReady": "Ready. Waiting for files…",
+  "@homeStatusReady": { "description": "Status when coordinator is running" },
+
+  "homeStatusStartError": "Start error: {error}",
+  "@homeStatusStartError": { "description": "Status on coordinator start failure", "placeholders": { "error": { "type": "String" } } },
+
+  "homeStatusInitError": "Initialization error: {error}",
+  "@homeStatusInitError": { "description": "Status on init failure", "placeholders": { "error": { "type": "String" } } },
+
+  "homeFilesInIndex": "Files in index",
+  "@homeFilesInIndex": { "description": "Card label for indexed file count" },
+
+  "homeNeedsAttention": "Need attention",
+  "@homeNeedsAttention": { "description": "Card label for inbox count" },
+
+  "homeLastFile": "Last file",
+  "@homeLastFile": { "description": "Card label for last file name" },
+
+  "homeWatchFolder": "Watch folder",
+  "@homeWatchFolder": { "description": "Label for watch folder path" },
+
+  "homeNotConfigured": "Not configured",
+  "@homeNotConfigured": { "description": "Shown when watch folder not set" },
+
+  "homeFileRemovedFromIndex": "File removed from index: {fileName}",
+  "@homeFileRemovedFromIndex": { "description": "Info bar on file removal", "placeholders": { "fileName": { "type": "String" } } },
+
+  "homeLowRamTitle": "Insufficient RAM",
+  "@homeLowRamTitle": { "description": "Low RAM notification title" },
+
+  "homeLowRamBody": "Less than 6 GB of RAM detected. The app runs in Basic mode with resource-intensive features disabled. For PRO mode and local AI, more RAM is recommended.",
+  "@homeLowRamBody": { "description": "Low RAM notification body" }
 }

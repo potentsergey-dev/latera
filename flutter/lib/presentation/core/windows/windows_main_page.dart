@@ -9,6 +9,7 @@ import '../../../application/file_events_coordinator.dart';
 import '../../../domain/app_config.dart';
 import '../../../domain/core_error.dart';
 import '../../../domain/feature_flags.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../app_scope.dart';
 import '../../model_download_failure_banner.dart';
 import '../../processing_status_bar.dart';
@@ -31,7 +32,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
   StreamSubscription<FileRemovedUiEvent>? _removedSub;
   StreamSubscription<String>? _watchPathChangedSub;
   StreamSubscription<AppConfig>? _configSub;
-  String _status = 'Инициализация…';
+  String _status = '';
   String? _lastFileName;
   int _indexedCount = 0;
   int _inboxCount = 0;
@@ -85,7 +86,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
           if (!mounted) return;
           setState(() {
             _lastFileName = event.fileName;
-            _status = 'Новый файл обнаружен';
+            _status = AppLocalizations.of(context)!.homeStatusNewFileDetected;
           });
           unawaited(_silentlyIndexForReview(event));
         },
@@ -93,7 +94,9 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
           root.logger.e('Stream error in UI', error: error, stackTrace: st);
           if (!mounted) return;
           setState(() {
-            _status = 'Ошибка наблюдения: ${_extractErrorMessage(error)}';
+            _status = AppLocalizations.of(
+              context,
+            )!.homeStatusWatchError(_extractErrorMessage(error));
           });
         },
       );
@@ -109,7 +112,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         root.logger.i('Watch path changed to: $newWatchDir');
         if (!mounted) return;
         setState(() {
-          _status = 'Папка изменена. Ожидаю файлы…';
+          _status = AppLocalizations.of(context)!.homeStatusFolderChanged;
           _lastFileName = null;
           _indexedCount = 0;
         });
@@ -122,7 +125,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         await _refreshInboxCount();
         if (!mounted) return;
         setState(() {
-          _status = 'Готово. Ожидаю файлы…';
+          _status = AppLocalizations.of(context)!.homeStatusReady;
         });
       } else {
         final startResult = await coordinator.start();
@@ -131,7 +134,9 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         if (startResult is CoordinatorStartFailure) {
           root.logger.e('Coordinator start failed', error: startResult.error);
           setState(() {
-            _status = 'Ошибка запуска: ${startResult.error.message}';
+            _status = AppLocalizations.of(
+              context,
+            )!.homeStatusStartError(startResult.error.message);
           });
           return;
         }
@@ -142,7 +147,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
 
         if (!mounted) return;
         setState(() {
-          _status = 'Готово. Ожидаю файлы…';
+          _status = AppLocalizations.of(context)!.homeStatusReady;
         });
       }
 
@@ -152,7 +157,9 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
       root.logger.e('Init failed', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
-        _status = 'Ошибка инициализации: $e';
+        _status = AppLocalizations.of(
+          context,
+        )!.homeStatusInitError(e.toString());
       });
     }
   }
@@ -213,7 +220,11 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         context,
         builder: (context, close) {
           return fluent.InfoBar(
-            title: Text('Файл удалён из индекса: ${event.fileName}'),
+            title: Text(
+              AppLocalizations.of(
+                context,
+              )!.homeFileRemovedFromIndex(event.fileName),
+            ),
             severity: fluent.InfoBarSeverity.info,
             onClose: close,
           );
@@ -293,12 +304,8 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
       duration: const Duration(seconds: 10),
       builder: (context, close) {
         return fluent.InfoBar(
-          title: const Text('Недостаточно ОЗУ'),
-          content: const Text(
-            'На вашем ПК обнаружено менее 6 ГБ ОЗУ. Приложение работает в режиме Basic '
-            'с отключёнными ресурсоёмкими функциями. Для режима PRO и локального AI '
-            'рекомендуется увеличить объём ОЗУ.',
-          ),
+          title: Text(AppLocalizations.of(context)!.homeLowRamTitle),
+          content: Text(AppLocalizations.of(context)!.homeLowRamBody),
           severity: fluent.InfoBarSeverity.warning,
           onClose: close,
         );
@@ -312,14 +319,16 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
     final config = root.configService.currentConfig;
     final theme = fluent.FluentTheme.of(context);
 
+    final l10n = AppLocalizations.of(context)!;
+
     return fluent.ScaffoldPage.scrollable(
-      header: fluent.PageHeader(title: const Text('Главная')),
+      header: fluent.PageHeader(title: Text(l10n.homeTitle)),
       children: [
         // Статус
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
-            _status,
+            _status.isEmpty ? l10n.homeStatusInitializing : _status,
             style: theme.typography.body?.copyWith(color: theme.inactiveColor),
           ),
         ),
@@ -356,7 +365,10 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text('Файлов в индексе', style: theme.typography.caption),
+                    Text(
+                      l10n.homeFilesInIndex,
+                      style: theme.typography.caption,
+                    ),
                   ],
                 ),
               ),
@@ -382,7 +394,10 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text('Требуют внимания', style: theme.typography.caption),
+                    Text(
+                      l10n.homeNeedsAttention,
+                      style: theme.typography.caption,
+                    ),
                   ],
                 ),
               ),
@@ -408,7 +423,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
-                    Text('Последний файл', style: theme.typography.caption),
+                    Text(l10n.homeLastFile, style: theme.typography.caption),
                   ],
                 ),
               ),
@@ -428,9 +443,9 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Папка наблюдения', style: theme.typography.caption),
+                    Text(l10n.homeWatchFolder, style: theme.typography.caption),
                     Text(
-                      config.watchPath ?? 'Не настроена',
+                      config.watchPath ?? l10n.homeNotConfigured,
                       style: theme.typography.body,
                       overflow: TextOverflow.ellipsis,
                     ),
