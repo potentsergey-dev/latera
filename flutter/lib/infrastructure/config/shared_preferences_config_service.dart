@@ -258,7 +258,7 @@ class SharedPreferencesConfigService implements ConfigService {
 
     final prefs = _prefs!;
 
-    // Удаляем все ключи кроме onboarding
+    // Удаляем все ключи настроек и сбрасываем онбординг
     await prefs.remove(_ConfigKeys.watchPath);
     await prefs.remove(_ConfigKeys.watchIntervalMs);
     await prefs.remove(_ConfigKeys.notificationsEnabled);
@@ -281,6 +281,10 @@ class SharedPreferencesConfigService implements ConfigService {
     await prefs.remove(_ConfigKeys.maxFileSizeMbForEnrichment);
     await prefs.remove(_ConfigKeys.maxMediaMinutes);
     await prefs.remove(_ConfigKeys.maxPagesPerPdf);
+
+    // Сбрасываем флаг онбординга: после reset пользователь проходит
+    // онбординг заново (выбирает папку, язык устанавливается по системе).
+    await prefs.setBool(_ConfigKeys.onboardingCompleted, false);
 
     _currentConfig = AppConfig.defaultConfig;
     _configController.add(_currentConfig);

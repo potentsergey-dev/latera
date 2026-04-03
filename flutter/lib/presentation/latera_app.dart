@@ -77,8 +77,14 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       await tray.initialize(onQuitRequested: _onQuitRequested);
 
       // Rebuild the widget tree when config changes (e.g. locale switch).
+      // При сбросе настроек (reset) onboardingCompleted становится false —
+      // обновляем _needsOnboarding чтобы показать онбординг.
       final configSub = root.configService.configChanges.listen((_) {
-        if (mounted) setState(() {});
+        if (mounted) {
+          setState(() {
+            _needsOnboarding = !root.configService.isOnboardingCompleted;
+          });
+        }
       });
 
       if (mounted) {
