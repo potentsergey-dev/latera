@@ -221,13 +221,16 @@ jobs:
       - name: Create MSIX package
         working-directory: flutter
         run: |
+          # cert.pfx is at repo root (decoded in previous step), ../cert.pfx from flutter/ CWD
+          $certPath = "../cert.pfx"
+          $certPass = "${{ secrets.CERT_PASSWORD }}"
           $versionArg = '${{ steps.msix_version.outputs.msix_version }}'
           if ($versionArg) {
             Write-Host "Creating MSIX with version: $versionArg"
-            flutter pub run msix:create --install-certificate false --version $versionArg
+            flutter pub run msix:create --install-certificate false --version $versionArg --certificate-path $certPath --certificate-password $certPass
           } else {
             Write-Host "No version override, using pubspec.yaml value"
-            flutter pub run msix:create --install-certificate false
+            flutter pub run msix:create --install-certificate false --certificate-path $certPath --certificate-password $certPass
           }
         shell: pwsh
 

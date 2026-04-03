@@ -1,5 +1,5 @@
 name: latera
-description: "A new Flutter project."
+description: "AI-powered document search for Windows"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -153,7 +153,7 @@ flutter:
 # For CI/CD: Certificate is provided via GitHub Secrets (BASE64_CERT, CERT_PASSWORD)
 # For Store: Update publisher with Store certificate after Partner Center reservation
 #
-msix:
+msix_config:
   display_name: Latera
   publisher_display_name: Sergey Voronin
   identity_name: com.latera.latera
