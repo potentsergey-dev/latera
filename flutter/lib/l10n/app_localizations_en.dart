@@ -413,10 +413,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLanguageSystem => 'System default';
 
   @override
-  String get settingsLanguageRestartHint =>
-      'Restart the app to apply the new language';
-
-  @override
   String get onboardingAiModelsTitle => 'AI Models';
 
   @override
@@ -559,4 +555,173 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get homeLowRamBody =>
       'Less than 6 GB of RAM detected. The app runs in Basic mode with resource-intensive features disabled. For PRO mode and local AI, more RAM is recommended.';
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navSearch => 'Search';
+
+  @override
+  String get navInbox => 'Inbox';
+
+  @override
+  String get navSettings => 'Settings';
+
+  @override
+  String get buttonSaving => 'Saving…';
+
+  @override
+  String get inboxAllProcessed => 'All files processed';
+
+  @override
+  String get inboxNewFilesHint => 'New files will appear here automatically';
+
+  @override
+  String get inboxSelectFile => 'Select a file from the list';
+
+  @override
+  String inboxSaveError(String error) {
+    return 'Save error: $error';
+  }
+
+  @override
+  String get inboxFileNotFound => 'File not found on disk';
+
+  @override
+  String get inboxDescription => 'Description';
+
+  @override
+  String get inboxDescriptionPlaceholder =>
+      'Add a file description to improve search…';
+
+  @override
+  String get inboxTags => 'Tags';
+
+  @override
+  String get inboxTagsPlaceholder => 'Enter tags separated by commas…';
+
+  @override
+  String get searchTitle => 'File search';
+
+  @override
+  String get searchSemantic => 'Semantic';
+
+  @override
+  String get searchFulltext => 'Full-text';
+
+  @override
+  String get searchSemanticPlaceholder => 'Describe what you\'re looking for…';
+
+  @override
+  String get searchKeywordsPlaceholder => 'Enter keywords…';
+
+  @override
+  String searchSimilarTo(String fileName) {
+    return 'Similar to: $fileName';
+  }
+
+  @override
+  String get searchFileNotFound => 'File not found on disk';
+
+  @override
+  String get searchError => 'Search error';
+
+  @override
+  String get searchEnterQuery => 'Enter a search query';
+
+  @override
+  String get searchNoResults => 'Nothing found';
+
+  @override
+  String get ragTitle => 'Ask your folder';
+
+  @override
+  String get ragPlaceholder => 'Ask a question about your documents…';
+
+  @override
+  String get ragStop => 'Stop';
+
+  @override
+  String get ragAsk => 'Ask';
+
+  @override
+  String get ragSlowCpuWarning =>
+      'Your CPU does not support fast instructions (AVX2). LLM generation works, but responses may take 1–3 minutes. Use the Stop button to cancel.';
+
+  @override
+  String get ragLowRamWarning =>
+      'Generative model not loaded: insufficient RAM (need ≥ 6 GB). Answers are formed from found snippets without AI generation.';
+
+  @override
+  String get ragLowDiskWarning =>
+      'Generative model not loaded: not enough disk space (need ≥ 2 GB).';
+
+  @override
+  String get ragModelDownloading => 'Generative model is downloading…';
+
+  @override
+  String get ragModelFailed =>
+      'Failed to download generative model. Check your internet connection.';
+
+  @override
+  String get ragModelNotLoaded =>
+      'Generative model not loaded. Answers are formed from found snippets without AI generation.';
+
+  @override
+  String get ragSlowMode => 'Slow mode';
+
+  @override
+  String get ragLimitedMode => 'Limited mode';
+
+  @override
+  String get ragInitialHint => 'Ask a question about your indexed documents';
+
+  @override
+  String get ragInitialSubhint =>
+      'Search will show relevant snippets from your documents';
+
+  @override
+  String get ragGenerating => 'Generating answer…';
+
+  @override
+  String get ragGeneratingSlowCpu =>
+      'Generating answer (CPU without AVX2, may take 1–3 min)…';
+
+  @override
+  String get ragSearching => 'Searching for an answer in your documents…';
+
+  @override
+  String get ragNoAnswer => 'Could not find an answer';
+
+  @override
+  String get ragResult => 'Result';
+
+  @override
+  String get ragSources => 'Sources';
+
+  @override
+  String get ragDisabledResourceSaver =>
+      'RAG is disabled in resource saving mode';
+
+  @override
+  String get ragDisabledSettings => 'RAG is disabled in settings';
+
+  @override
+  String get timeJustNow => 'Just now';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '$count min ago';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '$count hr ago';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    return '$count d ago';
+  }
 }

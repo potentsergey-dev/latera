@@ -358,9 +358,6 @@
   "settingsLanguageSystem": "System default",
   "@settingsLanguageSystem": { "description": "Use system locale" },
 
-  "settingsLanguageRestartHint": "Restart the app to apply the new language",
-  "@settingsLanguageRestartHint": { "description": "Hint about restart" },
-
   "onboardingAiModelsTitle": "AI Models",
   "@onboardingAiModelsTitle": { "description": "Section title: AI models" },
 
@@ -479,5 +476,155 @@
   "@homeLowRamTitle": { "description": "Low RAM notification title" },
 
   "homeLowRamBody": "Less than 6 GB of RAM detected. The app runs in Basic mode with resource-intensive features disabled. For PRO mode and local AI, more RAM is recommended.",
-  "@homeLowRamBody": { "description": "Low RAM notification body" }
+  "@homeLowRamBody": { "description": "Low RAM notification body" },
+
+  "navHome": "Home",
+  "@navHome": { "description": "Navigation pane: Home tab" },
+
+  "navSearch": "Search",
+  "@navSearch": { "description": "Navigation pane: Search tab" },
+
+  "navInbox": "Inbox",
+  "@navInbox": { "description": "Navigation pane: Inbox tab" },
+
+  "navSettings": "Settings",
+  "@navSettings": { "description": "Navigation pane: Settings tab" },
+
+  "buttonSaving": "Saving…",
+  "@buttonSaving": { "description": "Save button label while saving" },
+
+  "inboxAllProcessed": "All files processed",
+  "@inboxAllProcessed": { "description": "Empty state title in inbox" },
+
+  "inboxNewFilesHint": "New files will appear here automatically",
+  "@inboxNewFilesHint": { "description": "Empty state hint in inbox" },
+
+  "inboxSelectFile": "Select a file from the list",
+  "@inboxSelectFile": { "description": "Hint when no file is selected" },
+
+  "inboxSaveError": "Save error: {error}",
+  "@inboxSaveError": { "description": "Error saving inbox review", "placeholders": { "error": { "type": "String" } } },
+
+  "inboxFileNotFound": "File not found on disk",
+  "@inboxFileNotFound": { "description": "Warning when file is missing" },
+
+  "inboxDescription": "Description",
+  "@inboxDescription": { "description": "Label for description field" },
+
+  "inboxDescriptionPlaceholder": "Add a file description to improve search…",
+  "@inboxDescriptionPlaceholder": { "description": "Placeholder for description field" },
+
+  "inboxTags": "Tags",
+  "@inboxTags": { "description": "Label for tags field" },
+
+  "inboxTagsPlaceholder": "Enter tags separated by commas…",
+  "@inboxTagsPlaceholder": { "description": "Placeholder for tags field" },
+
+  "searchTitle": "File search",
+  "@searchTitle": { "description": "Search page header" },
+
+  "searchSemantic": "Semantic",
+  "@searchSemantic": { "description": "Label for semantic search mode" },
+
+  "searchFulltext": "Full-text",
+  "@searchFulltext": { "description": "Label for full-text search mode" },
+
+  "searchSemanticPlaceholder": "Describe what you're looking for…",
+  "@searchSemanticPlaceholder": { "description": "Placeholder for semantic search" },
+
+  "searchKeywordsPlaceholder": "Enter keywords…",
+  "@searchKeywordsPlaceholder": { "description": "Placeholder for full-text search" },
+
+  "searchSimilarTo": "Similar to: {fileName}",
+  "@searchSimilarTo": { "description": "Search field text for similar files", "placeholders": { "fileName": { "type": "String" } } },
+
+  "searchFileNotFound": "File not found on disk",
+  "@searchFileNotFound": { "description": "Warning when file is missing in search" },
+
+  "searchError": "Search error",
+  "@searchError": { "description": "Title for search error state" },
+
+  "searchEnterQuery": "Enter a search query",
+  "@searchEnterQuery": { "description": "Hint in initial search state" },
+
+  "searchNoResults": "Nothing found",
+  "@searchNoResults": { "description": "Title when search returns no results" },
+
+  "ragTitle": "Ask your folder",
+  "@ragTitle": { "description": "RAG page header" },
+
+  "ragPlaceholder": "Ask a question about your documents…",
+  "@ragPlaceholder": { "description": "RAG input placeholder" },
+
+  "ragStop": "Stop",
+  "@ragStop": { "description": "Stop button during RAG query" },
+
+  "ragAsk": "Ask",
+  "@ragAsk": { "description": "Submit RAG query button" },
+
+  "ragSlowCpuWarning": "Your CPU does not support fast instructions (AVX2). LLM generation works, but responses may take 1–3 minutes. Use the Stop button to cancel.",
+  "@ragSlowCpuWarning": { "description": "Warning banner for slow CPU" },
+
+  "ragLowRamWarning": "Generative model not loaded: insufficient RAM (need ≥ 6 GB). Answers are formed from found snippets without AI generation.",
+  "@ragLowRamWarning": { "description": "Warning when GGUF skipped due to low RAM" },
+
+  "ragLowDiskWarning": "Generative model not loaded: not enough disk space (need ≥ 2 GB).",
+  "@ragLowDiskWarning": { "description": "Warning when GGUF skipped due to low disk" },
+
+  "ragModelDownloading": "Generative model is downloading…",
+  "@ragModelDownloading": { "description": "Info when model is downloading" },
+
+  "ragModelFailed": "Failed to download generative model. Check your internet connection.",
+  "@ragModelFailed": { "description": "Warning when model download failed" },
+
+  "ragModelNotLoaded": "Generative model not loaded. Answers are formed from found snippets without AI generation.",
+  "@ragModelNotLoaded": { "description": "Default warning when model unavailable" },
+
+  "ragSlowMode": "Slow mode",
+  "@ragSlowMode": { "description": "Banner title for slow CPU mode" },
+
+  "ragLimitedMode": "Limited mode",
+  "@ragLimitedMode": { "description": "Banner title for limited (no LLM) mode" },
+
+  "ragInitialHint": "Ask a question about your indexed documents",
+  "@ragInitialHint": { "description": "Initial state hint" },
+
+  "ragInitialSubhint": "Search will show relevant snippets from your documents",
+  "@ragInitialSubhint": { "description": "Initial state secondary hint" },
+
+  "ragGenerating": "Generating answer…",
+  "@ragGenerating": { "description": "Label while LLM is generating" },
+
+  "ragGeneratingSlowCpu": "Generating answer (CPU without AVX2, may take 1–3 min)…",
+  "@ragGeneratingSlowCpu": { "description": "Loading text for slow CPU" },
+
+  "ragSearching": "Searching for an answer in your documents…",
+  "@ragSearching": { "description": "Loading text for normal query" },
+
+  "ragNoAnswer": "Could not find an answer",
+  "@ragNoAnswer": { "description": "Shown when RAG returns no answer" },
+
+  "ragResult": "Result",
+  "@ragResult": { "description": "Label for RAG answer section" },
+
+  "ragSources": "Sources",
+  "@ragSources": { "description": "Label for RAG sources section" },
+
+  "ragDisabledResourceSaver": "RAG is disabled in resource saving mode",
+  "@ragDisabledResourceSaver": { "description": "Error when RAG disabled by resource saver" },
+
+  "ragDisabledSettings": "RAG is disabled in settings",
+  "@ragDisabledSettings": { "description": "Error when RAG disabled in settings" },
+
+  "timeJustNow": "Just now",
+  "@timeJustNow": { "description": "Relative time: less than a minute ago" },
+
+  "timeMinutesAgo": "{count} min ago",
+  "@timeMinutesAgo": { "description": "Relative time: minutes ago", "placeholders": { "count": { "type": "int" } } },
+
+  "timeHoursAgo": "{count} hr ago",
+  "@timeHoursAgo": { "description": "Relative time: hours ago", "placeholders": { "count": { "type": "int" } } },
+
+  "timeDaysAgo": "{count} d ago",
+  "@timeDaysAgo": { "description": "Relative time: days ago", "placeholders": { "count": { "type": "int" } } }
 }

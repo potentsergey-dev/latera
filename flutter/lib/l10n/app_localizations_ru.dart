@@ -414,10 +414,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsLanguageSystem => 'Системный';
 
   @override
-  String get settingsLanguageRestartHint =>
-      'Перезапустите приложение для применения нового языка';
-
-  @override
   String get onboardingAiModelsTitle => 'AI-модели';
 
   @override
@@ -561,4 +557,174 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get homeLowRamBody =>
       'На вашем ПК обнаружено менее 6 ГБ ОЗУ. Приложение работает в режиме Basic с отключёнными ресурсоёмкими функциями. Для режима PRO и локального AI рекомендуется увеличить объём ОЗУ.';
+
+  @override
+  String get navHome => 'Главная';
+
+  @override
+  String get navSearch => 'Поиск';
+
+  @override
+  String get navInbox => 'Входящие';
+
+  @override
+  String get navSettings => 'Настройки';
+
+  @override
+  String get buttonSaving => 'Сохранение…';
+
+  @override
+  String get inboxAllProcessed => 'Все файлы обработаны';
+
+  @override
+  String get inboxNewFilesHint => 'Новые файлы появятся здесь автоматически';
+
+  @override
+  String get inboxSelectFile => 'Выберите файл из списка';
+
+  @override
+  String inboxSaveError(String error) {
+    return 'Ошибка сохранения: $error';
+  }
+
+  @override
+  String get inboxFileNotFound => 'Файл не найден на диске';
+
+  @override
+  String get inboxDescription => 'Описание';
+
+  @override
+  String get inboxDescriptionPlaceholder =>
+      'Добавьте описание файла для улучшения поиска…';
+
+  @override
+  String get inboxTags => 'Теги';
+
+  @override
+  String get inboxTagsPlaceholder => 'Введите теги через запятую…';
+
+  @override
+  String get searchTitle => 'Поиск файлов';
+
+  @override
+  String get searchSemantic => 'Семантический';
+
+  @override
+  String get searchFulltext => 'Полнотекстовый';
+
+  @override
+  String get searchSemanticPlaceholder => 'Опишите что ищете…';
+
+  @override
+  String get searchKeywordsPlaceholder => 'Введите ключевые слова…';
+
+  @override
+  String searchSimilarTo(String fileName) {
+    return 'Похожие на: $fileName';
+  }
+
+  @override
+  String get searchFileNotFound => 'Файл не найден на диске';
+
+  @override
+  String get searchError => 'Ошибка поиска';
+
+  @override
+  String get searchEnterQuery => 'Введите запрос для поиска';
+
+  @override
+  String get searchNoResults => 'Ничего не найдено';
+
+  @override
+  String get ragTitle => 'Спроси свою папку';
+
+  @override
+  String get ragPlaceholder => 'Задайте вопрос по вашим документам…';
+
+  @override
+  String get ragStop => 'Стоп';
+
+  @override
+  String get ragAsk => 'Спросить';
+
+  @override
+  String get ragSlowCpuWarning =>
+      'Ваш процессор не поддерживает быстрые инструкции (AVX2). LLM-генерация работает, но ответы могут занимать 1–3 минуты. Используйте кнопку «Стоп» для отмены.';
+
+  @override
+  String get ragLowRamWarning =>
+      'Генеративная модель не загружена: недостаточно оперативной памяти (нужно ≥ 6 ГБ). Ответы формируются из найденных фрагментов без AI-генерации.';
+
+  @override
+  String get ragLowDiskWarning =>
+      'Генеративная модель не загружена: недостаточно места на диске (нужно ≥ 2 ГБ).';
+
+  @override
+  String get ragModelDownloading => 'Генеративная модель загружается…';
+
+  @override
+  String get ragModelFailed =>
+      'Не удалось загрузить генеративную модель. Проверьте подключение к интернету.';
+
+  @override
+  String get ragModelNotLoaded =>
+      'Генеративная модель не загружена. Ответы формируются из найденных фрагментов без AI-генерации.';
+
+  @override
+  String get ragSlowMode => 'Медленный режим';
+
+  @override
+  String get ragLimitedMode => 'Ограниченный режим';
+
+  @override
+  String get ragInitialHint =>
+      'Задайте вопрос по проиндексированным документам';
+
+  @override
+  String get ragInitialSubhint =>
+      'Поиск покажет релевантные фрагменты из ваших документов';
+
+  @override
+  String get ragGenerating => 'Генерация ответа…';
+
+  @override
+  String get ragGeneratingSlowCpu =>
+      'Генерирую ответ (CPU без AVX2, это может занять 1–3 мин)…';
+
+  @override
+  String get ragSearching => 'Ищу ответ в ваших документах…';
+
+  @override
+  String get ragNoAnswer => 'Не удалось найти ответ';
+
+  @override
+  String get ragResult => 'Результат';
+
+  @override
+  String get ragSources => 'Источники';
+
+  @override
+  String get ragDisabledResourceSaver =>
+      'RAG отключён в режиме экономии ресурсов';
+
+  @override
+  String get ragDisabledSettings => 'RAG отключён в настройках';
+
+  @override
+  String get timeJustNow => 'Только что';
+
+  @override
+  String timeMinutesAgo(int count) {
+    return '$count мин. назад';
+  }
+
+  @override
+  String timeHoursAgo(int count) {
+    return '$count ч. назад';
+  }
+
+  @override
+  String timeDaysAgo(int count) {
+    return '$count дн. назад';
+  }
 }

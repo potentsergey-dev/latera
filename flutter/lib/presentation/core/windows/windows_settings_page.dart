@@ -810,9 +810,6 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     null: '', // System default — label resolved from l10n
     'en': 'English',
     'ru': 'Русский',
-    'de': 'Deutsch',
-    'es': 'Español',
-    'pt': 'Português',
   };
 
   Widget _buildLanguageCard(
@@ -844,16 +841,6 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
             final updated = await _configService.load();
             if (mounted) {
               setState(() => _config = updated);
-              fluent.displayInfoBar(
-                context,
-                builder: (context, close) {
-                  return fluent.InfoBar(
-                    title: Text(l10n.settingsLanguageRestartHint),
-                    severity: fluent.InfoBarSeverity.info,
-                    onClose: close,
-                  );
-                },
-              );
             }
           },
         ),

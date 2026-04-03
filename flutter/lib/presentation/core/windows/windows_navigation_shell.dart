@@ -2,6 +2,7 @@ import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 
+import '../../../l10n/app_localizations.dart';
 import 'windows_main_page.dart';
 import 'windows_inbox_page.dart';
 import 'windows_search_page.dart';
@@ -28,6 +29,7 @@ class _WindowsNavigationShellState
 
   @override
   Widget build(fluent.BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return fluent.NavigationView(
       pane: fluent.NavigationPane(
         selected: _selectedIndex,
@@ -36,17 +38,17 @@ class _WindowsNavigationShellState
         items: [
           fluent.PaneItem(
             icon: const Icon(Icons.home_outlined),
-            title: const Text('Главная'),
+            title: Text(l10n.navHome),
             body: const WindowsMainPage(),
           ),
           fluent.PaneItem(
             icon: const Icon(Icons.search),
-            title: const Text('Поиск'),
+            title: Text(l10n.navSearch),
             body: const WindowsSearchPage(),
           ),
           fluent.PaneItem(
             icon: const Icon(Icons.inbox_outlined),
-            title: const Text('Входящие'),
+            title: Text(l10n.navInbox),
             body: const WindowsInboxPage(),
             infoBadge: _buildInboxBadge(),
           ),
@@ -59,7 +61,7 @@ class _WindowsNavigationShellState
         footerItems: [
           fluent.PaneItem(
             icon: const Icon(Icons.settings_outlined),
-            title: const Text('Настройки'),
+            title: Text(l10n.navSettings),
             body: const WindowsSettingsPage(),
           ),
         ],

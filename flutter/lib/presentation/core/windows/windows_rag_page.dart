@@ -76,11 +76,12 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
       final config = root.configService.currentConfig;
 
       if (!config.isFeatureEffectivelyEnabled(ContentFeature.rag)) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
           _isQuerying = false;
           _error = config.resourceSaverEnabled
-              ? 'RAG отключён в режиме экономии ресурсов'
-              : 'RAG отключён в настройках';
+              ? l10n.ragDisabledResourceSaver
+              : l10n.ragDisabledSettings;
         });
         return;
       }
@@ -141,7 +142,9 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
     final theme = fluent.FluentTheme.of(context);
 
     return fluent.ScaffoldPage(
-      header: const fluent.PageHeader(title: Text('Спроси свою папку')),
+      header: fluent.PageHeader(
+        title: Text(AppLocalizations.of(context)!.ragTitle),
+      ),
       content: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -155,7 +158,7 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
                   child: fluent.TextBox(
                     controller: _questionController,
                     focusNode: _focusNode,
-                    placeholder: 'Задайте вопрос по вашим документам…',
+                    placeholder: AppLocalizations.of(context)!.ragPlaceholder,
                     prefix: const Padding(
                       padding: EdgeInsets.only(left: 8),
                       child: Icon(Icons.psychology, size: 18),
@@ -167,26 +170,26 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
                 if (_isQuerying)
                   fluent.Button(
                     onPressed: _cancelQuery,
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Padding(
+                        const Padding(
                           padding: EdgeInsets.only(right: 8),
                           child: Icon(Icons.stop, size: 16),
                         ),
-                        Text('Стоп'),
+                        Text(AppLocalizations.of(context)!.ragStop),
                       ],
                     ),
                   )
                 else
                   fluent.FilledButton(
                     onPressed: _performQuery,
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Padding(
+                        const Padding(
                           padding: EdgeInsets.only(right: 8),
                           child: Icon(Icons.send, size: 16),
                         ),
-                        Text('Спросить'),
+                        Text(AppLocalizations.of(context)!.ragAsk),
                       ],
                     ),
                   ),
@@ -207,34 +210,27 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
     final status = root.modelDownloadTracker.ggufStatus;
     if (status == ModelStatus.ready) return const SizedBox.shrink();
 
+    final l10n = AppLocalizations.of(context)!;
     final String message;
     final fluent.InfoBarSeverity severity;
     switch (status) {
       case ModelStatus.loadedSlowCpu:
-        message =
-            'Ваш процессор не поддерживает быстрые инструкции (AVX2). '
-            'LLM-генерация работает, но ответы могут занимать 1–3 минуты. '
-            'Используйте кнопку «Стоп» для отмены.';
+        message = l10n.ragSlowCpuWarning;
         severity = fluent.InfoBarSeverity.warning;
       case ModelStatus.skippedLowRam:
-        message =
-            'Генеративная модель не загружена: недостаточно оперативной памяти (нужно ≥ 6 ГБ). '
-            'Ответы формируются из найденных фрагментов без AI-генерации.';
+        message = l10n.ragLowRamWarning;
         severity = fluent.InfoBarSeverity.warning;
       case ModelStatus.skippedLowDisk:
-        message =
-            'Генеративная модель не загружена: недостаточно места на диске (нужно ≥ 2 ГБ).';
+        message = l10n.ragLowDiskWarning;
         severity = fluent.InfoBarSeverity.warning;
       case ModelStatus.downloading:
-        message = 'Генеративная модель загружается…';
+        message = l10n.ragModelDownloading;
         severity = fluent.InfoBarSeverity.info;
       case ModelStatus.failed:
-        message =
-            'Не удалось загрузить генеративную модель. Проверьте подключение к интернету.';
+        message = l10n.ragModelFailed;
         severity = fluent.InfoBarSeverity.warning;
       default:
-        message =
-            'Генеративная модель не загружена. Ответы формируются из найденных фрагментов без AI-генерации.';
+        message = l10n.ragModelNotLoaded;
         severity = fluent.InfoBarSeverity.warning;
     }
 
@@ -243,8 +239,8 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
       child: fluent.InfoBar(
         title: Text(
           status == ModelStatus.loadedSlowCpu
-              ? 'Медленный режим'
-              : 'Ограниченный режим',
+              ? l10n.ragSlowMode
+              : l10n.ragLimitedMode,
         ),
         content: Text(message),
         severity: severity,
@@ -281,13 +277,13 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Задайте вопрос по проиндексированным документам',
+              AppLocalizations.of(context)!.ragInitialHint,
               style: theme.typography.body,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              'Поиск покажет релевантные фрагменты из ваших документов',
+              AppLocalizations.of(context)!.ragInitialSubhint,
               style: theme.typography.caption,
               textAlign: TextAlign.center,
             ),
@@ -317,7 +313,7 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Генерация ответа…',
+                          AppLocalizations.of(context)!.ragGenerating,
                           style: theme.typography.bodyStrong,
                         ),
                         const SizedBox(width: 8),
@@ -348,8 +344,8 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
             const SizedBox(height: 16),
             Text(
               isSlowCpu
-                  ? 'Генерирую ответ (CPU без AVX2, это может занять 1–3 мин)…'
-                  : 'Ищу ответ в ваших документах…',
+                  ? AppLocalizations.of(context)!.ragGeneratingSlowCpu
+                  : AppLocalizations.of(context)!.ragSearching,
             ),
           ],
         ),
@@ -365,7 +361,7 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
             Icon(Icons.search_off, size: 48, color: theme.inactiveColor),
             const SizedBox(height: 8),
             Text(
-              'Не удалось найти ответ',
+              AppLocalizations.of(context)!.ragNoAnswer,
               style: theme.typography.body,
               textAlign: TextAlign.center,
             ),
@@ -393,7 +389,10 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
                       color: theme.accentColor,
                     ),
                     const SizedBox(width: 8),
-                    Text('Результат', style: theme.typography.bodyStrong),
+                    Text(
+                      AppLocalizations.of(context)!.ragResult,
+                      style: theme.typography.bodyStrong,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -405,7 +404,10 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
           // Источники
           if (_result!.sources.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('Источники', style: theme.typography.bodyStrong),
+            Text(
+              AppLocalizations.of(context)!.ragSources,
+              style: theme.typography.bodyStrong,
+            ),
             const SizedBox(height: 8),
             for (final source in _result!.sources)
               Padding(

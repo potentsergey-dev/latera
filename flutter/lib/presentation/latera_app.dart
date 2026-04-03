@@ -5,6 +5,7 @@ import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 
+import '../domain/app_config.dart';
 import '../infrastructure/di/app_composition_root.dart';
 import '../infrastructure/tray/tray_service.dart';
 import 'app_scope.dart';
@@ -32,6 +33,7 @@ class LateraApp extends StatefulWidget {
 class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
   AppCompositionRoot? _root;
   TrayService? _trayService;
+  StreamSubscription<AppConfig>? _configSub;
   bool _isLoading = true;
   bool _needsOnboarding = false;
   String? _error;
@@ -74,10 +76,16 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
       final tray = TrayService();
       await tray.initialize(onQuitRequested: _onQuitRequested);
 
+      // Rebuild the widget tree when config changes (e.g. locale switch).
+      final configSub = root.configService.configChanges.listen((_) {
+        if (mounted) setState(() {});
+      });
+
       if (mounted) {
         setState(() {
           _root = root;
           _trayService = tray;
+          _configSub = configSub;
           _needsOnboarding = needsOnboarding;
           _isLoading = false;
         });
@@ -119,6 +127,7 @@ class _LateraAppState extends State<LateraApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _configSub?.cancel();
     if (_trayService != null) {
       unawaited(
         _trayService!.destroy().catchError((e, st) {

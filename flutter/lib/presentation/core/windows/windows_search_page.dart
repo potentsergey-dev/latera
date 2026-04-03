@@ -116,7 +116,7 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
         context,
         builder: (context, close) {
           return fluent.InfoBar(
-            title: const Text('Файл не найден на диске'),
+            title: Text(AppLocalizations.of(context)!.searchFileNotFound),
             severity: fluent.InfoBarSeverity.warning,
             onClose: close,
           );
@@ -148,7 +148,9 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
 
       final fileName = filePath.split(Platform.pathSeparator).last;
       _searchController.removeListener(_onSearchChanged);
-      _searchController.text = 'Похожие на: $fileName';
+      _searchController.text = AppLocalizations.of(
+        context,
+      )!.searchSimilarTo(fileName);
       _searchController.addListener(_onSearchChanged);
     } catch (e) {
       if (!mounted) return;
@@ -167,12 +169,14 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
 
     return fluent.ScaffoldPage(
       header: fluent.PageHeader(
-        title: const Text('Поиск файлов'),
+        title: Text(AppLocalizations.of(context)!.searchTitle),
         commandBar: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _useSemanticSearch ? 'Семантический' : 'Полнотекстовый',
+              _useSemanticSearch
+                  ? AppLocalizations.of(context)!.searchSemantic
+                  : AppLocalizations.of(context)!.searchFulltext,
               style: theme.typography.caption,
             ),
             const SizedBox(width: 8),
@@ -197,8 +201,8 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
               controller: _searchController,
               focusNode: _focusNode,
               placeholder: _useSemanticSearch
-                  ? 'Опишите что ищете…'
-                  : 'Введите ключевые слова…',
+                  ? AppLocalizations.of(context)!.searchSemanticPlaceholder
+                  : AppLocalizations.of(context)!.searchKeywordsPlaceholder,
               prefix: const Padding(
                 padding: EdgeInsets.only(left: 8),
                 child: Icon(Icons.search, size: 18),
@@ -230,7 +234,10 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
           children: [
             const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 16),
-            Text('Ошибка поиска', style: theme.typography.subtitle),
+            Text(
+              AppLocalizations.of(context)!.searchError,
+              style: theme.typography.subtitle,
+            ),
             const SizedBox(height: 8),
             Text(_error!, style: theme.typography.caption),
           ],
@@ -245,7 +252,10 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
           children: [
             Icon(Icons.search, size: 64, color: theme.inactiveColor),
             const SizedBox(height: 16),
-            Text('Введите запрос для поиска', style: theme.typography.body),
+            Text(
+              AppLocalizations.of(context)!.searchEnterQuery,
+              style: theme.typography.body,
+            ),
           ],
         ),
       );
@@ -258,7 +268,10 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
           children: [
             Icon(Icons.search_off, size: 48, color: theme.inactiveColor),
             const SizedBox(height: 16),
-            Text('Ничего не найдено', style: theme.typography.subtitle),
+            Text(
+              AppLocalizations.of(context)!.searchNoResults,
+              style: theme.typography.subtitle,
+            ),
           ],
         ),
       );

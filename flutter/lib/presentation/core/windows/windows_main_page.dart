@@ -4,6 +4,7 @@ import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../../application/file_events_coordinator.dart';
 import '../../../domain/app_config.dart';
@@ -13,6 +14,45 @@ import '../../../l10n/app_localizations.dart';
 import '../../app_scope.dart';
 import '../../model_download_failure_banner.dart';
 import '../../processing_status_bar.dart';
+
+// ---------------------------------------------------------------------------
+// Status semantic model — translated in build() so language switches instantly
+// ---------------------------------------------------------------------------
+
+sealed class _HomeStatus {
+  const _HomeStatus();
+}
+
+final class _HomeStatusInitializing extends _HomeStatus {
+  const _HomeStatusInitializing();
+}
+
+final class _HomeStatusReady extends _HomeStatus {
+  const _HomeStatusReady();
+}
+
+final class _HomeStatusNewFile extends _HomeStatus {
+  const _HomeStatusNewFile();
+}
+
+final class _HomeStatusFolderChanged extends _HomeStatus {
+  const _HomeStatusFolderChanged();
+}
+
+final class _HomeStatusWatchError extends _HomeStatus {
+  const _HomeStatusWatchError(this.message);
+  final String message;
+}
+
+final class _HomeStatusStartError extends _HomeStatus {
+  const _HomeStatusStartError(this.message);
+  final String message;
+}
+
+final class _HomeStatusInitError extends _HomeStatus {
+  const _HomeStatusInitError(this.message);
+  final String message;
+}
 
 /// Главная страница (Windows-версия, встроена в NavigationView).
 ///
@@ -25,14 +65,16 @@ class WindowsMainPage extends fluent.StatefulWidget {
   fluent.State<WindowsMainPage> createState() => _WindowsMainPageState();
 }
 
-class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
+class _WindowsMainPageState extends fluent.State<WindowsMainPage>
+    with WindowListener {
   FileEventsCoordinator? _coordinator;
 
   StreamSubscription<FileAddedUiEvent>? _sub;
   StreamSubscription<FileRemovedUiEvent>? _removedSub;
   StreamSubscription<String>? _watchPathChangedSub;
   StreamSubscription<AppConfig>? _configSub;
-  String _status = '';
+  _HomeStatus _status = const _HomeStatusInitializing();
+  bool _windowWasHidden = false;
   String? _lastFileName;
   int _indexedCount = 0;
   int _inboxCount = 0;
@@ -45,6 +87,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
     if (_initialized) return;
     _initialized = true;
 
+    windowManager.addListener(this);
     _coordinator = AppScope.of(context).fileEventsCoordinator;
 
     _configSub = AppScope.of(context).configService.configChanges.listen((_) {
@@ -56,7 +99,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         debugPrint('Unexpected error in _init(): $error\n$st');
         if (mounted) {
           setState(() {
-            _status = 'Unexpected error: $error';
+            _status = _HomeStatusInitError(error.toString());
           });
         }
       }),
@@ -86,7 +129,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
           if (!mounted) return;
           setState(() {
             _lastFileName = event.fileName;
-            _status = AppLocalizations.of(context)!.homeStatusNewFileDetected;
+            _status = const _HomeStatusNewFile();
           });
           unawaited(_silentlyIndexForReview(event));
         },
@@ -94,9 +137,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
           root.logger.e('Stream error in UI', error: error, stackTrace: st);
           if (!mounted) return;
           setState(() {
-            _status = AppLocalizations.of(
-              context,
-            )!.homeStatusWatchError(_extractErrorMessage(error));
+            _status = _HomeStatusWatchError(_extractErrorMessage(error));
           });
         },
       );
@@ -112,7 +153,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         root.logger.i('Watch path changed to: $newWatchDir');
         if (!mounted) return;
         setState(() {
-          _status = AppLocalizations.of(context)!.homeStatusFolderChanged;
+          _status = const _HomeStatusFolderChanged();
           _lastFileName = null;
           _indexedCount = 0;
         });
@@ -125,7 +166,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         await _refreshInboxCount();
         if (!mounted) return;
         setState(() {
-          _status = AppLocalizations.of(context)!.homeStatusReady;
+          _status = const _HomeStatusReady();
         });
       } else {
         final startResult = await coordinator.start();
@@ -134,9 +175,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         if (startResult is CoordinatorStartFailure) {
           root.logger.e('Coordinator start failed', error: startResult.error);
           setState(() {
-            _status = AppLocalizations.of(
-              context,
-            )!.homeStatusStartError(startResult.error.message);
+            _status = _HomeStatusStartError(startResult.error.message);
           });
           return;
         }
@@ -147,7 +186,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
 
         if (!mounted) return;
         setState(() {
-          _status = AppLocalizations.of(context)!.homeStatusReady;
+          _status = const _HomeStatusReady();
         });
       }
 
@@ -157,9 +196,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
       root.logger.e('Init failed', error: e, stackTrace: st);
       if (!mounted) return;
       setState(() {
-        _status = AppLocalizations.of(
-          context,
-        )!.homeStatusInitError(e.toString());
+        _status = _HomeStatusInitError(e.toString());
       });
     }
   }
@@ -276,6 +313,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
     _removedSub?.cancel();
     _watchPathChangedSub?.cancel();
     _configSub?.cancel();
+    windowManager.removeListener(this);
     // НЕ останавливаем coordinator — его жизненный цикл привязан к AppScope,
     // а не к этой странице. При навигации между вкладками координатор
     // продолжает работать, чтобы не пересканировать файлы при возврате.
@@ -286,6 +324,33 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
     if (error is CoreError) return error.message;
     return error.toString();
   }
+
+  // === WindowListener ===
+
+  /// X нажат — TrayService скроет окно в трей. Помечаем, чтобы при
+  /// восстановлении обновить счётчики файлов.
+  @override
+  void onWindowClose() {
+    _windowWasHidden = true;
+  }
+
+  /// Окно получило фокус — если до этого было скрыто через трей, обновляем счётчики файлов.
+  @override
+  void onWindowFocus() {
+    if (!_initialized || !mounted || !_windowWasHidden) return;
+    _windowWasHidden = false;
+    _scheduleCounterRefresh();
+  }
+
+  String _localizeStatus(AppLocalizations l10n) => switch (_status) {
+    _HomeStatusInitializing() => l10n.homeStatusInitializing,
+    _HomeStatusReady() => l10n.homeStatusReady,
+    _HomeStatusNewFile() => l10n.homeStatusNewFileDetected,
+    _HomeStatusFolderChanged() => l10n.homeStatusFolderChanged,
+    _HomeStatusWatchError(:final message) => l10n.homeStatusWatchError(message),
+    _HomeStatusStartError(:final message) => l10n.homeStatusStartError(message),
+    _HomeStatusInitError(:final message) => l10n.homeStatusInitError(message),
+  };
 
   /// Показывает одноразовое уведомление, если ПК имеет мало RAM.
   Future<void> _showLowRamNotificationIfNeeded() async {
@@ -328,7 +393,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage> {
         Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Text(
-            _status.isEmpty ? l10n.homeStatusInitializing : _status,
+            _localizeStatus(l10n),
             style: theme.typography.body?.copyWith(color: theme.inactiveColor),
           ),
         ),

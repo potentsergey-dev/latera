@@ -7,6 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/indexer.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../app_scope.dart';
 
 /// Страница «Входящие» / Inbox (Windows-версия).
@@ -110,7 +111,9 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
         context,
         builder: (context, close) {
           return fluent.InfoBar(
-            title: Text('Ошибка сохранения: $e'),
+            title: Text(
+              AppLocalizations.of(context)!.inboxSaveError(e.toString()),
+            ),
             severity: fluent.InfoBarSeverity.error,
             onClose: close,
           );
@@ -127,7 +130,7 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
         context,
         builder: (context, close) {
           return fluent.InfoBar(
-            title: const Text('Файл не найден на диске'),
+            title: Text(AppLocalizations.of(context)!.inboxFileNotFound),
             severity: fluent.InfoBarSeverity.warning,
             onClose: close,
           );
@@ -179,10 +182,13 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
             color: theme.accentColor.withValues(alpha: 0.4),
           ),
           const SizedBox(height: 16),
-          Text('Все файлы обработаны', style: theme.typography.subtitle),
+          Text(
+            AppLocalizations.of(context)!.inboxAllProcessed,
+            style: theme.typography.subtitle,
+          ),
           const SizedBox(height: 4),
           Text(
-            'Новые файлы появятся здесь автоматически',
+            AppLocalizations.of(context)!.inboxNewFilesHint,
             style: theme.typography.caption,
           ),
         ],
@@ -197,7 +203,10 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
         children: [
           Icon(Icons.touch_app_outlined, size: 48, color: theme.inactiveColor),
           const SizedBox(height: 16),
-          Text('Выберите файл из списка', style: theme.typography.body),
+          Text(
+            AppLocalizations.of(context)!.inboxSelectFile,
+            style: theme.typography.body,
+          ),
         ],
       ),
     );
@@ -302,21 +311,29 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
           ],
 
           // Описание
-          Text('Описание', style: theme.typography.bodyStrong),
+          Text(
+            AppLocalizations.of(context)!.inboxDescription,
+            style: theme.typography.bodyStrong,
+          ),
           const SizedBox(height: 8),
           fluent.TextBox(
             controller: _descriptionController,
             maxLines: 4,
-            placeholder: 'Добавьте описание файла для улучшения поиска…',
+            placeholder: AppLocalizations.of(
+              context,
+            )!.inboxDescriptionPlaceholder,
           ),
           const SizedBox(height: 16),
 
           // Теги
-          Text('Теги', style: theme.typography.bodyStrong),
+          Text(
+            AppLocalizations.of(context)!.inboxTags,
+            style: theme.typography.bodyStrong,
+          ),
           const SizedBox(height: 8),
           fluent.TextBox(
             controller: _tagsController,
-            placeholder: 'Введите теги через запятую…',
+            placeholder: AppLocalizations.of(context)!.inboxTagsPlaceholder,
           ),
           const SizedBox(height: 24),
 
@@ -342,7 +359,11 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
                       padding: EdgeInsets.only(right: 8),
                       child: Icon(Icons.check, size: 18),
                     ),
-                  Text(_isSaving ? 'Сохранение…' : 'Сохранить'),
+                  Text(
+                    _isSaving
+                        ? AppLocalizations.of(context)!.buttonSaving
+                        : AppLocalizations.of(context)!.buttonSave,
+                  ),
                 ],
               ),
             ),
@@ -374,10 +395,11 @@ class _WindowsInboxPageState extends fluent.State<WindowsInboxPage> {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
-    if (diff.inMinutes < 1) return 'Только что';
-    if (diff.inHours < 1) return '${diff.inMinutes} мин. назад';
-    if (diff.inDays < 1) return '${diff.inHours} ч. назад';
-    if (diff.inDays < 7) return '${diff.inDays} дн. назад';
+    final l10n = AppLocalizations.of(context)!;
+    if (diff.inMinutes < 1) return l10n.timeJustNow;
+    if (diff.inHours < 1) return l10n.timeMinutesAgo(diff.inMinutes);
+    if (diff.inDays < 1) return l10n.timeHoursAgo(diff.inHours);
+    if (diff.inDays < 7) return l10n.timeDaysAgo(diff.inDays);
     return '${date.day}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 }

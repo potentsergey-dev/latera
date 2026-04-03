@@ -5,10 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-import 'app_localizations_de.dart';
 import 'app_localizations_en.dart';
-import 'app_localizations_es.dart';
-import 'app_localizations_pt.dart';
 import 'app_localizations_ru.dart';
 
 // ignore_for_file: type=lint
@@ -97,10 +94,7 @@ abstract class AppLocalizations {
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
-    Locale('de'),
     Locale('en'),
-    Locale('es'),
-    Locale('pt'),
     Locale('ru'),
   ];
 
@@ -818,12 +812,6 @@ abstract class AppLocalizations {
   /// **'System default'**
   String get settingsLanguageSystem;
 
-  /// Hint about restart
-  ///
-  /// In en, this message translates to:
-  /// **'Restart the app to apply the new language'**
-  String get settingsLanguageRestartHint;
-
   /// Section title: AI models
   ///
   /// In en, this message translates to:
@@ -1063,6 +1051,306 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Less than 6 GB of RAM detected. The app runs in Basic mode with resource-intensive features disabled. For PRO mode and local AI, more RAM is recommended.'**
   String get homeLowRamBody;
+
+  /// Navigation pane: Home tab
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get navHome;
+
+  /// Navigation pane: Search tab
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get navSearch;
+
+  /// Navigation pane: Inbox tab
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox'**
+  String get navInbox;
+
+  /// Navigation pane: Settings tab
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
+  /// Save button label while saving
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get buttonSaving;
+
+  /// Empty state title in inbox
+  ///
+  /// In en, this message translates to:
+  /// **'All files processed'**
+  String get inboxAllProcessed;
+
+  /// Empty state hint in inbox
+  ///
+  /// In en, this message translates to:
+  /// **'New files will appear here automatically'**
+  String get inboxNewFilesHint;
+
+  /// Hint when no file is selected
+  ///
+  /// In en, this message translates to:
+  /// **'Select a file from the list'**
+  String get inboxSelectFile;
+
+  /// Error saving inbox review
+  ///
+  /// In en, this message translates to:
+  /// **'Save error: {error}'**
+  String inboxSaveError(String error);
+
+  /// Warning when file is missing
+  ///
+  /// In en, this message translates to:
+  /// **'File not found on disk'**
+  String get inboxFileNotFound;
+
+  /// Label for description field
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get inboxDescription;
+
+  /// Placeholder for description field
+  ///
+  /// In en, this message translates to:
+  /// **'Add a file description to improve search…'**
+  String get inboxDescriptionPlaceholder;
+
+  /// Label for tags field
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get inboxTags;
+
+  /// Placeholder for tags field
+  ///
+  /// In en, this message translates to:
+  /// **'Enter tags separated by commas…'**
+  String get inboxTagsPlaceholder;
+
+  /// Search page header
+  ///
+  /// In en, this message translates to:
+  /// **'File search'**
+  String get searchTitle;
+
+  /// Label for semantic search mode
+  ///
+  /// In en, this message translates to:
+  /// **'Semantic'**
+  String get searchSemantic;
+
+  /// Label for full-text search mode
+  ///
+  /// In en, this message translates to:
+  /// **'Full-text'**
+  String get searchFulltext;
+
+  /// Placeholder for semantic search
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what you\'re looking for…'**
+  String get searchSemanticPlaceholder;
+
+  /// Placeholder for full-text search
+  ///
+  /// In en, this message translates to:
+  /// **'Enter keywords…'**
+  String get searchKeywordsPlaceholder;
+
+  /// Search field text for similar files
+  ///
+  /// In en, this message translates to:
+  /// **'Similar to: {fileName}'**
+  String searchSimilarTo(String fileName);
+
+  /// Warning when file is missing in search
+  ///
+  /// In en, this message translates to:
+  /// **'File not found on disk'**
+  String get searchFileNotFound;
+
+  /// Title for search error state
+  ///
+  /// In en, this message translates to:
+  /// **'Search error'**
+  String get searchError;
+
+  /// Hint in initial search state
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a search query'**
+  String get searchEnterQuery;
+
+  /// Title when search returns no results
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing found'**
+  String get searchNoResults;
+
+  /// RAG page header
+  ///
+  /// In en, this message translates to:
+  /// **'Ask your folder'**
+  String get ragTitle;
+
+  /// RAG input placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question about your documents…'**
+  String get ragPlaceholder;
+
+  /// Stop button during RAG query
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get ragStop;
+
+  /// Submit RAG query button
+  ///
+  /// In en, this message translates to:
+  /// **'Ask'**
+  String get ragAsk;
+
+  /// Warning banner for slow CPU
+  ///
+  /// In en, this message translates to:
+  /// **'Your CPU does not support fast instructions (AVX2). LLM generation works, but responses may take 1–3 minutes. Use the Stop button to cancel.'**
+  String get ragSlowCpuWarning;
+
+  /// Warning when GGUF skipped due to low RAM
+  ///
+  /// In en, this message translates to:
+  /// **'Generative model not loaded: insufficient RAM (need ≥ 6 GB). Answers are formed from found snippets without AI generation.'**
+  String get ragLowRamWarning;
+
+  /// Warning when GGUF skipped due to low disk
+  ///
+  /// In en, this message translates to:
+  /// **'Generative model not loaded: not enough disk space (need ≥ 2 GB).'**
+  String get ragLowDiskWarning;
+
+  /// Info when model is downloading
+  ///
+  /// In en, this message translates to:
+  /// **'Generative model is downloading…'**
+  String get ragModelDownloading;
+
+  /// Warning when model download failed
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to download generative model. Check your internet connection.'**
+  String get ragModelFailed;
+
+  /// Default warning when model unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Generative model not loaded. Answers are formed from found snippets without AI generation.'**
+  String get ragModelNotLoaded;
+
+  /// Banner title for slow CPU mode
+  ///
+  /// In en, this message translates to:
+  /// **'Slow mode'**
+  String get ragSlowMode;
+
+  /// Banner title for limited (no LLM) mode
+  ///
+  /// In en, this message translates to:
+  /// **'Limited mode'**
+  String get ragLimitedMode;
+
+  /// Initial state hint
+  ///
+  /// In en, this message translates to:
+  /// **'Ask a question about your indexed documents'**
+  String get ragInitialHint;
+
+  /// Initial state secondary hint
+  ///
+  /// In en, this message translates to:
+  /// **'Search will show relevant snippets from your documents'**
+  String get ragInitialSubhint;
+
+  /// Label while LLM is generating
+  ///
+  /// In en, this message translates to:
+  /// **'Generating answer…'**
+  String get ragGenerating;
+
+  /// Loading text for slow CPU
+  ///
+  /// In en, this message translates to:
+  /// **'Generating answer (CPU without AVX2, may take 1–3 min)…'**
+  String get ragGeneratingSlowCpu;
+
+  /// Loading text for normal query
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for an answer in your documents…'**
+  String get ragSearching;
+
+  /// Shown when RAG returns no answer
+  ///
+  /// In en, this message translates to:
+  /// **'Could not find an answer'**
+  String get ragNoAnswer;
+
+  /// Label for RAG answer section
+  ///
+  /// In en, this message translates to:
+  /// **'Result'**
+  String get ragResult;
+
+  /// Label for RAG sources section
+  ///
+  /// In en, this message translates to:
+  /// **'Sources'**
+  String get ragSources;
+
+  /// Error when RAG disabled by resource saver
+  ///
+  /// In en, this message translates to:
+  /// **'RAG is disabled in resource saving mode'**
+  String get ragDisabledResourceSaver;
+
+  /// Error when RAG disabled in settings
+  ///
+  /// In en, this message translates to:
+  /// **'RAG is disabled in settings'**
+  String get ragDisabledSettings;
+
+  /// Relative time: less than a minute ago
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get timeJustNow;
+
+  /// Relative time: minutes ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min ago'**
+  String timeMinutesAgo(int count);
+
+  /// Relative time: hours ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count} hr ago'**
+  String timeHoursAgo(int count);
+
+  /// Relative time: days ago
+  ///
+  /// In en, this message translates to:
+  /// **'{count} d ago'**
+  String timeDaysAgo(int count);
 }
 
 class _AppLocalizationsDelegate
@@ -1076,7 +1364,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['de', 'en', 'es', 'pt', 'ru'].contains(locale.languageCode);
+      <String>['en', 'ru'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -1085,14 +1373,8 @@ class _AppLocalizationsDelegate
 AppLocalizations lookupAppLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
-    case 'de':
-      return AppLocalizationsDe();
     case 'en':
       return AppLocalizationsEn();
-    case 'es':
-      return AppLocalizationsEs();
-    case 'pt':
-      return AppLocalizationsPt();
     case 'ru':
       return AppLocalizationsRu();
   }
