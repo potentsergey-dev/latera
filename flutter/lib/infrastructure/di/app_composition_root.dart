@@ -537,8 +537,8 @@ class AppCompositionRoot {
       );
     }
 
-    final filesToReEmbed =
-        sqliteIndexService.getFilesWithWrongOrMissingEmbeddings();
+    final filesToReEmbed = sqliteIndexService
+        .getFilesWithWrongOrMissingEmbeddings();
     if (filesToReEmbed.isNotEmpty) {
       logger.i(
         '[Sync] Re-embedding ${filesToReEmbed.length} files (migration stub → ONNX)',

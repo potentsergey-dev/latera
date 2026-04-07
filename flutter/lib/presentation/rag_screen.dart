@@ -145,10 +145,7 @@ class _RagScreenState extends State<RagScreen> {
 
     if (isBasic) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.ragTitle),
-          centerTitle: true,
-        ),
+        appBar: AppBar(title: Text(l10n.ragTitle), centerTitle: true),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32),
