@@ -724,4 +724,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String timeDaysAgo(int count) {
     return '$count d ago';
   }
+
+  @override
+  String get processingStatusBarDownloadingModel => 'Downloading AI model';
+
+  @override
+  String get processingStatusBarProcessingFiles => 'Processing files';
+
+  @override
+  String get processingStatusBarPreparing => 'preparing…';
+
+  @override
+  String get processingStatusBarGgufModelDetail => 'qwen2.5-3b-instruct-q4_k_m · generative model (~1.7 GB)';
+
+  @override
+  String processingStatusBarOf(int completed, int total) => '$completed of $total';
+
+  @override
+  String processingStatusBarRemaining(int count) => '$count remaining';
+
+  @override
+  String get processingJobLlmDownload => 'Downloading AI model…';
+
+  @override
+  String get processingJobGgufDownload => 'Downloading generative model…';
+
+  @override
+  String get processingJobTextExtraction => 'text extraction';
+
+  @override
+  String get processingJobTranscription => 'transcription';
+
+  @override
+  String get processingJobEmbeddings => 'embeddings';
+
+  @override
+  String get processingJobOcr => 'text recognition (OCR)';
+
+  @override
+  String get processingJobAutoSummary => 'auto-description';
+
+  @override
+  String get processingJobAutoTags => 'auto-tags';
+
+  @override
+  String get ragErrorEmptyQuestion => 'Enter a question';
+
+  @override
+  String get ragErrorNoChunks => 'No relevant snippets found.\nTry rephrasing your question or index more documents.';
+
+  @override
+  String get ragErrorQueryFailed => 'Error executing query';
+
+  @override
+  String get ragErrorUnknown => 'Could not get an answer';
+
+  @override
+  String get ragProRequired => 'Available in PRO';
+
+  @override
+  String get ragLearnAboutPro => 'Learn about PRO';
+
+  @override
+  String ragSourcesCount(int count) => 'Sources ($count)';
 }

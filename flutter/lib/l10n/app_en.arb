@@ -626,5 +626,68 @@
   "@timeHoursAgo": { "description": "Relative time: hours ago", "placeholders": { "count": { "type": "int" } } },
 
   "timeDaysAgo": "{count} d ago",
-  "@timeDaysAgo": { "description": "Relative time: days ago", "placeholders": { "count": { "type": "int" } } }
+  "@timeDaysAgo": { "description": "Relative time: days ago", "placeholders": { "count": { "type": "int" } } },
+
+  "processingStatusBarDownloadingModel": "Downloading AI model",
+  "@processingStatusBarDownloadingModel": { "description": "Status bar header when downloading/loading AI model" },
+
+  "processingStatusBarProcessingFiles": "Processing files",
+  "@processingStatusBarProcessingFiles": { "description": "Status bar header when processing files" },
+
+  "processingStatusBarPreparing": "Preparing…",
+  "@processingStatusBarPreparing": { "description": "Status bar detail when preparing" },
+
+  "processingStatusBarGgufModelDetail": "qwen2.5-3b-instruct-q4_k_m · generative model (~1.7 GB)",
+  "@processingStatusBarGgufModelDetail": { "description": "Status bar detail for GGUF model download" },
+
+  "processingStatusBarOf": "{completed} of {total}",
+  "@processingStatusBarOf": { "description": "File processing counter", "placeholders": { "completed": { "type": "int" }, "total": { "type": "int" } } },
+
+  "processingStatusBarRemaining": "{count} remaining",
+  "@processingStatusBarRemaining": { "description": "Remaining items counter", "placeholders": { "count": { "type": "int" } } },
+
+  "processingJobLlmDownload": "Downloading AI model…",
+  "@processingJobLlmDownload": { "description": "Job type label for LLM download" },
+
+  "processingJobGgufDownload": "Downloading generative model…",
+  "@processingJobGgufDownload": { "description": "Job type label for GGUF download" },
+
+  "processingJobTextExtraction": "text extraction",
+  "@processingJobTextExtraction": { "description": "Job type label for text extraction" },
+
+  "processingJobTranscription": "transcription",
+  "@processingJobTranscription": { "description": "Job type label for transcription" },
+
+  "processingJobEmbeddings": "embeddings",
+  "@processingJobEmbeddings": { "description": "Job type label for embeddings" },
+
+  "processingJobOcr": "text recognition (OCR)",
+  "@processingJobOcr": { "description": "Job type label for OCR" },
+
+  "processingJobAutoSummary": "auto-description",
+  "@processingJobAutoSummary": { "description": "Job type label for auto-summary" },
+
+  "processingJobAutoTags": "auto-tags",
+  "@processingJobAutoTags": { "description": "Job type label for auto-tags" },
+
+  "ragErrorEmptyQuestion": "Enter a question",
+  "@ragErrorEmptyQuestion": { "description": "RAG error when question is empty" },
+
+  "ragErrorNoChunks": "No relevant snippets found.\nTry rephrasing your question or index more documents.",
+  "@ragErrorNoChunks": { "description": "RAG error when no relevant chunks found" },
+
+  "ragErrorQueryFailed": "Error executing query",
+  "@ragErrorQueryFailed": { "description": "RAG error on query failure" },
+
+  "ragErrorUnknown": "Could not get an answer",
+  "@ragErrorUnknown": { "description": "RAG error for unknown error code" },
+
+  "ragProRequired": "Available in PRO",
+  "@ragProRequired": { "description": "Message shown when RAG requires PRO license" },
+
+  "ragLearnAboutPro": "Learn about PRO",
+  "@ragLearnAboutPro": { "description": "Button to learn about PRO in RAG screen" },
+
+  "ragSourcesCount": "Sources ({count})",
+  "@ragSourcesCount": { "description": "Sources section label with count", "placeholders": { "count": { "type": "int" } } }
 }

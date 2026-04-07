@@ -75,13 +75,14 @@ class _RagScreenState extends State<RagScreen> {
       final root = AppScope.of(context);
       final config = root.configService.currentConfig;
 
-      // Проверяем, включён ли RAG
+      // Check whether RAG is enabled
       if (!config.isFeatureEffectivelyEnabled(ContentFeature.rag)) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
           _isQuerying = false;
           _error = config.resourceSaverEnabled
-              ? 'RAG отключён в режиме экономии ресурсов'
-              : 'RAG отключён в настройках';
+              ? l10n.ragDisabledResourceSaver
+              : l10n.ragDisabledSettings;
         });
         return;
       }
@@ -138,13 +139,14 @@ class _RagScreenState extends State<RagScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final licenseCoordinator = AppScope.of(context).licenseCoordinator;
     final isBasic = licenseCoordinator.currentLicense.mode == LicenseMode.basic;
 
     if (isBasic) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Спроси свою папку'),
+          title: Text(l10n.ragTitle),
           centerTitle: true,
         ),
         body: Center(
@@ -160,13 +162,13 @@ class _RagScreenState extends State<RagScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Функция «Спроси свою папку»',
+                  l10n.ragTitle,
                   style: theme.textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Доступно в PRO',
+                  l10n.ragProRequired,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.outline,
                   ),
@@ -178,7 +180,7 @@ class _RagScreenState extends State<RagScreen> {
                     Navigator.pushNamed(context, '/settings');
                   },
                   icon: const Icon(Icons.shopping_cart_outlined),
-                  label: const Text('Узнать о PRO'),
+                  label: Text(l10n.ragLearnAboutPro),
                 ),
               ],
             ),
@@ -188,12 +190,12 @@ class _RagScreenState extends State<RagScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Спроси свою папку'), centerTitle: true),
+      appBar: AppBar(title: Text(l10n.ragTitle), centerTitle: true),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // === Поле ввода вопроса ===
+            // === Question input ===
             Row(
               children: [
                 Expanded(
@@ -201,7 +203,7 @@ class _RagScreenState extends State<RagScreen> {
                     controller: _questionController,
                     focusNode: _focusNode,
                     decoration: InputDecoration(
-                      hintText: 'Задайте вопрос по вашим документам…',
+                      hintText: l10n.ragPlaceholder,
                       prefixIcon: const Icon(Icons.psychology),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -218,28 +220,28 @@ class _RagScreenState extends State<RagScreen> {
                   FilledButton.tonalIcon(
                     onPressed: _cancelQuery,
                     icon: const Icon(Icons.stop),
-                    label: const Text('Стоп'),
+                    label: Text(l10n.ragStop),
                   )
                 else
                   FilledButton.icon(
                     onPressed: _performQuery,
                     icon: const Icon(Icons.send),
-                    label: const Text('Спросить'),
+                    label: Text(l10n.ragAsk),
                   ),
               ],
             ),
 
             const SizedBox(height: 16),
 
-            // === Результат ===
-            Expanded(child: _buildResultArea(theme)),
+            // === Result ===
+            Expanded(child: _buildResultArea(theme, l10n)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildResultArea(ThemeData theme) {
+  Widget _buildResultArea(ThemeData theme, AppLocalizations l10n) {
     // Ошибка
     if (_error != null) {
       return Center(
@@ -264,7 +266,7 @@ class _RagScreenState extends State<RagScreen> {
       );
     }
 
-    // Начальное состояние
+    // Initial state
     if (_result == null && !_isQuerying) {
       return Center(
         child: Column(
@@ -277,7 +279,7 @@ class _RagScreenState extends State<RagScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Задайте вопрос по проиндексированным документам',
+              l10n.ragInitialHint,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
@@ -285,7 +287,7 @@ class _RagScreenState extends State<RagScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Поиск покажет релевантные фрагменты из ваших документов',
+              l10n.ragInitialSubhint,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
@@ -320,7 +322,7 @@ class _RagScreenState extends State<RagScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Генерация ответа…',
+                            l10n.ragGenerating,
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -346,19 +348,19 @@ class _RagScreenState extends State<RagScreen> {
           ),
         );
       }
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Ищу ответ в ваших документах…'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(l10n.ragSearching),
           ],
         ),
       );
     }
 
-    // Нет результатов
+    // No result / error code
     if (_result != null && !_result!.hasAnswer) {
       return Center(
         child: Column(
@@ -367,7 +369,7 @@ class _RagScreenState extends State<RagScreen> {
             Icon(Icons.search_off, size: 48, color: theme.colorScheme.outline),
             const SizedBox(height: 8),
             Text(
-              _ragErrorMessage(_result!.errorCode),
+              _ragErrorMessage(_result!.errorCode, l10n),
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.outline,
               ),
@@ -400,7 +402,7 @@ class _RagScreenState extends State<RagScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Результат',
+                        l10n.ragResult,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -417,11 +419,11 @@ class _RagScreenState extends State<RagScreen> {
             ),
           ),
 
-          // Источники
+          // Sources
           if (_result!.sources.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text(
-              'Источники (${_result!.sourceCount})',
+              l10n.ragSourcesCount(_result!.sourceCount),
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -434,17 +436,12 @@ class _RagScreenState extends State<RagScreen> {
     );
   }
 
-  String _ragErrorMessage(String? errorCode) {
+  String _ragErrorMessage(String? errorCode, AppLocalizations l10n) {
     return switch (errorCode) {
-      'empty_question' => 'Введите вопрос',
-      'no_relevant_chunks' =>
-        'Релевантных фрагментов не найдено.\n'
-            'Попробуйте переформулировать вопрос или проиндексируйте больше документов.',
-      'not_implemented' =>
-        'RAG ещё не подключён (stub-режим).\n'
-            'Подключение появится после генерации FRB bindings.',
-      'query_failed' => 'Ошибка при выполнении запроса',
-      _ => 'Не удалось получить ответ',
+      'empty_question' => l10n.ragErrorEmptyQuestion,
+      'no_relevant_chunks' => l10n.ragErrorNoChunks,
+      'query_failed' => l10n.ragErrorQueryFailed,
+      _ => l10n.ragErrorUnknown,
     };
   }
 }

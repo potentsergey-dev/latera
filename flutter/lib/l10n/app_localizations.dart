@@ -1351,6 +1351,69 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} d ago'**
   String timeDaysAgo(int count);
+
+  /// Status bar header when downloading/loading AI model
+  String get processingStatusBarDownloadingModel;
+
+  /// Status bar header when processing files
+  String get processingStatusBarProcessingFiles;
+
+  /// Status bar detail when preparing
+  String get processingStatusBarPreparing;
+
+  /// Status bar detail for GGUF model download
+  String get processingStatusBarGgufModelDetail;
+
+  /// File processing counter
+  String processingStatusBarOf(int completed, int total);
+
+  /// Remaining items counter
+  String processingStatusBarRemaining(int count);
+
+  /// Job type label for LLM download
+  String get processingJobLlmDownload;
+
+  /// Job type label for GGUF download
+  String get processingJobGgufDownload;
+
+  /// Job type label for text extraction
+  String get processingJobTextExtraction;
+
+  /// Job type label for transcription
+  String get processingJobTranscription;
+
+  /// Job type label for embeddings
+  String get processingJobEmbeddings;
+
+  /// Job type label for OCR
+  String get processingJobOcr;
+
+  /// Job type label for auto-summary
+  String get processingJobAutoSummary;
+
+  /// Job type label for auto-tags
+  String get processingJobAutoTags;
+
+  /// RAG error when question is empty
+  String get ragErrorEmptyQuestion;
+
+  /// RAG error when no relevant chunks found
+  String get ragErrorNoChunks;
+
+  /// RAG error on query failure
+  String get ragErrorQueryFailed;
+
+  /// RAG error for unknown error code
+  String get ragErrorUnknown;
+
+  /// Message shown when RAG requires PRO license
+  String get ragProRequired;
+
+  /// Button to learn about PRO in RAG screen
+  String get ragLearnAboutPro;
+
+  /// Sources section label with count
+  String ragSourcesCount(int count);
 }
 
 class _AppLocalizationsDelegate

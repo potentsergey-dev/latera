@@ -727,4 +727,67 @@ class AppLocalizationsRu extends AppLocalizations {
   String timeDaysAgo(int count) {
     return '$count дн. назад';
   }
+
+  @override
+  String get processingStatusBarDownloadingModel => 'Загрузка AI-модели';
+
+  @override
+  String get processingStatusBarProcessingFiles => 'Обработка файлов';
+
+  @override
+  String get processingStatusBarPreparing => 'подготовка…';
+
+  @override
+  String get processingStatusBarGgufModelDetail => 'qwen2.5-3b-instruct-q4_k_m · генеративная модель (~1.7 ГБ)';
+
+  @override
+  String processingStatusBarOf(int completed, int total) => '$completed из $total';
+
+  @override
+  String processingStatusBarRemaining(int count) => '$count осталось';
+
+  @override
+  String get processingJobLlmDownload => 'Загрузка AI-модели…';
+
+  @override
+  String get processingJobGgufDownload => 'Загрузка генеративной модели…';
+
+  @override
+  String get processingJobTextExtraction => 'извлечение текста';
+
+  @override
+  String get processingJobTranscription => 'транскрипция';
+
+  @override
+  String get processingJobEmbeddings => 'эмбеддинги';
+
+  @override
+  String get processingJobOcr => 'распознавание (OCR)';
+
+  @override
+  String get processingJobAutoSummary => 'описание';
+
+  @override
+  String get processingJobAutoTags => 'теги';
+
+  @override
+  String get ragErrorEmptyQuestion => 'Введите вопрос';
+
+  @override
+  String get ragErrorNoChunks => 'Релевантных фрагментов не найдено.\nПопробуйте переформулировать вопрос или добавьте ещё документы.';
+
+  @override
+  String get ragErrorQueryFailed => 'Ошибка при выполнении запроса';
+
+  @override
+  String get ragErrorUnknown => 'Не удалось получить ответ';
+
+  @override
+  String get ragProRequired => 'Доступно в PRO';
+
+  @override
+  String get ragLearnAboutPro => 'Узнать о PRO';
+
+  @override
+  String ragSourcesCount(int count) => 'Источники ($count)';
 }

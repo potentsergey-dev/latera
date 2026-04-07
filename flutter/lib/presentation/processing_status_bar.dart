@@ -3,26 +3,27 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../application/content_enrichment_coordinator.dart';
+import '../l10n/app_localizations.dart';
 
-/// Локализованное название типа задачи обогащения.
-String _jobTypeLabel(EnrichmentJobType type) {
+/// Localized label for an enrichment job type.
+String _jobTypeLabel(EnrichmentJobType type, AppLocalizations l10n) {
   switch (type) {
     case EnrichmentJobType.textExtraction:
-      return 'извлечение текста';
+      return l10n.processingJobTextExtraction;
     case EnrichmentJobType.transcription:
-      return 'транскрипция';
+      return l10n.processingJobTranscription;
     case EnrichmentJobType.embeddings:
-      return 'эмбеддинги';
+      return l10n.processingJobEmbeddings;
     case EnrichmentJobType.ocr:
-      return 'распознавание (OCR)';
+      return l10n.processingJobOcr;
     case EnrichmentJobType.autoSummary:
-      return 'описание';
+      return l10n.processingJobAutoSummary;
     case EnrichmentJobType.autoTags:
-      return 'теги';
+      return l10n.processingJobAutoTags;
     case EnrichmentJobType.llmModelDownload:
-      return 'Загрузка AI-модели…';
+      return l10n.processingJobLlmDownload;
     case EnrichmentJobType.ggufModelDownload:
-      return 'Загрузка генеративной модели…';
+      return l10n.processingJobGgufDownload;
   }
 }
 
@@ -128,31 +129,38 @@ class _ProcessingStatusBarState extends State<ProcessingStatusBar>
         _progress.currentJobType == EnrichmentJobType.ggufModelDownload;
     final isModelDownload = isLlmDownload || isGgufDownload;
 
-    // Текст текущей операции
+    final l10n = AppLocalizations.of(context)!;
+
+    // Detail text for current operation
     String detailText;
     if (isLlmDownload) {
       detailText =
           'paraphrase-multilingual-MiniLM-L12-v2 · sentence-embeddings';
     } else if (isGgufDownload) {
-      detailText = 'qwen2.5-3b-instruct-q4_k_m · генеративная модель (~1.7 ГБ)';
+      detailText = l10n.processingStatusBarGgufModelDetail;
     } else if (_progress.currentFileName != null &&
         _progress.currentJobType != null) {
-      final typeLabel = _jobTypeLabel(_progress.currentJobType!);
+      final typeLabel = _jobTypeLabel(_progress.currentJobType!, l10n);
       detailText = '$typeLabel: ${_progress.currentFileName}';
     } else if (_progress.currentFileName != null) {
       detailText = _progress.currentFileName!;
     } else {
-      detailText = 'подготовка…';
+      detailText = l10n.processingStatusBarPreparing;
     }
 
-    // Заголовок и счётчик
+    // Header and counter
     final headerText = isModelDownload
-        ? 'Загрузка AI-модели'
-        : 'Обработка файлов';
+        ? l10n.processingStatusBarDownloadingModel
+        : l10n.processingStatusBarProcessingFiles;
     final counterText = isModelDownload
         ? '${_progress.completedCount}%'
-        : '${_progress.completedCount} из ${_progress.totalEnqueued}'
-              '${remaining > 0 ? '  ·  $remaining осталось' : ''}';
+        : l10n.processingStatusBarOf(
+                _progress.completedCount,
+                _progress.totalEnqueued,
+              ) +
+              (remaining > 0
+                  ? '  ·  ${l10n.processingStatusBarRemaining(remaining)}'
+                  : '');
 
     return Container(
       width: double.infinity,

@@ -233,5 +233,28 @@
   "timeJustNow": "Только что",
   "timeMinutesAgo": "{count} мин. назад",
   "timeHoursAgo": "{count} ч. назад",
-  "timeDaysAgo": "{count} дн. назад"
+  "timeDaysAgo": "{count} дн. назад",
+
+  "processingStatusBarDownloadingModel": "Загрузка AI-модели",
+  "processingStatusBarProcessingFiles": "Обработка файлов",
+  "processingStatusBarPreparing": "подготовка…",
+  "processingStatusBarGgufModelDetail": "qwen2.5-3b-instruct-q4_k_m · генеративная модель (~1.7 ГБ)",
+  "processingStatusBarOf": "{completed} из {total}",
+  "processingStatusBarRemaining": "{count} осталось",
+  "processingJobLlmDownload": "Загрузка AI-модели…",
+  "processingJobGgufDownload": "Загрузка генеративной модели…",
+  "processingJobTextExtraction": "извлечение текста",
+  "processingJobTranscription": "транскрипция",
+  "processingJobEmbeddings": "эмбеддинги",
+  "processingJobOcr": "распознавание (OCR)",
+  "processingJobAutoSummary": "описание",
+  "processingJobAutoTags": "теги",
+
+  "ragErrorEmptyQuestion": "Введите вопрос",
+  "ragErrorNoChunks": "Релевантных фрагментов не найдено.\nПопробуйте переформулировать вопрос или проиндексируйте больше документов.",
+  "ragErrorQueryFailed": "Ошибка при выполнении запроса",
+  "ragErrorUnknown": "Не удалось получить ответ",
+  "ragProRequired": "Доступно в PRO",
+  "ragLearnAboutPro": "Узнать о PRO",
+  "ragSourcesCount": "Источники ({count})"
 }

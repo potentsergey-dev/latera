@@ -13,6 +13,7 @@ use log::{debug, info, warn};
 use std::collections::HashMap;
 
 use super::embeddings;
+use super::llm_engine;
 
 // ============================================================================
 // Public types
@@ -100,6 +101,30 @@ pub fn generate_summary(text_content: &str, file_name: &str) -> LlmSummaryResult
         text.len()
     );
 
+    // --- GGUF generative path ---
+    if llm_engine::is_llm_ready() {
+        let language = detect_document_language(&text);
+        let system_prompt = llm_engine::summary_system_prompt(&language);
+        let user_prompt = format!("Document:\n{}", truncate_content(&text));
+        match llm_engine::generate_with_context(&system_prompt, &user_prompt, 150) {
+            Ok(summary) if !summary.trim().is_empty() => {
+                let summary = summary.trim().to_string();
+                info!(
+                    "GGUF summary for \"{}\": {} chars (language={})",
+                    file_name,
+                    summary.len(),
+                    language
+                );
+                return LlmSummaryResult {
+                    summary,
+                    error_code: None,
+                };
+            }
+            Ok(_) => warn!("GGUF summary was empty for \"{}\", falling back", file_name),
+            Err(e) => warn!("GGUF summary failed for \"{}\": {e}, falling back", file_name),
+        }
+    }
+
     let sentences = split_sentences(&text);
     if sentences.is_empty() {
         return LlmSummaryResult {
@@ -174,6 +199,36 @@ pub fn generate_tags(text_content: &str, file_name: &str) -> LlmTagsResult {
         file_name,
         text.len()
     );
+
+    // --- GGUF generative path ---
+    if llm_engine::is_llm_ready() {
+        let language = detect_document_language(&text);
+        let system_prompt = llm_engine::tags_system_prompt(&language);
+        let user_prompt = format!("Document:\n{}", truncate_content(&text));
+        match llm_engine::generate_with_context(&system_prompt, &user_prompt, 80) {
+            Ok(raw) if !raw.trim().is_empty() => {
+                let tags: Vec<String> = raw
+                    .split(',')
+                    .map(|t| t.trim().to_string())
+                    .filter(|t| !t.is_empty() && t.len() >= MIN_TAG_WORD_LENGTH)
+                    .take(MAX_TAGS)
+                    .collect();
+                if !tags.is_empty() {
+                    info!(
+                        "GGUF tags for \"{}\": {:?} (language={})",
+                        file_name, tags, language
+                    );
+                    return LlmTagsResult {
+                        tags,
+                        error_code: None,
+                    };
+                }
+                warn!("GGUF tags were empty after parsing for \"{}\", falling back", file_name);
+            }
+            Ok(_) => warn!("GGUF tags were empty for \"{}\", falling back", file_name),
+            Err(e) => warn!("GGUF tags failed for \"{}\": {e}, falling back", file_name),
+        }
+    }
 
     let tags = extract_keywords(&text);
 
@@ -384,6 +439,29 @@ fn deduplicate_via_embeddings(candidates: &[String]) -> Vec<String> {
         .iter()
         .filter_map(|&i| candidates.get(i).cloned())
         .collect()
+}
+
+// ============================================================================
+// Language detection
+// ============================================================================
+
+/// Detects the primary language of a document by the ratio of Cyrillic
+/// characters to total alphabetic characters in the first 1000 chars.
+///
+/// Returns `"ru"` when Cyrillic chars make up more than half of all
+/// alphabetic chars, `"en"` otherwise.
+fn detect_document_language(text: &str) -> String {
+    let sample: String = text.chars().take(1_000).collect();
+    let cyrillic = sample
+        .chars()
+        .filter(|c| ('\u{0400}'..='\u{04FF}').contains(c))
+        .count();
+    let alpha = sample.chars().filter(|c| c.is_alphabetic()).count();
+    if alpha > 0 && cyrillic * 2 > alpha {
+        "ru".to_string()
+    } else {
+        "en".to_string()
+    }
 }
 
 // ============================================================================

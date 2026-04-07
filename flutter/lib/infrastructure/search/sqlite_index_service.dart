@@ -679,6 +679,29 @@ class SqliteIndexService implements Indexer, SearchRepository {
         .toList();
   }
 
+  /// Returns files that have no embeddings OR have wrong-dimension embeddings
+  /// (e.g. stub 64-dim embeddings that need to be replaced with ONNX 384-dim).
+  List<Map<String, String>> getFilesWithWrongOrMissingEmbeddings() {
+    final correctBlobSize = _embeddingDimOnnx * 4; // 1536 bytes
+    final rows = _database.select(
+      '''SELECT DISTINCT f.file_path, f.file_name FROM files f
+         WHERE f.id NOT IN (
+           SELECT DISTINCT c.file_id FROM chunks c
+           JOIN embeddings e ON e.chunk_id = c.id
+           WHERE length(e.embedding) = ?
+         )''',
+      [correctBlobSize],
+    );
+    return rows
+        .map(
+          (r) => {
+            'filePath': r['file_path'] as String,
+            'fileName': r['file_name'] as String,
+          },
+        )
+        .toList();
+  }
+
   // ====================================================================
   // SearchRepository implementation
   // ====================================================================
