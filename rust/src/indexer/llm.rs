@@ -121,7 +121,10 @@ pub fn generate_summary(text_content: &str, file_name: &str) -> LlmSummaryResult
                 };
             }
             Ok(_) => warn!("GGUF summary was empty for \"{}\", falling back", file_name),
-            Err(e) => warn!("GGUF summary failed for \"{}\": {e}, falling back", file_name),
+            Err(e) => warn!(
+                "GGUF summary failed for \"{}\": {e}, falling back",
+                file_name
+            ),
         }
     }
 
@@ -223,7 +226,10 @@ pub fn generate_tags(text_content: &str, file_name: &str) -> LlmTagsResult {
                         error_code: None,
                     };
                 }
-                warn!("GGUF tags were empty after parsing for \"{}\", falling back", file_name);
+                warn!(
+                    "GGUF tags were empty after parsing for \"{}\", falling back",
+                    file_name
+                );
             }
             Ok(_) => warn!("GGUF tags were empty for \"{}\", falling back", file_name),
             Err(e) => warn!("GGUF tags failed for \"{}\": {e}, falling back", file_name),
