@@ -129,12 +129,12 @@ impl WatcherHandle {
 /// Иконка берётся из текущего .exe приложения (индекс 0).
 #[cfg(target_os = "windows")]
 fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
+    use std::os::windows::ffi::OsStrExt;
     use windows::core::HSTRING;
     use windows::Win32::Storage::FileSystem::{
         SetFileAttributesW, FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_READONLY, FILE_ATTRIBUTE_SYSTEM,
     };
     use windows::Win32::UI::Shell::{SHChangeNotify, SHCNE_UPDATEDIR, SHCNF_PATHW};
-    use std::os::windows::ffi::OsStrExt;
 
     let ini_path = folder.join("desktop.ini");
 
