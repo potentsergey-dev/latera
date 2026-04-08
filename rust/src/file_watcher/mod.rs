@@ -133,6 +133,8 @@ fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
     use windows::Win32::Storage::FileSystem::{
         SetFileAttributesW, FILE_ATTRIBUTE_HIDDEN, FILE_ATTRIBUTE_READONLY, FILE_ATTRIBUTE_SYSTEM,
     };
+    use windows::Win32::UI::Shell::{SHChangeNotify, SHCNE_UPDATEDIR, SHCNF_PATHW};
+    use std::os::windows::ffi::OsStrExt;
 
     let ini_path = folder.join("desktop.ini");
 
@@ -149,7 +151,7 @@ fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
             }
             info!("desktop.ini has stale exe path, updating");
         } else {
-            return Ok(());
+            warn!("Failed to read existing desktop.ini, will overwrite");
         }
     }
 
@@ -166,6 +168,21 @@ fn set_folder_icon(folder: &Path) -> Result<(), LateraError> {
 
         // Атрибуты самой папки: READONLY (активирует чтение desktop.ini)
         let _ = SetFileAttributesW(&HSTRING::from(folder.as_os_str()), FILE_ATTRIBUTE_READONLY);
+    }
+
+    // Уведомить Explorer об обновлении иконки папки
+    unsafe {
+        let folder_wide: Vec<u16> = folder
+            .as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+        SHChangeNotify(
+            SHCNE_UPDATEDIR,
+            SHCNF_PATHW,
+            Some(folder_wide.as_ptr().cast()),
+            None,
+        );
     }
 
     info!("Folder icon set via desktop.ini in {}", folder.display());

@@ -183,7 +183,10 @@ class DartRichTextExtractor implements RichTextExtractor {
         );
       }
 
-      final xmlContent = utf8.decode(docEntry.content as List<int>, allowMalformed: true);
+      final xmlContent = utf8.decode(
+        docEntry.content as List<int>,
+        allowMalformed: true,
+      );
 
       // Извлекаем текст из <w:t ...> тегов
       final text = _extractTextFromDocxXml(xmlContent);

@@ -185,7 +185,9 @@ class RustFileWatcherFrb implements FileWatcher {
               return;
             }
 
-            _log.i('File removed (${isDelete ? "delete" : "move"}): $fileName ($path)');
+            _log.i(
+              'File removed (${isDelete ? "delete" : "move"}): $fileName ($path)',
+            );
             _removedEventsController.add(
               FileRemovedEvent(
                 fileName: fileName,
