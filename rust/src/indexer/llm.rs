@@ -14,6 +14,7 @@ use std::collections::HashMap;
 
 use super::embeddings;
 use super::llm_engine;
+use crate::system_info;
 
 // ============================================================================
 // Public types
@@ -102,7 +103,9 @@ pub fn generate_summary(text_content: &str, file_name: &str) -> LlmSummaryResult
     );
 
     // --- GGUF generative path ---
-    if llm_engine::is_llm_ready() {
+    // Пропускаем генеративный LLM-путь на CPU без AVX2 — слишком медленно
+    // (5-15 минут на файл). Вместо этого используем быстрый extractive fallback.
+    if llm_engine::is_llm_ready() && system_info::cached_has_avx2() {
         let language = detect_document_language(&text);
         let system_prompt = llm_engine::summary_system_prompt(&language);
         let user_prompt = format!("Document:\n{}", truncate_content(&text));
@@ -126,6 +129,11 @@ pub fn generate_summary(text_content: &str, file_name: &str) -> LlmSummaryResult
                 file_name
             ),
         }
+    } else if llm_engine::is_llm_ready() && !system_info::cached_has_avx2() {
+        debug!(
+            "Skipping GGUF summary for \"{}\" — no AVX2, using extractive fallback",
+            file_name
+        );
     }
 
     let sentences = split_sentences(&text);
@@ -204,7 +212,8 @@ pub fn generate_tags(text_content: &str, file_name: &str) -> LlmTagsResult {
     );
 
     // --- GGUF generative path ---
-    if llm_engine::is_llm_ready() {
+    // Пропускаем на CPU без AVX2 — аналогично generate_summary.
+    if llm_engine::is_llm_ready() && system_info::cached_has_avx2() {
         let language = detect_document_language(&text);
         let system_prompt = llm_engine::tags_system_prompt(&language);
         let user_prompt = format!("Document:\n{}", truncate_content(&text));
@@ -234,6 +243,11 @@ pub fn generate_tags(text_content: &str, file_name: &str) -> LlmTagsResult {
             Ok(_) => warn!("GGUF tags were empty for \"{}\", falling back", file_name),
             Err(e) => warn!("GGUF tags failed for \"{}\": {e}, falling back", file_name),
         }
+    } else if llm_engine::is_llm_ready() && !system_info::cached_has_avx2() {
+        debug!(
+            "Skipping GGUF tags for \"{}\" — no AVX2, using TF-IDF fallback",
+            file_name
+        );
     }
 
     let tags = extract_keywords(&text);

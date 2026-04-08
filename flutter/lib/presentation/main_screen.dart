@@ -26,7 +26,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   FileEventsCoordinator? _coordinator;
 
   StreamSubscription<FileAddedUiEvent>? _sub;
@@ -39,6 +39,7 @@ class _MainScreenState extends State<MainScreen> {
   int _inboxCount = 0;
   bool _initialized = false;
   Timer? _refreshDebounce;
+  Timer? _reconcileTimer;
 
   @override
   void didChangeDependencies() {
@@ -46,6 +47,7 @@ class _MainScreenState extends State<MainScreen> {
     if (_initialized) return;
     _initialized = true;
 
+    WidgetsBinding.instance.addObserver(this);
     _coordinator = AppScope.of(context).fileEventsCoordinator;
 
     // Подписываемся на изменения конфигурации, чтобы UI обновлялся
@@ -119,6 +121,13 @@ class _MainScreenState extends State<MainScreen> {
 
       // Одноразовое уведомление о слабом ПК
       unawaited(_showLowRamNotificationIfNeeded());
+
+      // Периодическая реконсиляция индекса с файловой системой (каждые 60 сек).
+      _reconcileTimer?.cancel();
+      _reconcileTimer = Timer.periodic(
+        const Duration(seconds: 60),
+        (_) => unawaited(_reconcileFilesystem()),
+      );
     } catch (e, st) {
       root.logger.e('Init failed', error: e, stackTrace: st);
       if (!mounted) return;
@@ -297,10 +306,35 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  /// Реконсиляция индекса с файловой системой при возврате фокуса.
+  Future<void> _reconcileFilesystem() async {
+    if (!mounted) return;
+    final root = AppScope.of(context);
+    try {
+      await root.reconcileWithFilesystem();
+      if (mounted) {
+        await _refreshIndexedCount();
+        await _refreshInboxCount();
+      }
+    } catch (e) {
+      root.logger.w('Reconciliation failed in UI', error: e);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && _initialized && mounted) {
+      unawaited(_reconcileFilesystem());
+    }
+  }
+
   @override
   void dispose() {
     _refreshDebounce?.cancel();
     _refreshDebounce = null;
+    _reconcileTimer?.cancel();
+    _reconcileTimer = null;
     _sub?.cancel();
     _sub = null;
     _removedSub?.cancel();
@@ -309,6 +343,7 @@ class _MainScreenState extends State<MainScreen> {
     _watchPathChangedSub = null;
     _configSub?.cancel();
     _configSub = null;
+    WidgetsBinding.instance.removeObserver(this);
     // НЕ останавливаем coordinator — его жизненный цикл привязан к AppScope.
     super.dispose();
   }

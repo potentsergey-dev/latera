@@ -1,6 +1,26 @@
 //! Утилиты для получения системной информации (RAM и т.д.).
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use sysinfo::System;
+
+/// Кэшированный результат проверки AVX2 (вычисляется один раз).
+static HAS_AVX2_CACHED: AtomicBool = AtomicBool::new(false);
+static AVX2_CHECKED: AtomicBool = AtomicBool::new(false);
+
+/// Возвращает кэшированный результат AVX2-проверки.
+///
+/// Используется из `indexer::llm` для решения, можно ли запускать
+/// GGUF-генеративный путь (при отсутствии AVX2 он слишком медленный).
+pub fn cached_has_avx2() -> bool {
+    if AVX2_CHECKED.load(Ordering::Relaxed) {
+        return HAS_AVX2_CACHED.load(Ordering::Relaxed);
+    }
+    // Первый вызов — вычисляем и кэшируем
+    let result = get_has_avx2();
+    HAS_AVX2_CACHED.store(result, Ordering::Relaxed);
+    AVX2_CHECKED.store(true, Ordering::Relaxed);
+    result
+}
 
 /// Возвращает общий объём физической оперативной памяти в мегабайтах.
 pub fn get_total_ram_mb() -> u64 {

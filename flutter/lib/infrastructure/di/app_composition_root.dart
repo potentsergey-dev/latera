@@ -552,6 +552,44 @@ class AppCompositionRoot {
     }
   }
 
+  /// Реконсиляция индекса с файловой системой при возврате фокуса.
+  ///
+  /// Удаляет из БД файлы, которых больше нет на диске, и обновляет счётчики.
+  /// Безопасно вызывать многократно (idempotent).
+  Future<void> reconcileWithFilesystem() async {
+    if (_isDisposed) return;
+    final sqlite = _sqliteIndexService;
+    if (sqlite == null) return;
+
+    try {
+      final watchPath =
+          configService.currentConfig.watchPath ??
+          await rust_api.getDefaultWatchPathPreview();
+      final syncResult = await sqlite.syncWithFilesystem(watchPath);
+
+      // Если обнаружены новые файлы — индексируем и запускаем обогащение.
+      for (final f in syncResult.newFiles) {
+        await sqlite.indexFileForReview(
+          f['filePath']!,
+          fileName: f['fileName']!,
+        );
+        contentEnrichmentCoordinator.enqueueFile(
+          f['filePath']!,
+          f['fileName']!,
+        );
+      }
+
+      if (syncResult.removedCount > 0 || syncResult.newFiles.isNotEmpty) {
+        logger.i(
+          '[Reconcile] removed=${syncResult.removedCount}, '
+          'new=${syncResult.newFiles.length}',
+        );
+      }
+    } catch (e, st) {
+      logger.w('[Reconcile] Failed (non-fatal)', error: e, stackTrace: st);
+    }
+  }
+
   /// Проверяет готовность LLM-модели и запускает загрузку при необходимости.
   ///
   /// Если модель уже загружена — инициализирует её в Rust.

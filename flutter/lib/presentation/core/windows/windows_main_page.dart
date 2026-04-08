@@ -80,6 +80,7 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage>
   int _inboxCount = 0;
   bool _initialized = false;
   Timer? _refreshDebounce;
+  Timer? _reconcileTimer;
 
   @override
   void didChangeDependencies() {
@@ -192,6 +193,14 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage>
 
       // Одноразовое уведомление о слабом ПК
       unawaited(_showLowRamNotificationIfNeeded());
+
+      // Периодическая реконсиляция индекса с файловой системой (каждые 60 сек).
+      // Страховка на случай пропущенных событий удаления файлов.
+      _reconcileTimer?.cancel();
+      _reconcileTimer = Timer.periodic(
+        const Duration(seconds: 60),
+        (_) => unawaited(_reconcileFilesystem()),
+      );
     } catch (e, st) {
       root.logger.e('Init failed', error: e, stackTrace: st);
       if (!mounted) return;
@@ -306,9 +315,29 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage>
     });
   }
 
+  /// Вызывает реконсиляцию индекса с файловой системой.
+  ///
+  /// Удаляет из БД файлы, которых нет на диске, обнаруживает новые файлы
+  /// и обновляет счётчики UI. Используется при получении фокуса окна
+  /// и по периодическому таймеру.
+  Future<void> _reconcileFilesystem() async {
+    if (!mounted) return;
+    final root = AppScope.of(context);
+    try {
+      await root.reconcileWithFilesystem();
+      if (mounted) {
+        await _refreshIndexedCount();
+        await _refreshInboxCount();
+      }
+    } catch (e) {
+      root.logger.w('Reconciliation failed in UI', error: e);
+    }
+  }
+
   @override
   void dispose() {
     _refreshDebounce?.cancel();
+    _reconcileTimer?.cancel();
     _sub?.cancel();
     _removedSub?.cancel();
     _watchPathChangedSub?.cancel();
@@ -337,7 +366,11 @@ class _WindowsMainPageState extends fluent.State<WindowsMainPage>
   /// Окно получило фокус — если до этого было скрыто через трей, обновляем счётчики файлов.
   @override
   void onWindowFocus() {
-    if (!_initialized || !mounted || !_windowWasHidden) return;
+    if (!_initialized || !mounted) return;
+    // Всегда при фокусе запускаем реконсиляцию — ловим удалённые файлы,
+    // которые могли не пройти через Dart watcher (Recycle Bin, explorer и т.д.).
+    unawaited(_reconcileFilesystem());
+    if (!_windowWasHidden) return;
     _windowWasHidden = false;
     _scheduleCounterRefresh();
   }

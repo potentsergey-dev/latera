@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
@@ -182,7 +183,7 @@ class DartRichTextExtractor implements RichTextExtractor {
         );
       }
 
-      final xmlContent = String.fromCharCodes(docEntry.content as List<int>);
+      final xmlContent = utf8.decode(docEntry.content as List<int>, allowMalformed: true);
 
       // Извлекаем текст из <w:t ...> тегов
       final text = _extractTextFromDocxXml(xmlContent);

@@ -72,6 +72,7 @@
   "settingsAutoTagsHint": "Автоприсвоение тегов по содержимому",
   "settingsComingSoon": "скоро",
   "settingsDisabledByResourceSaver": "отключено режимом экономии",
+  "settingsSlowCpuHint": "медленный режим (нет AVX2) — только извлечение ключевых слов",
 
   "settingsSectionAdvanced": "Дополнительно",
   "settingsResetSettings": "Сбросить настройки",

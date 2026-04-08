@@ -456,6 +456,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: _toggleAutoSummary,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
+                slowCpuLabel: l10n.settingsSlowCpuHint,
               ),
               _buildContentFeatureToggle(
                 icon: Icons.label_outlined,
@@ -468,6 +469,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: _toggleAutoTags,
                 comingSoonLabel: l10n.settingsComingSoon,
                 disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
+                slowCpuLabel: l10n.settingsSlowCpuHint,
               ),
             ],
           ),
@@ -926,9 +928,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String comingSoonLabel,
     required String disabledBySaverLabel,
     bool comingSoon = false,
+    String? slowCpuLabel,
   }) {
     final isOverriddenByResourceSaver =
         _config.resourceSaverEnabled && value && !effectiveValue;
+    final isSlowCpu = slowCpuLabel != null && !AppScope.of(context).hasAvx2;
+
+    String effectiveSubtitle = subtitle;
+    if (isOverriddenByResourceSaver) {
+      effectiveSubtitle = '$subtitle \u2022 $disabledBySaverLabel';
+    } else if (isSlowCpu) {
+      effectiveSubtitle = '$subtitle \u2022 $slowCpuLabel';
+    }
 
     return SwitchListTile(
       secondary: Icon(
@@ -957,11 +968,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       subtitle: Text(
-        isOverriddenByResourceSaver
-            ? '$subtitle \u2022 $disabledBySaverLabel'
-            : subtitle,
+        effectiveSubtitle,
         style: TextStyle(
-          color: isOverriddenByResourceSaver
+          color: isOverriddenByResourceSaver || isSlowCpu
               ? Theme.of(context).colorScheme.outline
               : null,
         ),

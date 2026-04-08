@@ -494,6 +494,12 @@ abstract class AppLocalizations {
   /// **'disabled by resource saving mode'**
   String get settingsDisabledByResourceSaver;
 
+  /// Hint shown when CPU lacks AVX2 for AI features
+  ///
+  /// In en, this message translates to:
+  /// **'slow mode (no AVX2) — keyword extraction only'**
+  String get settingsSlowCpuHint;
+
   /// Settings section: advanced
   ///
   /// In en, this message translates to:
@@ -1353,66 +1359,129 @@ abstract class AppLocalizations {
   String timeDaysAgo(int count);
 
   /// Status bar header when downloading/loading AI model
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading AI model'**
   String get processingStatusBarDownloadingModel;
 
   /// Status bar header when processing files
+  ///
+  /// In en, this message translates to:
+  /// **'Processing files'**
   String get processingStatusBarProcessingFiles;
 
   /// Status bar detail when preparing
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing…'**
   String get processingStatusBarPreparing;
 
   /// Status bar detail for GGUF model download
+  ///
+  /// In en, this message translates to:
+  /// **'qwen2.5-3b-instruct-q4_k_m · generative model (~1.7 GB)'**
   String get processingStatusBarGgufModelDetail;
 
   /// File processing counter
+  ///
+  /// In en, this message translates to:
+  /// **'{completed} of {total}'**
   String processingStatusBarOf(int completed, int total);
 
   /// Remaining items counter
+  ///
+  /// In en, this message translates to:
+  /// **'{count} remaining'**
   String processingStatusBarRemaining(int count);
 
   /// Job type label for LLM download
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading AI model…'**
   String get processingJobLlmDownload;
 
   /// Job type label for GGUF download
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading generative model…'**
   String get processingJobGgufDownload;
 
   /// Job type label for text extraction
+  ///
+  /// In en, this message translates to:
+  /// **'text extraction'**
   String get processingJobTextExtraction;
 
   /// Job type label for transcription
+  ///
+  /// In en, this message translates to:
+  /// **'transcription'**
   String get processingJobTranscription;
 
   /// Job type label for embeddings
+  ///
+  /// In en, this message translates to:
+  /// **'embeddings'**
   String get processingJobEmbeddings;
 
   /// Job type label for OCR
+  ///
+  /// In en, this message translates to:
+  /// **'text recognition (OCR)'**
   String get processingJobOcr;
 
   /// Job type label for auto-summary
+  ///
+  /// In en, this message translates to:
+  /// **'auto-description'**
   String get processingJobAutoSummary;
 
   /// Job type label for auto-tags
+  ///
+  /// In en, this message translates to:
+  /// **'auto-tags'**
   String get processingJobAutoTags;
 
   /// RAG error when question is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a question'**
   String get ragErrorEmptyQuestion;
 
   /// RAG error when no relevant chunks found
+  ///
+  /// In en, this message translates to:
+  /// **'No relevant snippets found.\nTry rephrasing your question or index more documents.'**
   String get ragErrorNoChunks;
 
   /// RAG error on query failure
+  ///
+  /// In en, this message translates to:
+  /// **'Error executing query'**
   String get ragErrorQueryFailed;
 
   /// RAG error for unknown error code
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get an answer'**
   String get ragErrorUnknown;
 
   /// Message shown when RAG requires PRO license
+  ///
+  /// In en, this message translates to:
+  /// **'Available in PRO'**
   String get ragProRequired;
 
   /// Button to learn about PRO in RAG screen
+  ///
+  /// In en, this message translates to:
+  /// **'Learn about PRO'**
   String get ragLearnAboutPro;
 
   /// Sources section label with count
+  ///
+  /// In en, this message translates to:
+  /// **'Sources ({count})'**
   String ragSourcesCount(int count);
 }
 

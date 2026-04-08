@@ -225,6 +225,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsDisabledByResourceSaver => 'отключено режимом экономии';
 
   @override
+  String get settingsSlowCpuHint =>
+      'медленный режим (нет AVX2) — только извлечение ключевых слов';
+
+  @override
   String get settingsSectionAdvanced => 'Дополнительно';
 
   @override
@@ -738,13 +742,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get processingStatusBarPreparing => 'подготовка…';
 
   @override
-  String get processingStatusBarGgufModelDetail => 'qwen2.5-3b-instruct-q4_k_m · генеративная модель (~1.7 ГБ)';
+  String get processingStatusBarGgufModelDetail =>
+      'qwen2.5-3b-instruct-q4_k_m · генеративная модель (~1.7 ГБ)';
 
   @override
-  String processingStatusBarOf(int completed, int total) => '$completed из $total';
+  String processingStatusBarOf(int completed, int total) {
+    return '$completed из $total';
+  }
 
   @override
-  String processingStatusBarRemaining(int count) => '$count осталось';
+  String processingStatusBarRemaining(int count) {
+    return '$count осталось';
+  }
 
   @override
   String get processingJobLlmDownload => 'Загрузка AI-модели…';
@@ -774,7 +783,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ragErrorEmptyQuestion => 'Введите вопрос';
 
   @override
-  String get ragErrorNoChunks => 'Релевантных фрагментов не найдено.\nПопробуйте переформулировать вопрос или добавьте ещё документы.';
+  String get ragErrorNoChunks =>
+      'Релевантных фрагментов не найдено.\nПопробуйте переформулировать вопрос или проиндексируйте больше документов.';
 
   @override
   String get ragErrorQueryFailed => 'Ошибка при выполнении запроса';
@@ -789,5 +799,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get ragLearnAboutPro => 'Узнать о PRO';
 
   @override
-  String ragSourcesCount(int count) => 'Источники ($count)';
+  String ragSourcesCount(int count) {
+    return 'Источники ($count)';
+  }
 }

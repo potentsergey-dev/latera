@@ -438,6 +438,7 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           ),
           onChanged: (v) => _updateConfig(enableAutoSummary: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
+          slowCpuLabel: l10n.settingsSlowCpuHint,
         ),
         _buildFeatureToggle(
           icon: Icons.label_outlined,
@@ -449,6 +450,7 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
           ),
           onChanged: (v) => _updateConfig(enableAutoTags: v),
           disabledBySaverLabel: l10n.settingsDisabledByResourceSaver,
+          slowCpuLabel: l10n.settingsSlowCpuHint,
         ),
         const SizedBox(height: 24),
 
@@ -874,9 +876,18 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
     required bool effectiveValue,
     required ValueChanged<bool> onChanged,
     required String disabledBySaverLabel,
+    String? slowCpuLabel,
   }) {
     final isOverriddenByResourceSaver =
         _config.resourceSaverEnabled && value && !effectiveValue;
+    final isSlowCpu = slowCpuLabel != null && !AppScope.of(context).hasAvx2;
+
+    String effectiveSubtitle = subtitle;
+    if (isOverriddenByResourceSaver) {
+      effectiveSubtitle = '$subtitle \u2022 $disabledBySaverLabel';
+    } else if (isSlowCpu) {
+      effectiveSubtitle = '$subtitle \u2022 $slowCpuLabel';
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
@@ -884,11 +895,7 @@ class _WindowsSettingsPageState extends fluent.State<WindowsSettingsPage> {
         child: fluent.ListTile.selectable(
           leading: Icon(icon),
           title: Text(title),
-          subtitle: Text(
-            isOverriddenByResourceSaver
-                ? '$subtitle \u2022 $disabledBySaverLabel'
-                : subtitle,
-          ),
+          subtitle: Text(effectiveSubtitle),
           trailing: fluent.ToggleSwitch(
             checked: effectiveValue,
             onChanged: onChanged,

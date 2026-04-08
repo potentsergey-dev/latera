@@ -199,6 +199,9 @@
   "settingsDisabledByResourceSaver": "disabled by resource saving mode",
   "@settingsDisabledByResourceSaver": { "description": "Suffix when feature is overridden by resource saver" },
 
+  "settingsSlowCpuHint": "slow mode (no AVX2) — keyword extraction only",
+  "@settingsSlowCpuHint": { "description": "Hint shown when CPU lacks AVX2 for AI features" },
+
   "settingsSectionAdvanced": "Advanced",
   "@settingsSectionAdvanced": { "description": "Settings section: advanced" },
 

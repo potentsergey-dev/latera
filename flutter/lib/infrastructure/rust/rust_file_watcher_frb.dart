@@ -163,22 +163,36 @@ class RustFileWatcherFrb implements FileWatcher {
     }
 
     _log.i('Starting Dart delete watcher for: $watchDir');
+    // Подписываемся на delete И move, потому что Windows-удаление в Корзину
+    // генерирует move-событие (FILE_ACTION_RENAMED_OLD_NAME), а не delete.
     _fsSub = dir
-        .watch(events: FileSystemEvent.delete)
+        .watch(events: FileSystemEvent.delete | FileSystemEvent.move)
         .listen(
           (event) {
-            if (event is FileSystemDeleteEvent) {
-              final path = event.path;
-              final fileName = path.split(Platform.pathSeparator).last;
-              _log.i('File deleted: $fileName ($path)');
-              _removedEventsController.add(
-                FileRemovedEvent(
-                  fileName: fileName,
-                  fullPath: path,
-                  occurredAt: DateTime.now(),
-                ),
-              );
+            // FileSystemDeleteEvent — Shift+Delete (безвозвратное удаление).
+            // FileSystemMoveEvent — обычный Delete (перемещение в Корзину).
+            final isDelete = event is FileSystemDeleteEvent;
+            final isMove = event is FileSystemMoveEvent;
+            if (!isDelete && !isMove) return;
+
+            final path = event.path;
+            final fileName = path.split(Platform.pathSeparator).last;
+
+            // Для move-событий проверяем, что файл реально пропал из директории.
+            // Иначе переименование файла внутри папки тоже сработает как move.
+            if (isMove && File(path).existsSync()) {
+              _log.d('Move event ignored (file still exists): $fileName');
+              return;
             }
+
+            _log.i('File removed (${isDelete ? "delete" : "move"}): $fileName ($path)');
+            _removedEventsController.add(
+              FileRemovedEvent(
+                fileName: fileName,
+                fullPath: path,
+                occurredAt: DateTime.now(),
+              ),
+            );
           },
           onError: (Object error, StackTrace st) {
             _log.e('Dart delete watcher error', error: error, stackTrace: st);

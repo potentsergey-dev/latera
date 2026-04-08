@@ -226,6 +226,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'disabled by resource saving mode';
 
   @override
+  String get settingsSlowCpuHint =>
+      'slow mode (no AVX2) — keyword extraction only';
+
+  @override
   String get settingsSectionAdvanced => 'Advanced';
 
   @override
@@ -732,16 +736,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get processingStatusBarProcessingFiles => 'Processing files';
 
   @override
-  String get processingStatusBarPreparing => 'preparing…';
+  String get processingStatusBarPreparing => 'Preparing…';
 
   @override
-  String get processingStatusBarGgufModelDetail => 'qwen2.5-3b-instruct-q4_k_m · generative model (~1.7 GB)';
+  String get processingStatusBarGgufModelDetail =>
+      'qwen2.5-3b-instruct-q4_k_m · generative model (~1.7 GB)';
 
   @override
-  String processingStatusBarOf(int completed, int total) => '$completed of $total';
+  String processingStatusBarOf(int completed, int total) {
+    return '$completed of $total';
+  }
 
   @override
-  String processingStatusBarRemaining(int count) => '$count remaining';
+  String processingStatusBarRemaining(int count) {
+    return '$count remaining';
+  }
 
   @override
   String get processingJobLlmDownload => 'Downloading AI model…';
@@ -771,7 +780,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ragErrorEmptyQuestion => 'Enter a question';
 
   @override
-  String get ragErrorNoChunks => 'No relevant snippets found.\nTry rephrasing your question or index more documents.';
+  String get ragErrorNoChunks =>
+      'No relevant snippets found.\nTry rephrasing your question or index more documents.';
 
   @override
   String get ragErrorQueryFailed => 'Error executing query';
@@ -786,5 +796,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get ragLearnAboutPro => 'Learn about PRO';
 
   @override
-  String ragSourcesCount(int count) => 'Sources ($count)';
+  String ragSourcesCount(int count) {
+    return 'Sources ($count)';
+  }
 }
