@@ -143,8 +143,7 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
     final theme = fluent.FluentTheme.of(context);
     final l10n = AppLocalizations.of(context)!;
     final licenseCoordinator = AppScope.of(context).licenseCoordinator;
-    final isBasic =
-        licenseCoordinator.currentLicense.mode == LicenseMode.basic;
+    final isBasic = licenseCoordinator.currentLicense.mode == LicenseMode.basic;
 
     if (isBasic) {
       return fluent.ScaffoldPage(
@@ -153,16 +152,9 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.lock_outline,
-                size: 64,
-                color: theme.inactiveColor,
-              ),
+              Icon(Icons.lock_outline, size: 64, color: theme.inactiveColor),
               const SizedBox(height: 16),
-              Text(
-                l10n.ragTitle,
-                style: theme.typography.subtitle,
-              ),
+              Text(l10n.ragTitle, style: theme.typography.subtitle),
               const SizedBox(height: 8),
               Text(
                 l10n.ragProRequired,

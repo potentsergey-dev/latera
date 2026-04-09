@@ -94,8 +94,7 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
       if (_useSemanticSearch && !isBasic) {
         results = await root.searchRepository.semanticSearch(query);
       } else {
-        final limit =
-            isBasic ? FreeTierLimits.maxSearchResults : 50;
+        final limit = isBasic ? FreeTierLimits.maxSearchResults : 50;
         results = await root.searchRepository.search(query, limit: limit);
       }
 
@@ -174,7 +173,8 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
   @override
   Widget build(fluent.BuildContext context) {
     final theme = fluent.FluentTheme.of(context);
-    final isBasic = AppScope.of(context).licenseCoordinator.currentLicense.mode ==
+    final isBasic =
+        AppScope.of(context).licenseCoordinator.currentLicense.mode ==
         LicenseMode.basic;
 
     return fluent.ScaffoldPage(
@@ -183,25 +183,24 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
         commandBar: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (!isBasic) ...
-              [
-                Text(
-                  _useSemanticSearch
-                      ? AppLocalizations.of(context)!.searchSemantic
-                      : AppLocalizations.of(context)!.searchFulltext,
-                  style: theme.typography.caption,
-                ),
-                const SizedBox(width: 8),
-                fluent.ToggleSwitch(
-                  checked: _useSemanticSearch,
-                  onChanged: (value) {
-                    setState(() => _useSemanticSearch = value);
-                    if (_searchController.text.isNotEmpty) {
-                      _performSearch(_searchController.text);
-                    }
-                  },
-                ),
-              ],
+            if (!isBasic) ...[
+              Text(
+                _useSemanticSearch
+                    ? AppLocalizations.of(context)!.searchSemantic
+                    : AppLocalizations.of(context)!.searchFulltext,
+                style: theme.typography.caption,
+              ),
+              const SizedBox(width: 8),
+              fluent.ToggleSwitch(
+                checked: _useSemanticSearch,
+                onChanged: (value) {
+                  setState(() => _useSemanticSearch = value);
+                  if (_searchController.text.isNotEmpty) {
+                    _performSearch(_searchController.text);
+                  }
+                },
+              ),
+            ],
           ],
         ),
       ),

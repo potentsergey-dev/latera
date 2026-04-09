@@ -81,12 +81,7 @@ class FreeTierLimits {
   static const int maxWatchedDirectories = 1;
 
   /// Поддерживаемые форматы файлов (базовый набор).
-  static const Set<String> supportedFileFormats = {
-    'txt',
-    'md',
-    'pdf',
-    'docx',
-  };
+  static const Set<String> supportedFileFormats = {'txt', 'md', 'pdf', 'docx'};
 }
 
 /// Конфигурация возможностей Pro версии.

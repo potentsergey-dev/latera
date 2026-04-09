@@ -250,7 +250,8 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isBasic = AppScope.of(context).licenseCoordinator.currentLicense.mode ==
+    final isBasic =
+        AppScope.of(context).licenseCoordinator.currentLicense.mode ==
         LicenseMode.basic;
 
     return Scaffold(
