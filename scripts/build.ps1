@@ -1,4 +1,4 @@
-# Full Build Script for Windows
+﻿# Full Build Script for Windows
 # Usage: .\scripts\build.ps1 [-Release] [-SkipCodegen] [-SkipRust] [-SkipFlutter] [-Msix]
 
 param(
@@ -27,7 +27,7 @@ if ($Msix) {
 if ($env:VULKAN_SDK -and (Test-Path $env:VULKAN_SDK)) {
     Write-Host "Vulkan SDK: $env:VULKAN_SDK" -ForegroundColor Green
 } else {
-    Write-Host "WARNING: VULKAN_SDK not found — Rust build requires Vulkan SDK for GPU acceleration." -ForegroundColor Yellow
+    Write-Host "WARNING: VULKAN_SDK not found - Rust build requires Vulkan SDK for GPU acceleration." -ForegroundColor Yellow
     Write-Host "Install from https://vulkan.lunarg.com/sdk/home and set VULKAN_SDK env variable." -ForegroundColor Yellow
 }
 
@@ -52,7 +52,7 @@ if (-not $SkipRust) {
     if ($Release) {
         $cargoArgs += "--release"
     }
-    # Включаем Vulkan GPU-ускорение если SDK доступен
+        # Enable Vulkan GPU acceleration if SDK is available
     if ($env:VULKAN_SDK -and (Test-Path $env:VULKAN_SDK)) {
         $cargoArgs += "--features"
         $cargoArgs += "vulkan"
@@ -61,8 +61,11 @@ if (-not $SkipRust) {
         Write-Host "  Vulkan feature: disabled (SDK not found)" -ForegroundColor Yellow
     }
     
+    $ErrorActionPreference = "Continue"
     & cargo $cargoArgs
-    if ($LASTEXITCODE -ne 0) {
+    $cargoExit = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
+    if ($cargoExit -ne 0) {
         Write-Host "ERROR: Rust build failed!" -ForegroundColor Red
         Pop-Location
         exit 1
@@ -79,7 +82,9 @@ if (-not $SkipFlutter) {
     
     # Regenerate launcher icons from assets/app_icon.png
     Write-Host "  Regenerating launcher icons..." -ForegroundColor Gray
+    $ErrorActionPreference = "Continue"
     & dart run flutter_launcher_icons
+    $ErrorActionPreference = "Stop"
     
     $flutterArgs = @("build", "windows")
     if ($Release) {
@@ -88,8 +93,11 @@ if (-not $SkipFlutter) {
         $flutterArgs += "--debug"
     }
     
+    $ErrorActionPreference = "Continue"
     & flutter $flutterArgs
-    if ($LASTEXITCODE -ne 0) {
+    $flutterExit = $LASTEXITCODE
+    $ErrorActionPreference = "Stop"
+    if ($flutterExit -ne 0) {
         Write-Host "ERROR: Flutter build failed!" -ForegroundColor Red
         Pop-Location
         exit 1
@@ -149,14 +157,19 @@ if ($Msix) {
         }
 
         # Run flutter pub get to ensure msix is available
+        $ErrorActionPreference = "Continue"
         & flutter pub get
+        $ErrorActionPreference = "Stop"
         if ($LASTEXITCODE -ne 0) {
             Write-Host "WARNING: flutter pub get failed" -ForegroundColor Yellow
         }
         
         # Create MSIX package (skip certificate installation for CI/automation)
+        $ErrorActionPreference = "Continue"
         & flutter pub run msix:create --install-certificate false
-        if ($LASTEXITCODE -ne 0) {
+        $exitMsix = $LASTEXITCODE
+        $ErrorActionPreference = "Stop"
+        if ($exitMsix -ne 0) {
             Write-Host "ERROR: MSIX creation failed!" -ForegroundColor Red
             Pop-Location
             exit 1

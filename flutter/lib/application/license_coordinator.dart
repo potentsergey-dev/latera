@@ -82,8 +82,21 @@ class LicenseCoordinator {
   }
 
   /// Проверить доступность функции.
-  bool isFeatureAvailable(String featureId) =>
-      _licenseService.isFeatureAvailable(featureId);
+  ///
+  /// При аппаратных ограничениях PRO-функции недоступны
+  /// независимо от статуса покупки.
+  bool isFeatureAvailable(String featureId) {
+    if (_isHardwareConstrained) {
+      const freeFeatures = {
+        FeatureId.basicSearch,
+        FeatureId.basicIndexing,
+        FeatureId.basicNotifications,
+        FeatureId.darkTheme,
+      };
+      return freeFeatures.contains(featureId);
+    }
+    return _licenseService.isFeatureAvailable(featureId);
+  }
 
   /// Получить лимит для функции.
   int? getLimit(String limitId) => _featureFlags.getLimit(limitId);

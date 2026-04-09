@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
 
 import '../../../domain/app_config.dart';
+import '../../../domain/license.dart';
 import '../../../domain/rag.dart';
 import '../../../infrastructure/di/app_composition_root.dart';
 import '../../../l10n/app_localizations.dart';
@@ -140,6 +141,40 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
   @override
   Widget build(fluent.BuildContext context) {
     final theme = fluent.FluentTheme.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final licenseCoordinator = AppScope.of(context).licenseCoordinator;
+    final isBasic =
+        licenseCoordinator.currentLicense.mode == LicenseMode.basic;
+
+    if (isBasic) {
+      return fluent.ScaffoldPage(
+        header: fluent.PageHeader(title: Text(l10n.ragTitle)),
+        content: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.lock_outline,
+                size: 64,
+                color: theme.inactiveColor,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.ragTitle,
+                style: theme.typography.subtitle,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.ragProRequired,
+                style: theme.typography.body?.copyWith(
+                  color: theme.inactiveColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return fluent.ScaffoldPage(
       header: fluent.PageHeader(

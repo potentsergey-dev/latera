@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../domain/app_config.dart';
+import '../domain/feature_flags.dart';
+import '../domain/license.dart';
 import '../domain/search_repository.dart';
 import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
@@ -56,10 +58,12 @@ class _SearchScreenState extends State<SearchScreen> {
   void _loadSemanticSearchPreference() {
     final root = AppScope.of(context);
     final config = root.configService.currentConfig;
+    final isBasic =
+        root.licenseCoordinator.currentLicense.mode == LicenseMode.basic;
     setState(() {
-      _useSemanticSearch = config.isFeatureEffectivelyEnabled(
-        ContentFeature.embeddings,
-      );
+      _useSemanticSearch =
+          !isBasic &&
+          config.isFeatureEffectivelyEnabled(ContentFeature.embeddings);
     });
   }
 
@@ -95,14 +99,17 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       final root = AppScope.of(context);
+      final isBasic =
+          root.licenseCoordinator.currentLicense.mode == LicenseMode.basic;
       final List<SearchResult> results;
 
-      if (_useSemanticSearch) {
+      if (_useSemanticSearch && !isBasic) {
         // Семантический поиск по эмбеддингам
         results = await root.searchRepository.semanticSearch(query);
       } else {
         // FTS5 полнотекстовый поиск (fallback)
-        results = await root.searchRepository.search(query);
+        final limit = isBasic ? FreeTierLimits.maxSearchResults : 50;
+        results = await root.searchRepository.search(query, limit: limit);
       }
 
       if (!mounted) return;
@@ -243,41 +250,44 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isBasic = AppScope.of(context).licenseCoordinator.currentLicense.mode ==
+        LicenseMode.basic;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Поиск файлов'),
         actions: [
-          // Переключатель FTS5 / Семантический поиск
-          Tooltip(
-            message: _useSemanticSearch
-                ? 'Семантический поиск (по смыслу)'
-                : 'Полнотекстовый поиск (FTS5)',
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _useSemanticSearch ? Icons.hub : Icons.text_fields,
-                  size: 18,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 4),
-                Switch.adaptive(
-                  value: _useSemanticSearch,
-                  onChanged: (value) {
-                    setState(() {
-                      _useSemanticSearch = value;
-                    });
-                    // Перезапустить поиск с новым режимом
-                    if (_searchController.text.isNotEmpty) {
-                      _performSearch(_searchController.text);
-                    }
-                  },
-                ),
-                const SizedBox(width: 8),
-              ],
+          if (!isBasic)
+            // Переключатель FTS5 / Семантический поиск
+            Tooltip(
+              message: _useSemanticSearch
+                  ? 'Семантический поиск (по смыслу)'
+                  : 'Полнотекстовый поиск (FTS5)',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _useSemanticSearch ? Icons.hub : Icons.text_fields,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Switch.adaptive(
+                    value: _useSemanticSearch,
+                    onChanged: (value) {
+                      setState(() {
+                        _useSemanticSearch = value;
+                      });
+                      // Перезапустить поиск с новым режимом
+                      if (_searchController.text.isNotEmpty) {
+                        _performSearch(_searchController.text);
+                      }
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
             ),
-          ),
         ],
       ),
       body: Column(

@@ -7,6 +7,8 @@ import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/app_config.dart';
+import '../../../domain/feature_flags.dart';
+import '../../../domain/license.dart';
 import '../../../domain/search_repository.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../app_scope.dart';
@@ -44,10 +46,12 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
   void _loadSemanticSearchPreference() {
     final root = AppScope.of(context);
     final config = root.configService.currentConfig;
+    final isBasic =
+        root.licenseCoordinator.currentLicense.mode == LicenseMode.basic;
     setState(() {
-      _useSemanticSearch = config.isFeatureEffectivelyEnabled(
-        ContentFeature.embeddings,
-      );
+      _useSemanticSearch =
+          !isBasic &&
+          config.isFeatureEffectivelyEnabled(ContentFeature.embeddings);
     });
   }
 
@@ -83,12 +87,16 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
 
     try {
       final root = AppScope.of(context);
+      final isBasic =
+          root.licenseCoordinator.currentLicense.mode == LicenseMode.basic;
       final List<SearchResult> results;
 
-      if (_useSemanticSearch) {
+      if (_useSemanticSearch && !isBasic) {
         results = await root.searchRepository.semanticSearch(query);
       } else {
-        results = await root.searchRepository.search(query);
+        final limit =
+            isBasic ? FreeTierLimits.maxSearchResults : 50;
+        results = await root.searchRepository.search(query, limit: limit);
       }
 
       if (!mounted) return;
@@ -166,6 +174,8 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
   @override
   Widget build(fluent.BuildContext context) {
     final theme = fluent.FluentTheme.of(context);
+    final isBasic = AppScope.of(context).licenseCoordinator.currentLicense.mode ==
+        LicenseMode.basic;
 
     return fluent.ScaffoldPage(
       header: fluent.PageHeader(
@@ -173,22 +183,25 @@ class _WindowsSearchPageState extends fluent.State<WindowsSearchPage> {
         commandBar: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              _useSemanticSearch
-                  ? AppLocalizations.of(context)!.searchSemantic
-                  : AppLocalizations.of(context)!.searchFulltext,
-              style: theme.typography.caption,
-            ),
-            const SizedBox(width: 8),
-            fluent.ToggleSwitch(
-              checked: _useSemanticSearch,
-              onChanged: (value) {
-                setState(() => _useSemanticSearch = value);
-                if (_searchController.text.isNotEmpty) {
-                  _performSearch(_searchController.text);
-                }
-              },
-            ),
+            if (!isBasic) ...
+              [
+                Text(
+                  _useSemanticSearch
+                      ? AppLocalizations.of(context)!.searchSemantic
+                      : AppLocalizations.of(context)!.searchFulltext,
+                  style: theme.typography.caption,
+                ),
+                const SizedBox(width: 8),
+                fluent.ToggleSwitch(
+                  checked: _useSemanticSearch,
+                  onChanged: (value) {
+                    setState(() => _useSemanticSearch = value);
+                    if (_searchController.text.isNotEmpty) {
+                      _performSearch(_searchController.text);
+                    }
+                  },
+                ),
+              ],
           ],
         ),
       ),

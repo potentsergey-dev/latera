@@ -85,7 +85,6 @@ class FreeTierLimits {
     'txt',
     'md',
     'pdf',
-    'doc',
     'docx',
   };
 }

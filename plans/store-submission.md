@@ -15,16 +15,16 @@ AI-powered local document search with semantic indexing, RAG, and OCR. Your data
 Latera is an AI-powered desktop application that indexes and searches your local files using semantic analysis. All data processing happens entirely on your device — no cloud, no tracking.
 
 **Key Features:**
-• Semantic search — find documents by meaning, not just keywords
-• Local RAG (Retrieval-Augmented Generation) — ask questions about your documents
-• Full-text search with FTS5 — lightning-fast keyword search
+• Full-text search with FTS5 — lightning-fast keyword search (included in Free)
+• File watcher — automatically indexes new files in your selected folder (included in Free)
 • OCR support — extract text from images and scanned PDFs
 • PDF & DOCX text extraction — index office documents automatically
-• AI-powered auto-summaries and tags for your files
-• File watcher — automatically indexes new files in your selected folder
 • Multilingual — supports English, Russian, German, Spanish, and Portuguese
 • Privacy-first — zero telemetry, zero data collection, zero cloud uploads
 • Vulkan GPU acceleration — faster AI inference when available
+• Semantic search — find documents by meaning, not just keywords (PRO)
+• Local RAG (Retrieval-Augmented Generation) — ask questions about your documents (PRO)
+• AI-powered auto-summaries and tags for your files (PRO)
 
 **How It Works:**
 1. Select a folder to watch
@@ -37,14 +37,14 @@ Latera downloads compact AI models on first launch (~200 MB total) for semantic 
 
 **Free Version Includes:**
 • Up to 100 indexed files
-• Basic search and indexing
-• TXT, MD, PDF, DOC, DOCX support
+• Full-text search (FTS5) and file indexing
+• TXT, MD, PDF, DOCX support
 
 **Pro Version Unlocks:**
 • Unlimited files
-• Semantic search & RAG
+• Semantic search & RAG (Ask your folder)
 • Extended format support
-• Multiple watch directories
+• Custom watch folder selection
 
 ### Keywords
 document search, semantic search, local AI, RAG, OCR, file indexer, desktop search, privacy, offline AI, PDF search
