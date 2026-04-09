@@ -156,8 +156,8 @@ flutter:
 msix_config:
   display_name: Latera
   publisher_display_name: Sergey Voronin
-  identity_name: com.latera.latera
-  publisher: CN=LateraTeam, O=Latera, C=BY
+  identity_name: SergeyVoronin.Latera
+  publisher: CN=031D48A8-440E-41D0-9FF8-D95406528F47
   version: 1.0.0.0
   install_certificate: false
   build_windows: false  # Build is controlled by build.ps1
@@ -171,6 +171,6 @@ msix_config:
   # === Signing (optional for local dev, required for distribution) ===
   # For local testing with a test certificate:
   certificate_path: ../certs/latera-test.pfx
-  certificate_password: "WQgln2YUrdk1EHBc" # Or use environment variable
+  certificate_password: "2NsvIRZuXTArCQFd" # Or use environment variable
   # For CI/CD, certificate is installed to the certificate store automatically
   # The msix package will use the certificate matching the publisher subject

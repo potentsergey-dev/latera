@@ -14,9 +14,9 @@
 # flutter/pubspec.yaml
 msix:
   display_name: Latera
-  publisher_display_name: Latera Team
-  identity_name: com.latera.latera
-  publisher: CN=LateraTeam, O=Latera, C=BY
+  publisher_display_name: Sergey Voronin
+  identity_name: SergeyVoronin.Latera
+  publisher: CN=031D48A8-440E-41D0-9FF8-D95406528F47
 ```
 
 ### 2. EXE Metadata (Runner.rc)
@@ -34,7 +34,7 @@ VALUE "LegalCopyright", "Copyright (C) 2026 Latera Team. All rights reserved."
 // flutter/lib/infrastructure/notifications/local_notifications_service.dart
 const windows = WindowsInitializationSettings(
   appName: 'Latera',
-  appUserModelId: 'com.latera.latera',
+  appUserModelId: 'SergeyVoronin.Latera',
   guid: '7F4D8B8A-0DB5-4D6B-9F2F-6F4F7D9D9D0E',
 );
 ```
@@ -47,7 +47,7 @@ const windows = WindowsInitializationSettings(
 PFN = {IdentityName}_{PublisherHash}
 ```
 
-Пример: `com.latera.latera_abc123def456`
+Пример: `SergeyVoronin.Latera_abc123def456`
 
 ### Важно для toast-уведомлений
 
@@ -60,10 +60,10 @@ PFN = {IdentityName}_{PublisherHash}
 
 ### До публикации
 
-Текущая конфигурация использует самоподписанный сертификат:
+Текущая конфигурация для Store использует Publisher из Partner Center:
 
 ```
-CN=LateraTeam, O=Latera, C=BY
+CN=031D48A8-440E-41D0-9FF8-D95406528F47
 ```
 
 ### После резервирования в Store
@@ -77,8 +77,8 @@ Partner Center назначит:
 
 ```yaml
 msix:
-  identity_name: com.latera.latera  # или назначенный Store
-  publisher: CN=...{Store Certificate}
+  identity_name: SergeyVoronin.Latera
+  publisher: CN=031D48A8-440E-41D0-9FF8-D95406528F47
 ```
 
 ### Чеклист для Store
@@ -95,9 +95,9 @@ msix:
 |-----------|----------|------|
 | ProductName | `Latera` | Runner.rc, pubspec.yaml |
 | CompanyName | `Latera Team` | Runner.rc |
-| Identity Name | `com.latera.latera` | pubspec.yaml |
-| AUMID | `com.latera.latera` | local_notifications_service.dart |
-| Publisher | `CN=LateraTeam, O=Latera, C=BY` | pubspec.yaml |
+| Identity Name | `SergeyVoronin.Latera` | pubspec.yaml |
+| AUMID | `SergeyVoronin.Latera` | local_notifications_service.dart |
+| Publisher | `CN=031D48A8-440E-41D0-9FF8-D95406528F47` | pubspec.yaml |
 
 ## Toast-уведомления в MSIX
 

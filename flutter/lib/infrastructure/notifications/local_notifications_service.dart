@@ -218,18 +218,18 @@ class LocalNotificationsService implements NotificationsService {
     // - PFN = {IdentityName}_{PublisherHash} вычисляется Windows из манифеста пакета
     //
     // ## Identity синхронизация:
-    // - identity_name в pubspec.yaml: com.latera.latera
-    // - appUserModelId ниже: com.latera.latera (для unpackaged режима)
+    // - identity_name в pubspec.yaml: SergeyVoronin.Latera
+    // - appUserModelId ниже: SergeyVoronin.Latera (для unpackaged режима)
     // - В MSIX режиме Windows игнорирует appUserModelId и использует PFN
     //
     // ## Store публикация:
-    // - При публикации в Store, Partner Center назначит новый Publisher
+    // - Partner Center уже назначил Store Publisher
     // - PFN изменится, но плагин автоматически это обработает
     const windows = WindowsInitializationSettings(
       appName: 'Latera',
       // AUMID для unpackaged режима. В MSIX режиме игнорируется.
       // Должен совпадать с identity_name в pubspec.yaml для консистентности.
-      appUserModelId: 'com.latera.latera',
+      appUserModelId: 'SergeyVoronin.Latera',
       // Постоянный GUID приложения для уведомлений Windows.
       // Можно сгенерировать один раз (например через PowerShell New-Guid).
       guid: '7F4D8B8A-0DB5-4D6B-9F2F-6F4F7D9D9D0E',

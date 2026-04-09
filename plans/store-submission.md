@@ -3,7 +3,7 @@
 ## App Identity
 - **App Name:** Latera
 - **Publisher:** Sergey Voronin
-- **Identity Name:** com.latera.latera
+- **Identity Name:** SergeyVoronin.Latera
 - **Version:** 1.0.0.0
 
 ## Store Listing (English)
