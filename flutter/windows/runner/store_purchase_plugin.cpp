@@ -34,7 +34,7 @@ winrt::fire_and_forget CheckProPurchased(
         auto token = std::wstring(license.InAppOfferToken());
         auto sku_id = std::wstring(license.SkuStoreId());
         if (token == L"latera_pro" ||
-            sku_id.find(L"latera_pro") != std::wstring::npos) {
+            sku_id.find(L"9MWF5L19B20J") != std::wstring::npos) {
           purchased = true;
           break;
         }
@@ -94,7 +94,7 @@ void RegisterStorePurchasePlugin(flutter::BinaryMessenger* messenger) {
               std::shared_ptr<flutter::MethodResult<flutter::EncodableValue>>(
                   std::move(result)));
         } else if (call.method_name() == "buyPro") {
-          std::string product_id = "latera_pro";
+          std::string product_id = "9MWF5L19B20J";
           if (call.arguments() &&
               std::holds_alternative<std::string>(*call.arguments())) {
             product_id = std::get<std::string>(*call.arguments());

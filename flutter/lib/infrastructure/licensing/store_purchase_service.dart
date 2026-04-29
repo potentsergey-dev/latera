@@ -50,8 +50,11 @@ class PurchaseResult {
 class StorePurchaseService {
   static const _channel = MethodChannel('com.latera.store_purchase');
 
-  /// ID Add-On продукта в Partner Center.
+  /// In-App Offer Token (Product ID из Partner Center) — используется для проверки лицензии.
   static const productId = 'latera_pro';
+
+  /// Store ID Add-On из Microsoft Partner Center — используется для запуска флоу покупки.
+  static const storeId = '9MWF5L19B20J';
 
   final Logger _logger;
 
@@ -80,8 +83,8 @@ class StorePurchaseService {
   /// Возвращает [PurchaseResult] с результатом операции.
   Future<PurchaseResult> buyPro() async {
     try {
-      _logger.i('StorePurchaseService: starting purchase flow for $productId');
-      final result = await _channel.invokeMethod<String>('buyPro', productId);
+      _logger.i('StorePurchaseService: starting purchase flow for $storeId');
+      final result = await _channel.invokeMethod<String>('buyPro', storeId);
       _logger.i('StorePurchaseService: purchase result = $result');
       switch (result) {
         case 'success':
