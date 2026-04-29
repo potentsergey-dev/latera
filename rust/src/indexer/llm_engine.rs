@@ -283,7 +283,6 @@ pub fn generate_with_context(
 
     // Генерируем токены
     let mut output = String::new();
-    let mut n_cur = tokens.len() as i32;
 
     let eos_token = loaded.model.token_eos();
     let eot_str = "<|im_end|>";
@@ -291,7 +290,7 @@ pub fn generate_with_context(
     // Сбрасываем флаг отмены перед началом генерации
     CANCEL_GENERATION.store(false, Ordering::Relaxed);
 
-    for _ in 0..effective_max {
+    for (n_cur, _) in (tokens.len() as i32..).zip(0..effective_max) {
         // Проверяем флаг отмены
         if CANCEL_GENERATION.load(Ordering::Relaxed) {
             warn!("LLM generation was cancelled");
@@ -329,8 +328,6 @@ pub fn generate_with_context(
 
         ctx.decode(&mut batch)
             .map_err(|e| LateraError::LlmGenerationFailed(format!("Token decode: {e}")))?;
-
-        n_cur += 1;
     }
 
     let result = output.trim().to_string();

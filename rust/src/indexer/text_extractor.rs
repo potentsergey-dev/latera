@@ -407,12 +407,10 @@ fn parse_docx_xml(xml: &str) -> String {
                     text.push('\n');
                 }
             }
-            Ok(Event::Text(ref e)) => {
-                if in_text_element {
-                    if let Ok(t) = e.unescape() {
-                        text.push_str(&t);
-                        paragraph_has_content = true;
-                    }
+            Ok(Event::Text(ref e)) if in_text_element => {
+                if let Ok(t) = e.unescape() {
+                    text.push_str(&t);
+                    paragraph_has_content = true;
                 }
             }
             Ok(Event::Empty(ref e)) => {
