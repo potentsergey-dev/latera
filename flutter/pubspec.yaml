@@ -151,13 +151,13 @@ flutter:
 # === SIGNING CONFIGURATION ===
 # For local development: Use scripts/create-test-cert.ps1 to create a test certificate
 # For CI/CD: Certificate is provided via GitHub Secrets (BASE64_CERT, CERT_PASSWORD)
-# For Store: Update publisher with Store certificate after Partner Center reservation
+# Store identity: Laterateam.Latera / CN=D611DC50-DEDB-4823-B480-E453703C3BE0
 #
 msix_config:
   display_name: Latera
-  publisher_display_name: Sergey Voronin
-  identity_name: SergeyVoronin.Latera
-  publisher: CN=031D48A8-440E-41D0-9FF8-D95406528F47
+  publisher_display_name: Latera team
+  identity_name: Laterateam.Latera
+  publisher: CN=D611DC50-DEDB-4823-B480-E453703C3BE0
   version: 1.0.0.0
   install_certificate: false
   build_windows: false  # Build is controlled by build.ps1
@@ -170,7 +170,7 @@ msix_config:
   languages: en-us, ru-ru, de-de, es-es, pt-br
   # === Signing (optional for local dev, required for distribution) ===
   # For local testing with a test certificate:
-  certificate_path: ../certs/latera-test.pfx
+  certificate_path: ../certs/latera-store.pfx
   certificate_password: "2NsvIRZuXTArCQFd" # Or use environment variable
   # For CI/CD, certificate is installed to the certificate store automatically
   # The msix package will use the certificate matching the publisher subject
