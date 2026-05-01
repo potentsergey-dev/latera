@@ -204,9 +204,10 @@ jobs:
         working-directory: flutter
         run: |
           $tag = "${{ github.ref_name }}" -replace '^v', ''
-          # Convert semver like 1.0.0-beta.29 to MSIX-compatible 1.0.0.29
-          if ($tag -match '^(\d+\.\d+\.\d+)-\w+\.(\d+)$') {
-            $msixVersion = "$($Matches[1]).$($Matches[2])"
+          # Convert semver like 1.0.0-beta.48 to MSIX-compatible 1.0.48.0
+          # Microsoft Store requires the 4th (revision) component to always be 0.
+          if ($tag -match '^(\d+)\.(\d+)\.\d+-\w+\.(\d+)$') {
+            $msixVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
           } elseif ($tag -match '^\d+\.\d+\.\d+\.\d+$') {
             $msixVersion = $tag
           } elseif ($tag -match '^\d+\.\d+\.\d+$') {
