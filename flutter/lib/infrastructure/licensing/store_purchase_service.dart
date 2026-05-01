@@ -54,7 +54,7 @@ class StorePurchaseService {
   static const productId = 'latera_pro';
 
   /// Store ID Add-On из Microsoft Partner Center — используется для запуска флоу покупки.
-  static const storeId = '9MWF5L19B20J';
+  static const storeId = '9PFN2P0XR4GT';
 
   final Logger _logger;
 
