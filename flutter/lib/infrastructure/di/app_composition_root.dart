@@ -638,9 +638,10 @@ class AppCompositionRoot {
     final modelFile = File(modelPath);
     final tokenizerFile = File(tokenizerPath);
 
-    bool modelValid = modelFile.existsSync() &&
-        modelFile.lengthSync() >= minModelBytes;
-    bool tokenizerValid = tokenizerFile.existsSync() &&
+    bool modelValid =
+        modelFile.existsSync() && modelFile.lengthSync() >= minModelBytes;
+    bool tokenizerValid =
+        tokenizerFile.existsSync() &&
         tokenizerFile.lengthSync() >= minTokenizerBytes;
 
     logger.i(
@@ -667,18 +668,28 @@ class AppCompositionRoot {
         logger.w(
           '[ONNX] Model init failed (files may be corrupted), re-downloading: $e',
         );
-        try { modelFile.deleteSync(); } catch (_) {}
-        try { tokenizerFile.deleteSync(); } catch (_) {}
+        try {
+          modelFile.deleteSync();
+        } catch (_) {}
+        try {
+          tokenizerFile.deleteSync();
+        } catch (_) {}
         // Падаем сквозь в блок скачивания ниже.
       }
     } else {
       // Удаляем неполные файлы, если они есть (< минимального размера).
       if (modelFile.existsSync() && !modelValid) {
-        try { modelFile.deleteSync(); } catch (_) {}
-        logger.w('[ONNX] Deleted undersized model.onnx (corrupted partial download)');
+        try {
+          modelFile.deleteSync();
+        } catch (_) {}
+        logger.w(
+          '[ONNX] Deleted undersized model.onnx (corrupted partial download)',
+        );
       }
       if (tokenizerFile.existsSync() && !tokenizerValid) {
-        try { tokenizerFile.deleteSync(); } catch (_) {}
+        try {
+          tokenizerFile.deleteSync();
+        } catch (_) {}
         logger.w('[ONNX] Deleted undersized tokenizer.json');
       }
     }
