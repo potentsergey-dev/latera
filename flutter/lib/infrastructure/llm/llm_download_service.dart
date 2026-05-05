@@ -28,13 +28,14 @@ class LlmDownloadService {
 
   /// Скачивает файл модели по [url] в [targetPath].
   ///
+  /// Скачивает во временный файл [targetPath].part, переименовывает при успехе.
+  /// Поддерживает докачку (resume) через HTTP Range и 3 попытки с backoff.
   /// Возвращает Stream прогресса от 0.0 до 1.0.
   /// При ошибке stream получает error-событие.
   Stream<double> downloadModel(String url, String targetPath) {
     final controller = StreamController<double>();
 
     () async {
-      final dio = Dio();
       try {
         // Создаём директорию, если не существует
         final dir = Directory(targetPath).parent;
@@ -42,16 +43,59 @@ class LlmDownloadService {
           dir.createSync(recursive: true);
         }
 
-        await dio.download(
-          url,
-          targetPath,
-          onReceiveProgress: (count, totalBytes) {
-            if (totalBytes > 0) {
-              controller.add(count / totalBytes);
+        final tempPath = '$targetPath.part';
+        int existingBytes = 0;
+        final tempFile = File(tempPath);
+        if (tempFile.existsSync()) {
+          existingBytes = tempFile.lengthSync();
+        }
+
+        for (int attempt = 1; attempt <= _maxRetries; attempt++) {
+          final dio = Dio(
+            BaseOptions(
+              connectTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(minutes: 10),
+            ),
+          );
+          try {
+            final headers = <String, dynamic>{};
+            if (existingBytes > 0) {
+              headers['Range'] = 'bytes=$existingBytes-';
             }
-          },
-        );
-        controller.add(1.0);
+
+            await dio.download(
+              url,
+              tempPath,
+              options: Options(headers: headers),
+              deleteOnError: false,
+              onReceiveProgress: (count, totalBytes) {
+                if (totalBytes > 0) {
+                  final total = totalBytes + existingBytes;
+                  controller.add((count + existingBytes) / total);
+                }
+              },
+            );
+
+            // Скачивание успешно — переименовываем .part → целевой файл
+            await tempFile.rename(targetPath);
+            controller.add(1.0);
+            return;
+          } on DioException {
+            if (attempt == _maxRetries) {
+              // Удаляем partial файл при финальной неудаче
+              if (tempFile.existsSync()) tempFile.deleteSync();
+              rethrow;
+            }
+            // Обновляем existingBytes для resume следующей попытки
+            if (tempFile.existsSync()) {
+              existingBytes = tempFile.lengthSync();
+            }
+            // Экспоненциальный backoff: 2s, 4s, 8s
+            await Future<void>.delayed(
+              Duration(seconds: 2 * (1 << (attempt - 1))),
+            );
+          }
+        }
       } catch (e, st) {
         controller.addError(e, st);
       } finally {

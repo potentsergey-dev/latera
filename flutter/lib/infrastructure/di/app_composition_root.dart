@@ -616,13 +616,41 @@ class AppCompositionRoot {
       'tokenizer.json',
     );
 
-    final modelExists = File(modelPath).existsSync();
-    final tokenizerExists = File(tokenizerPath).existsSync();
+    // Очищаем стейлые .part-файлы от предыдущих упавших загрузок.
+    // Если предыдущий downloadModel() прервался — .part остаётся на диске.
+    // Удаляем его, чтобы следующая попытка начала resume или чистую загрузку.
+    for (final partPath in ['$modelPath.part', '$tokenizerPath.part']) {
+      try {
+        final f = File(partPath);
+        if (f.existsSync()) {
+          f.deleteSync();
+          logger.w('[ONNX] Removed stale .part file: $partPath');
+        }
+      } catch (_) {}
+    }
+
+    // Проверяем наличие файлов и их минимальный размер.
+    // model.onnx ~170 МБ → требуем > 10 МБ (защита от частично скачанного файла).
+    // tokenizer.json ~5 МБ → требуем > 1 КБ.
+    const int minModelBytes = 10 * 1024 * 1024;
+    const int minTokenizerBytes = 1024;
+
+    final modelFile = File(modelPath);
+    final tokenizerFile = File(tokenizerPath);
+
+    bool modelValid = modelFile.existsSync() &&
+        modelFile.lengthSync() >= minModelBytes;
+    bool tokenizerValid = tokenizerFile.existsSync() &&
+        tokenizerFile.lengthSync() >= minTokenizerBytes;
+
     logger.i(
-      '[ONNX] model.onnx exists=$modelExists, tokenizer.json exists=$tokenizerExists',
+      '[ONNX] model.onnx valid=$modelValid'
+      ' (${modelFile.existsSync() ? modelFile.lengthSync() : 0} bytes),'
+      ' tokenizer.json valid=$tokenizerValid'
+      ' (${tokenizerFile.existsSync() ? tokenizerFile.lengthSync() : 0} bytes)',
     );
 
-    if (modelExists && tokenizerExists) {
+    if (modelValid && tokenizerValid) {
       logger.i('[ONNX] Both files present, initializing semantic model');
       try {
         final sw = Stopwatch()..start();
@@ -632,15 +660,31 @@ class AppCompositionRoot {
           '[ONNX] Semantic model loaded in ${sw.elapsedMilliseconds} ms',
         );
         tracker._setEmbeddingStatus(ModelStatus.ready);
+        return;
       } catch (e) {
-        logger.w('[ONNX] Semantic model init failed: $e');
-        tracker._setEmbeddingStatus(ModelStatus.failed, e.toString());
+        // Файлы присутствуют, но загрузка упала — вероятно, файлы повреждены.
+        // Удаляем и перекачиваем.
+        logger.w(
+          '[ONNX] Model init failed (files may be corrupted), re-downloading: $e',
+        );
+        try { modelFile.deleteSync(); } catch (_) {}
+        try { tokenizerFile.deleteSync(); } catch (_) {}
+        // Падаем сквозь в блок скачивания ниже.
       }
-      return;
+    } else {
+      // Удаляем неполные файлы, если они есть (< минимального размера).
+      if (modelFile.existsSync() && !modelValid) {
+        try { modelFile.deleteSync(); } catch (_) {}
+        logger.w('[ONNX] Deleted undersized model.onnx (corrupted partial download)');
+      }
+      if (tokenizerFile.existsSync() && !tokenizerValid) {
+        try { tokenizerFile.deleteSync(); } catch (_) {}
+        logger.w('[ONNX] Deleted undersized tokenizer.json');
+      }
     }
 
-    // Модель не существует на диске — запускаем загрузку с отображением прогресса
-    logger.i('[ONNX] Model files missing, starting download');
+    // Модель не существует (или была повреждена) — запускаем загрузку.
+    logger.i('[ONNX] Model files missing or invalid, starting download');
     tracker._setEmbeddingStatus(ModelStatus.downloading);
 
     final job = EnrichmentJob(
@@ -684,12 +728,6 @@ class AppCompositionRoot {
       coordinator.completeCustomJob(job);
       logger.e('[ONNX] Model download failed', error: e, stackTrace: st);
       tracker._setEmbeddingStatus(ModelStatus.failed, e.toString());
-
-      // Всё равно пытаемся инициализировать — возможно, файл уже был скачан ранее
-      await rust_api
-          .initSemanticModel(dataDir: modelDataDir)
-          .then((_) => tracker._setEmbeddingStatus(ModelStatus.ready))
-          .catchError((Object e) => logger.w('Semantic model init failed: $e'));
     }
   }
 
