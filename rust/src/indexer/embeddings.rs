@@ -101,13 +101,21 @@ const MODEL_FILE: &str = "model.onnx";
 /// Имя файла токенизатора.
 const TOKENIZER_FILE: &str = "tokenizer.json";
 
-/// URL ONNX-модели на Hugging Face.
+/// Первичный URL ONNX-модели (GitHub Releases).
 const MODEL_URL: &str =
-    "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/onnx/model.onnx";
+    "https://github.com/potentsergey-dev/latera/releases/download/v1.0.0-models/model.onnx";
 
-/// URL токенизатора на Hugging Face.
+/// Резервный URL ONNX-модели (HuggingFace).
+const MODEL_URL_FALLBACK: &str =
+    "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/onnx/model.onnx?download=true";
+
+/// Первичный URL токенизатора (GitHub Releases).
 const TOKENIZER_URL: &str =
-    "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/tokenizer.json";
+    "https://github.com/potentsergey-dev/latera/releases/download/v1.0.0-models/tokenizer.json";
+
+/// Резервный URL токенизатора (HuggingFace).
+const TOKENIZER_URL_FALLBACK: &str =
+    "https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/tokenizer.json?download=true";
 
 /// Максимальная длина последовательности токенов для модели.
 const MAX_SEQ_LENGTH: usize = 256;
@@ -210,12 +218,12 @@ pub fn init_semantic_model(data_dir: &str) -> Result<(), LateraError> {
     // Загрузка файлов, если отсутствуют
     if !model_path.exists() {
         info!("Downloading ONNX model from {MODEL_URL}...");
-        download_file(MODEL_URL, &model_path)?;
+        download_file_with_fallback(MODEL_URL, MODEL_URL_FALLBACK, &model_path)?;
         info!("Model downloaded to {}", model_path.display());
     }
     if !tokenizer_path.exists() {
         info!("Downloading tokenizer from {TOKENIZER_URL}...");
-        download_file(TOKENIZER_URL, &tokenizer_path)?;
+        download_file_with_fallback(TOKENIZER_URL, TOKENIZER_URL_FALLBACK, &tokenizer_path)?;
         info!("Tokenizer downloaded to {}", tokenizer_path.display());
     }
 
@@ -261,8 +269,25 @@ pub fn unload_semantic_model() {
 }
 
 /// Скачивает файл по URL и сохраняет на диск.
+/// При ошибке пробует fallback_url.
+fn download_file_with_fallback(
+    url: &str,
+    fallback_url: &str,
+    dest: &Path,
+) -> Result<(), LateraError> {
+    match download_file(url, dest) {
+        Ok(()) => Ok(()),
+        Err(e) => {
+            warn!("Primary download failed ({e}), retrying with fallback: {fallback_url}");
+            download_file(fallback_url, dest)
+        }
+    }
+}
+
+/// Скачивает файл по одному URL и сохраняет на диск.
 fn download_file(url: &str, dest: &Path) -> Result<(), LateraError> {
     let resp = ureq::get(url)
+        .set("User-Agent", "Latera/1.0 (+https://latera.app)")
         .call()
         .map_err(|e| LateraError::ModelDownloadFailed(format!("{e}")))?;
 

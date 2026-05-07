@@ -30,9 +30,15 @@ use crate::error::LateraError;
 /// Имя файла GGUF-модели.
 pub const GGUF_MODEL_FILE: &str = "qwen2.5-3b-instruct-q4_k_m.gguf";
 
-/// URL модели на Hugging Face.
+/// Первичный URL GGUF-модели (GitHub Releases).
+/// Используется Dart-стороной (LlmDownloadService) — не в Rust.
 pub const GGUF_MODEL_URL: &str =
-    "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf";
+    "https://github.com/potentsergey-dev/latera/releases/download/v1.0.0-models/qwen2.5-3b-instruct-q4_k_m.gguf";
+
+/// Резервный URL GGUF-модели (HuggingFace).
+/// Используется Dart-стороной (LlmDownloadService) — не в Rust.
+pub const GGUF_MODEL_URL_FALLBACK: &str =
+    "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/main/qwen2.5-3b-instruct-q4_k_m.gguf?download=true";
 
 /// Максимальное количество токенов в контексте (для 3B модели).
 const CONTEXT_SIZE: u32 = 4096;
