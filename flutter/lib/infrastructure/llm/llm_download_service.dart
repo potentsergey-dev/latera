@@ -18,8 +18,7 @@ class LlmDownloadService {
 
   static const String _ghModelUrl = '$_ghBase/model.onnx';
   static const String _ghTokenizerUrl = '$_ghBase/tokenizer.json';
-  static const String _ghGgufUrl =
-      '$_ghBase/qwen2.5-3b-instruct-q4_k_m.gguf';
+  static const String _ghGgufUrl = '$_ghBase/qwen2.5-3b-instruct-q4_k_m.gguf';
 
   // -------------------------------------------------------------------------
   // HuggingFace (резервный источник).
@@ -116,10 +115,7 @@ class LlmDownloadService {
   ///
   /// Для каждого URL делает до [_maxRetries] попыток с resume и exponential backoff.
   /// При переходе к следующему URL частично скачанный .part-файл удаляется.
-  Stream<double> _downloadWithFallback(
-    List<String> urls,
-    String targetPath,
-  ) {
+  Stream<double> _downloadWithFallback(List<String> urls, String targetPath) {
     final controller = StreamController<double>();
 
     () async {
@@ -200,9 +196,7 @@ class LlmDownloadService {
         }
 
         // Все URL исчерпаны
-        throw Exception(
-          'Не удалось загрузить файл: все источники недоступны.',
-        );
+        throw Exception('Не удалось загрузить файл: все источники недоступны.');
       } catch (e, st) {
         controller.addError(e, st);
       } finally {
