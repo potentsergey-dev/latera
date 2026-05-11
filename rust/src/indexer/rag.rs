@@ -772,7 +772,13 @@ fn extract_query_keywords(question: &str) -> Vec<String> {
     let normalized: String = question
         .to_lowercase()
         .chars()
-        .map(|c| if c.is_alphanumeric() || c == '_' || c == '-' { c } else { ' ' })
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' || c == '-' {
+                c
+            } else {
+                ' '
+            }
+        })
         .collect();
 
     let mut seen = std::collections::HashSet::new();
