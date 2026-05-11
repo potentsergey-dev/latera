@@ -452,7 +452,9 @@ class _RagScreenState extends State<RagScreen> {
   }
 
   Future<void> _showReportDialog(
-      BuildContext context, AppLocalizations l10n) async {
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
