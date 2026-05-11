@@ -802,4 +802,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String ragSourcesCount(int count) {
     return 'Источники ($count)';
   }
+
+  @override
+  String get ragReportContent => 'Пожаловаться на ответ';
+
+  @override
+  String get ragReportDialogTitle => 'Пожаловаться на AI-контент';
+
+  @override
+  String get ragReportDialogBody =>
+      'Если этот ответ, сгенерированный AI, содержит неуместный, вредоносный '
+      'или существенно неточный контент, пожалуйста, сообщите нам.\n\n'
+      'Отправьте отзыв на: laterateam@gmail.com\n\n'
+      'Укажите ваш вопрос и описание проблемы.';
+
+  @override
+  String get ragReportDialogOk => 'OK';
 }

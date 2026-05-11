@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter/widgets.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../domain/app_config.dart';
 import '../../../domain/license.dart';
@@ -460,6 +461,59 @@ class _WindowsRagPageState extends fluent.State<WindowsRagPage> {
                 ),
               ),
           ],
+
+          // Report inappropriate content button (required by Store policy 11.16)
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: fluent.HyperlinkButton(
+              onPressed: () => _showReportDialog(context),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.flag_outlined, size: 14),
+                  const SizedBox(width: 4),
+                  Text(
+                    AppLocalizations.of(context)!.ragReportContent,
+                    style: theme.typography.caption,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showReportDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    await fluent.showDialog<void>(
+      context: context,
+      builder: (ctx) => fluent.ContentDialog(
+        title: Text(l10n.ragReportDialogTitle),
+        content: Text(l10n.ragReportDialogBody),
+        actions: [
+          fluent.Button(
+            onPressed: () async {
+              final uri = Uri(
+                scheme: 'mailto',
+                path: 'laterateam@gmail.com',
+                queryParameters: {
+                  'subject': 'Latera: Report inappropriate AI content',
+                },
+              );
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: const Text('Open email client'),
+          ),
+          fluent.FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.ragReportDialogOk),
+          ),
         ],
       ),
     );

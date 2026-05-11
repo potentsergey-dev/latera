@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../domain/app_config.dart';
 import '../domain/license.dart';
@@ -428,6 +429,56 @@ class _RagScreenState extends State<RagScreen> {
             const SizedBox(height: 8),
             ..._result!.sources.map((source) => _SourceCard(source: source)),
           ],
+
+          // Report inappropriate content button (required by Store policy 11.16)
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _showReportDialog(context, l10n),
+              icon: const Icon(Icons.flag_outlined, size: 16),
+              label: Text(
+                l10n.ragReportContent,
+                style: theme.textTheme.bodySmall,
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.outline,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showReportDialog(
+      BuildContext context, AppLocalizations l10n) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.ragReportDialogTitle),
+        content: Text(l10n.ragReportDialogBody),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final uri = Uri(
+                scheme: 'mailto',
+                path: 'laterateam@gmail.com',
+                queryParameters: {
+                  'subject': 'Latera: Report inappropriate AI content',
+                },
+              );
+              if (await canLaunchUrl(uri)) {
+                await launchUrl(uri);
+              }
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: const Text('Open email client'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.ragReportDialogOk),
+          ),
         ],
       ),
     );

@@ -330,12 +330,18 @@ pub fn rag_query(
     let similar = embeddings::similarity_search(conn, question, top_k)?;
 
     if similar.is_empty() {
-        debug!("RAG: no relevant chunks found for query");
-        return Ok(RagResult {
-            answer: String::new(),
-            sources: Vec::new(),
-            error_code: Some("no_relevant_chunks".to_string()),
-        });
+        debug!("RAG: no relevant chunks found for query, trying FTS fallback");
+        return match fts_fallback_context(conn, question, top_k)? {
+            Some((context, sources)) => {
+                let answer = generate_answer(question, &context, sources.len());
+                Ok(RagResult { answer, sources, error_code: None })
+            }
+            None => Ok(RagResult {
+                answer: String::new(),
+                sources: Vec::new(),
+                error_code: Some("no_relevant_chunks".to_string()),
+            }),
+        };
     }
 
     // 2. Фильтруем по минимальному порогу
@@ -444,7 +450,8 @@ fn rag_fetch_context(
 
     if candidates.is_empty() {
         debug!("RAG fetch-context: no relevant candidates from similarity_search");
-        return Ok(None);
+        info!("RAG fetch-context: trying keyword/FTS fallback");
+        return fts_fallback_context(conn, question, top_k);
     }
 
     info!(
@@ -471,7 +478,8 @@ fn rag_fetch_context(
             .next();
 
         let text = full_text.unwrap_or_else(|| candidate.chunk_snippet.clone());
-        context_parts.push(text);
+        // Prefix each chunk with its file path so the answer can reference location.
+        context_parts.push(format!("File: {}\n{}", candidate.file_path, text));
 
         sources.push(RagSource {
             file_path: candidate.file_path.clone(),
@@ -555,7 +563,7 @@ fn generate_stub_answer(_question: &str, context: &str, source_count: usize) -> 
     let fragments: Vec<&str> = context.split("\n\n---\n\n").collect();
     let shown = fragments.len().min(MAX_STUB_FRAGMENTS);
     let mut result = format!(
-        "⚠️ Генеративная модель (LLM) не загружена — показаны наиболее релевантные фрагменты ({} из {}).\n",
+        "Showing the {} most relevant snippet(s) found (out of {}):\n",
         shown,
         source_count,
     );
@@ -602,6 +610,179 @@ fn truncate(s: &str, max_len: usize) -> String {
         let truncated: String = s.chars().take(max_len).collect();
         format!("{truncated}…")
     }
+}
+
+/// Keyword + FTS5 fallback for RAG when no embeddings are available.
+///
+/// Used when `similarity_search` returns no results — e.g., when the ONNX
+/// model has not finished downloading or embeddings are not yet computed.
+///
+/// Strategy:
+/// 1. Extract meaningful keywords from the question.
+/// 2. Run FTS5 MATCH query against `files_fts`.
+/// 3. If nothing found, fall back to LIKE search on `files.file_name`.
+fn fts_fallback_context(
+    conn: &Connection,
+    question: &str,
+    top_k: usize,
+) -> Result<Option<(String, Vec<RagSource>)>, LateraError> {
+    let keywords = extract_query_keywords(question);
+    let mut results: Vec<(String, String, String)> = Vec::new(); // (file_path, file_name, content)
+
+    // -----------------------------------------------------------------------
+    // Step 1: FTS5 keyword search
+    // -----------------------------------------------------------------------
+    if !keywords.is_empty() {
+        // Build FTS5 OR query — quote each keyword and also expand
+        // underscore-joined tokens (e.g. "pdf_doc_1" → "pdf" OR "doc").
+        let mut fts_terms: Vec<String> = Vec::new();
+        for kw in &keywords {
+            let safe = kw.replace('"', "");
+            fts_terms.push(format!("\"{}\"", safe));
+            if safe.contains('_') {
+                for part in safe.split('_') {
+                    if part.chars().count() >= 3 {
+                        fts_terms.push(format!("\"{}\"", part));
+                    }
+                }
+            }
+        }
+        fts_terms.dedup();
+        let fts_query = fts_terms.join(" OR ");
+
+        match conn.prepare(
+            "SELECT f.file_path, f.file_name,
+                    COALESCE(NULLIF(f.text_content, ''), NULLIF(f.description, ''), '') AS content
+             FROM files_fts
+             JOIN files f ON f.id = files_fts.rowid
+             WHERE files_fts MATCH ?1
+             ORDER BY rank
+             LIMIT ?2",
+        ) {
+            Ok(mut stmt) => {
+                if let Ok(rows) = stmt.query_map(
+                    rusqlite::params![fts_query, top_k as i64],
+                    |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, String>(2)?,
+                        ))
+                    },
+                ) {
+                    for r in rows.flatten() {
+                        results.push(r);
+                    }
+                }
+            }
+            Err(e) => warn!("RAG FTS5 fallback query failed: {e}"),
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Step 2: LIKE search on file_name (handles compound names like PDF_Doc_1)
+    // -----------------------------------------------------------------------
+    if results.is_empty() {
+        for kw in &keywords {
+            if kw.chars().count() < 3 {
+                continue;
+            }
+            let pattern = format!("%{}%", kw);
+            match conn.prepare(
+                "SELECT file_path, file_name,
+                        COALESCE(NULLIF(text_content, ''), NULLIF(description, ''), '') AS content
+                 FROM files
+                 WHERE LOWER(file_name) LIKE LOWER(?1)
+                 LIMIT ?2",
+            ) {
+                Ok(mut stmt) => {
+                    if let Ok(rows) = stmt.query_map(
+                        rusqlite::params![pattern, top_k as i64],
+                        |row| {
+                            Ok((
+                                row.get::<_, String>(0)?,
+                                row.get::<_, String>(1)?,
+                                row.get::<_, String>(2)?,
+                            ))
+                        },
+                    ) {
+                        for r in rows.flatten() {
+                            results.push(r);
+                        }
+                    }
+                }
+                Err(e) => warn!("RAG LIKE fallback query failed: {e}"),
+            }
+            if !results.is_empty() {
+                break;
+            }
+        }
+    }
+
+    if results.is_empty() {
+        info!("RAG FTS fallback: no matching files found");
+        return Ok(None);
+    }
+
+    info!("RAG FTS fallback: found {} file(s)", results.len());
+
+    let mut context_parts = Vec::new();
+    let mut sources = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    for (file_path, _file_name, content) in results.iter().take(top_k) {
+        if !seen.insert(file_path.clone()) {
+            continue;
+        }
+        let snippet = truncate(&content, 500);
+        context_parts.push(format!("File: {}\n{}", file_path, snippet));
+        sources.push(RagSource {
+            file_path: file_path.clone(),
+            chunk_snippet: truncate(&snippet, 200),
+            chunk_offset: 0,
+        });
+    }
+
+    if sources.is_empty() {
+        return Ok(None);
+    }
+
+    Ok(Some((context_parts.join("\n\n---\n\n"), sources)))
+}
+
+/// Extracts meaningful keywords from the question for fallback search.
+///
+/// Lowercases, keeps alphanumeric + `_` + `-`, strips short stopwords.
+fn extract_query_keywords(question: &str) -> Vec<String> {
+    const STOPWORDS: &[&str] = &[
+        "the", "and", "are", "was", "for", "you", "your", "can", "its",
+        "with", "from", "into", "between", "through", "during", "before",
+        "after", "above", "below", "also", "just", "only", "have", "has",
+        "had", "been", "will", "would", "could", "should", "may", "might",
+        "this", "that", "these", "those", "which", "what", "when", "who",
+        "how", "where", "please", "show", "find", "tell", "give", "list",
+        "folder", "file", "document",
+        // Russian stopwords
+        "это", "или", "все", "мне", "мой", "моя", "моё",
+        "где", "файл", "папка", "какой", "какая", "какое",
+        "который", "которая", "которое", "которые",
+        "пожалуйста", "покажи", "найди", "список",
+    ];
+
+    let normalized: String = question
+        .to_lowercase()
+        .chars()
+        .map(|c| if c.is_alphanumeric() || c == '_' || c == '-' { c } else { ' ' })
+        .collect();
+
+    let mut seen = std::collections::HashSet::new();
+    normalized
+        .split_whitespace()
+        .filter(|t| t.chars().count() >= 3)
+        .filter(|t| !STOPWORDS.contains(t))
+        .map(|t| t.to_string())
+        .filter(|t| seen.insert(t.clone()))
+        .collect()
 }
 
 // ============================================================================

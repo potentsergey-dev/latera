@@ -1483,6 +1483,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sources ({count})'**
   String ragSourcesCount(int count);
+
+  /// Button to report inappropriate AI-generated content
+  ///
+  /// In en, this message translates to:
+  /// **'Report this answer'**
+  String get ragReportContent;
+
+  /// Title of the report dialog
+  ///
+  /// In en, this message translates to:
+  /// **'Report inappropriate AI content'**
+  String get ragReportDialogTitle;
+
+  /// Body of the report dialog
+  ///
+  /// In en, this message translates to:
+  /// **'If this AI-generated response contains inappropriate, harmful, or significantly inaccurate content, please let us know.'**
+  String get ragReportDialogBody;
+
+  /// Confirm button in the report dialog
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get ragReportDialogOk;
 }
 
 class _AppLocalizationsDelegate

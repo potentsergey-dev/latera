@@ -692,5 +692,17 @@
   "@ragLearnAboutPro": { "description": "Button to learn about PRO in RAG screen" },
 
   "ragSourcesCount": "Sources ({count})",
-  "@ragSourcesCount": { "description": "Sources section label with count", "placeholders": { "count": { "type": "int" } } }
+  "@ragSourcesCount": { "description": "Sources section label with count", "placeholders": { "count": { "type": "int" } } },
+
+  "ragReportContent": "Report this answer",
+  "@ragReportContent": { "description": "Button to report inappropriate AI-generated content" },
+
+  "ragReportDialogTitle": "Report inappropriate AI content",
+  "@ragReportDialogTitle": { "description": "Title of the report dialog" },
+
+  "ragReportDialogBody": "If this AI-generated response contains inappropriate, harmful, or significantly inaccurate content, please let us know.\n\nSend feedback to: laterateam@gmail.com\n\nPlease include your question and a description of the issue.",
+  "@ragReportDialogBody": { "description": "Body of the report dialog" },
+
+  "ragReportDialogOk": "OK",
+  "@ragReportDialogOk": { "description": "Confirm button in the report dialog" }
 }

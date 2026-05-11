@@ -257,5 +257,10 @@
   "ragErrorUnknown": "Не удалось получить ответ",
   "ragProRequired": "Доступно в PRO",
   "ragLearnAboutPro": "Узнать о PRO",
-  "ragSourcesCount": "Источники ({count})"
+  "ragSourcesCount": "Источники ({count})",
+
+  "ragReportContent": "Пожаловаться на ответ",
+  "ragReportDialogTitle": "Пожаловаться на AI-контент",
+  "ragReportDialogBody": "Если этот ответ, сгенерированный AI, содержит неуместный, вредоносный или существенно неточный контент, пожалуйста, сообщите нам.\n\nОтправьте отзыв на: laterateam@gmail.com\n\nУкажите ваш вопрос и описание проблемы.",
+  "ragReportDialogOk": "OK"
 }

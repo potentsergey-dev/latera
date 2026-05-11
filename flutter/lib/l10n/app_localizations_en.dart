@@ -799,4 +799,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String ragSourcesCount(int count) {
     return 'Sources ($count)';
   }
+
+  @override
+  String get ragReportContent => 'Report this answer';
+
+  @override
+  String get ragReportDialogTitle => 'Report inappropriate AI content';
+
+  @override
+  String get ragReportDialogBody =>
+      'If this AI-generated response contains inappropriate, harmful, or '
+      'significantly inaccurate content, please let us know.\n\n'
+      'Send feedback to: laterateam@gmail.com\n\n'
+      'Please include your question and a description of the issue.';
+
+  @override
+  String get ragReportDialogOk => 'OK';
 }
