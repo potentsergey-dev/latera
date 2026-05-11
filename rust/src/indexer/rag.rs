@@ -334,7 +334,11 @@ pub fn rag_query(
         return match fts_fallback_context(conn, question, top_k)? {
             Some((context, sources)) => {
                 let answer = generate_answer(question, &context, sources.len());
-                Ok(RagResult { answer, sources, error_code: None })
+                Ok(RagResult {
+                    answer,
+                    sources,
+                    error_code: None,
+                })
             }
             None => Ok(RagResult {
                 answer: String::new(),
@@ -564,8 +568,7 @@ fn generate_stub_answer(_question: &str, context: &str, source_count: usize) -> 
     let shown = fragments.len().min(MAX_STUB_FRAGMENTS);
     let mut result = format!(
         "Showing the {} most relevant snippet(s) found (out of {}):\n",
-        shown,
-        source_count,
+        shown, source_count,
     );
     for (i, fragment) in fragments.iter().take(MAX_STUB_FRAGMENTS).enumerate() {
         let trimmed = fragment.trim();
@@ -660,16 +663,15 @@ fn fts_fallback_context(
              LIMIT ?2",
         ) {
             Ok(mut stmt) => {
-                if let Ok(rows) = stmt.query_map(
-                    rusqlite::params![fts_query, top_k as i64],
-                    |row| {
+                if let Ok(rows) =
+                    stmt.query_map(rusqlite::params![fts_query, top_k as i64], |row| {
                         Ok((
                             row.get::<_, String>(0)?,
                             row.get::<_, String>(1)?,
                             row.get::<_, String>(2)?,
                         ))
-                    },
-                ) {
+                    })
+                {
                     for r in rows.flatten() {
                         results.push(r);
                     }
@@ -696,16 +698,15 @@ fn fts_fallback_context(
                  LIMIT ?2",
             ) {
                 Ok(mut stmt) => {
-                    if let Ok(rows) = stmt.query_map(
-                        rusqlite::params![pattern, top_k as i64],
-                        |row| {
+                    if let Ok(rows) =
+                        stmt.query_map(rusqlite::params![pattern, top_k as i64], |row| {
                             Ok((
                                 row.get::<_, String>(0)?,
                                 row.get::<_, String>(1)?,
                                 row.get::<_, String>(2)?,
                             ))
-                        },
-                    ) {
+                        })
+                    {
                         for r in rows.flatten() {
                             results.push(r);
                         }
@@ -755,18 +756,79 @@ fn fts_fallback_context(
 /// Lowercases, keeps alphanumeric + `_` + `-`, strips short stopwords.
 fn extract_query_keywords(question: &str) -> Vec<String> {
     const STOPWORDS: &[&str] = &[
-        "the", "and", "are", "was", "for", "you", "your", "can", "its",
-        "with", "from", "into", "between", "through", "during", "before",
-        "after", "above", "below", "also", "just", "only", "have", "has",
-        "had", "been", "will", "would", "could", "should", "may", "might",
-        "this", "that", "these", "those", "which", "what", "when", "who",
-        "how", "where", "please", "show", "find", "tell", "give", "list",
-        "folder", "file", "document",
+        "the",
+        "and",
+        "are",
+        "was",
+        "for",
+        "you",
+        "your",
+        "can",
+        "its",
+        "with",
+        "from",
+        "into",
+        "between",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "also",
+        "just",
+        "only",
+        "have",
+        "has",
+        "had",
+        "been",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "this",
+        "that",
+        "these",
+        "those",
+        "which",
+        "what",
+        "when",
+        "who",
+        "how",
+        "where",
+        "please",
+        "show",
+        "find",
+        "tell",
+        "give",
+        "list",
+        "folder",
+        "file",
+        "document",
         // Russian stopwords
-        "это", "или", "все", "мне", "мой", "моя", "моё",
-        "где", "файл", "папка", "какой", "какая", "какое",
-        "который", "которая", "которое", "которые",
-        "пожалуйста", "покажи", "найди", "список",
+        "это",
+        "или",
+        "все",
+        "мне",
+        "мой",
+        "моя",
+        "моё",
+        "где",
+        "файл",
+        "папка",
+        "какой",
+        "какая",
+        "какое",
+        "который",
+        "которая",
+        "которое",
+        "которые",
+        "пожалуйста",
+        "покажи",
+        "найди",
+        "список",
     ];
 
     let normalized: String = question
