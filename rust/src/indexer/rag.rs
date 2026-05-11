@@ -735,7 +735,7 @@ fn fts_fallback_context(
         if !seen.insert(file_path.clone()) {
             continue;
         }
-        let snippet = truncate(&content, 500);
+        let snippet = truncate(content, 500);
         context_parts.push(format!("File: {}\n{}", file_path, snippet));
         sources.push(RagSource {
             file_path: file_path.clone(),
